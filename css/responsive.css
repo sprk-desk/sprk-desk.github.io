@@ -1,0 +1,68 @@
+/* Responsive Adaptation: Desktop 1440px, Tablet, and Narrow Mobile 390px */
+
+@media (max-width: 900px) {
+  .sprk-grid-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .sprk-grid-2,
+  .sprk-grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .sprk-dialog {
+    width: calc(100vw - 16px);
+    max-height: calc(100vh - 20px);
+    border-radius: 14px;
+  }
+
+  .sprk-dialog[data-dialog-skin="diary"] .sprk-dialog-header,
+  .sprk-dialog[data-dialog-skin="diary"] .sprk-dialog-body {
+    padding-left: 20px;
+  }
+
+  /* Keep all room objects proportional, reachable (>=40px), and non-overlapping on 390px mobile */
+  html body .window-object {
+    top: 2%;
+    left: 2%;
+    width: 41%;
+    height: 30%;
+  }
+
+  html body .merchant-bird {
+    width: 52px;
+    height: 56px;
+    right: 4%;
+    bottom: 2%;
+  }
+
+  html body .bookcase {
+    top: 2%;
+    right: 2%;
+    width: 53%;
+    height: 40%;
+  }
+
+  html body .desk-clock { left: 5%; width: 27%; }
+  html body .desk-hourglass { left: 37%; width: 20%; height: 68%; }
+  html body .desk-plant { right: 4%; width: 24%; height: 78%; }
+  html body .wall-calendar { left: 7%; width: 27%; height: 76%; }
+  html body .trophy { right: 10%; width: 25%; height: 78%; }
+  html body .photo-frame { left: 4%; width: 38%; height: 74%; }
+  html body .portrait-badge { font-size: 8px; padding: 1px 4px; max-width: 128%; }
+  html body .mascot { left: 48%; width: 25%; height: 76%; }
+  html body .cabinet-drawer .drawer-pull { width: 52%; }
+
+  html body .desk {
+    height: 41%;
+  }
+
+  html body .desk-lamp { left: 2%; top: -15%; width: 72px; min-width: 0; height: auto; aspect-ratio: 221 / 340; }
+  html body .desk-computer { left: 24%; top: -10%; width: 104px; min-width: 0; height: auto; aspect-ratio: 352 / 360; }
+  html body .desk-phone { left: 4%; top: 44%; width: 50px; min-width: 0; height: auto; aspect-ratio: 88 / 134; }
+  html body .desk-notebook { left: 23%; top: 43%; width: 92px; min-width: 0; height: auto; aspect-ratio: 130 / 106; }
+  html body .desk-headphones { right: 19%; top: 40%; width: 76px; min-width: 0; height: auto; aspect-ratio: 336 / 340; }
+  html body .coffee-mug { right: 3%; top: 50%; width: 58px; min-width: 0; height: auto; aspect-ratio: 280 / 243; }
+}
