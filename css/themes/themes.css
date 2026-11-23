@@ -1,0 +1,280 @@
+/* Centralized 10 Room Themes */
+
+html[data-theme="comic"] {
+  --wall: #f7eedb;
+  --wall-light: #fff8e9;
+  --wall-shadow: #d7c6a9;
+  --floor: #d7c4a4;
+  --ink: #342c25;
+  --muted: #6e6152;
+  --wood: #b97848;
+  --wood-light: #e2a56d;
+  --wood-edge: #875438;
+  --desk-top: #f1c78f;
+  --accent: #e76d50;
+  --case-back: #f6ecd7;
+  --trim-light: #efe1c5;
+  --trim-dark: #a98d69;
+  --hill-a: #8ebc91;
+  --hill-b: #548b70;
+  --hill-c: #71a981;
+}
+
+html[data-theme="modern"] {
+  --wall: #dbeaf0;
+  --wall-light: #f1fbff;
+  --wall-shadow: #adc8d5;
+  --floor: #9ebac7;
+  --ink: #193b4b;
+  --muted: #46697a;
+  --wood: #56899b;
+  --wood-light: #8ec4d2;
+  --wood-edge: #32677d;
+  --desk-top: #b8e3e6;
+  --accent: #329da5;
+  --case-back: #cce3ea;
+  --trim-light: #a4edf0;
+  --trim-dark: #235469;
+  --hill-a: #6eb3b3;
+  --hill-b: #347786;
+  --hill-c: #4d949b;
+}
+
+html[data-theme="vintage"] {
+  --wall: #ece0ca;
+  --wall-light: #fbf4e6;
+  --wall-shadow: #cbb796;
+  --floor: #b89c78;
+  --ink: #332419;
+  --muted: #685240;
+  --wood: #7d4f30;
+  --wood-light: #b67e51;
+  --wood-edge: #52321c;
+  --desk-top: #a76f43;
+  --accent: #9c6334;
+  --case-back: #e6d3b3;
+  --trim-light: #d7b98e;
+  --trim-dark: #6b4528;
+  --hill-a: #8da677;
+  --hill-b: #556e4d;
+  --hill-c: #6f895e;
+}
+
+html[data-theme="japanese"] {
+  --wall: #f2ede2;
+  --wall-light: #fcfaf4;
+  --wall-shadow: #d5cdbc;
+  --floor: #d9cfad;
+  --ink: #2b2c26;
+  --muted: #606154;
+  --wood: #b89668;
+  --wood-light: #dfc49a;
+  --wood-edge: #8a6c44;
+  --desk-top: #e8d2ad;
+  --accent: #5e8466;
+  --case-back: #ede6d6;
+  --trim-light: #ece3d0;
+  --trim-dark: #9c7e54;
+  --hill-a: #9db897;
+  --hill-b: #5f8265;
+  --hill-c: #7b9b77;
+}
+
+html[data-theme="rainy"] {
+  --wall: #ced9e2;
+  --wall-light: #eef4f8;
+  --wall-shadow: #a5b6c4;
+  --floor: #8ea1b0;
+  --ink: #1f2e3b;
+  --muted: #4b5e6e;
+  --wood: #5d6f7d;
+  --wood-light: #899dac;
+  --wood-edge: #3c4c58;
+  --desk-top: #a4b5c2;
+  --accent: #457294;
+  --case-back: #d6e0e8;
+  --trim-light: #b6c5d1;
+  --trim-dark: #495a68;
+  --hill-a: #6a8d8e;
+  --hill-b: #3d5d62;
+  --hill-c: #527477;
+}
+
+html[data-theme="cottagecore"] {
+  --wall: #edf2e1;
+  --wall-light: #fafcf3;
+  --wall-shadow: #c7d4b6;
+  --floor: #c8b28e;
+  --ink: #313829;
+  --muted: #5f6853;
+  --wood: #b58450;
+  --wood-light: #ddb079;
+  --wood-edge: #805932;
+  --desk-top: #e9c592;
+  --accent: #689157;
+  --case-back: #eef3e4;
+  --trim-light: #dce5c9;
+  --trim-dark: #7d8f65;
+  --hill-a: #98c78a;
+  --hill-b: #5c9059;
+  --hill-c: #79ab6e;
+}
+
+html[data-theme="space"] {
+  --wall: #1d2d44;
+  --wall-light: #f0f6fc;
+  --wall-shadow: #121e30;
+  --floor: #273952;
+  --ink: #102033;
+  --muted: #475d75;
+  --wood: #4c6480;
+  --wood-light: #7c97b5;
+  --wood-edge: #2d4057;
+  --desk-top: #98afc7;
+  --accent: #3194ad;
+  --case-back: #2c415c;
+  --trim-light: #6e8aa8;
+  --trim-dark: #1d2e44;
+  --window-radius: 28px;
+}
+
+html[data-theme="autumn"] {
+  --wall: #f2dec8;
+  --wall-light: #fdf6ec;
+  --wall-shadow: #cfa985;
+  --floor: #c28e64;
+  --ink: #3b2418;
+  --muted: #6e4e3d;
+  --wood: #a35a36;
+  --wood-light: #d68b5d;
+  --wood-edge: #733b20;
+  --desk-top: #e3a776;
+  --accent: #c4582c;
+  --case-back: #f5e2cd;
+  --trim-light: #eab98d;
+  --trim-dark: #8c4d2e;
+  --hill-a: #d99c5b;
+  --hill-b: #a15538;
+  --hill-c: #bd7746;
+}
+
+html[data-theme="winter"] {
+  --wall: #dfeaf2;
+  --wall-light: #f7fbfe;
+  --wall-shadow: #b5cad9;
+  --floor: #a5846c;
+  --ink: #22303c;
+  --muted: #506170;
+  --wood: #845940;
+  --wood-light: #b88a6b;
+  --wood-edge: #583927;
+  --desk-top: #c99d7d;
+  --accent: #4c7c9e;
+  --case-back: #e6eff5;
+  --trim-light: #d1e0eb;
+  --trim-dark: #698094;
+  --hill-a: #d9e7ef;
+  --hill-b: #8ba8bc;
+  --hill-c: #b5ccda;
+}
+
+html[data-theme="midnight"] {
+  --wall: #232842;
+  --wall-light: #f6f4ef;
+  --wall-shadow: #15192b;
+  --floor: #2c2430;
+  --ink: #1d1f2e;
+  --muted: #56586b;
+  --wood: #5e3f35;
+  --wood-light: #8b6052;
+  --wood-edge: #3d261f;
+  --desk-top: #7d5447;
+  --accent: #b88432;
+  --case-back: #2d324f;
+  --trim-light: #5c5470;
+  --trim-dark: #1d1f33;
+  --hill-a: #3b4f66;
+  --hill-b: #223042;
+  --hill-c: #2d3e52;
+}
+
+html[data-theme="jungle"] {
+  --wall: #e6efe0;
+  --wall-light: #f7fbf2;
+  --wall-shadow: #bdd1b3;
+  --floor: #b9a176;
+  --ink: #273624;
+  --muted: #556a4e;
+  --wood: #8c6438;
+  --wood-light: #c2955d;
+  --wood-edge: #5f4222;
+  --desk-top: #d9b073;
+  --accent: #4c8c4a;
+  --case-back: #dde9d4;
+  --trim-light: #c8dbb4;
+  --trim-dark: #638252;
+  --hill-a: #6ea962;
+  --hill-b: #356e43;
+  --hill-c: #4d8c52;
+}
+
+html[data-theme="anime"] {
+  --wall: #f6eefa;
+  --wall-light: #fffafd;
+  --wall-shadow: #dbcbe6;
+  --floor: #d9c5dd;
+  --ink: #382c47;
+  --muted: #6e5f80;
+  --wood: #c58ba4;
+  --wood-light: #eabfcf;
+  --wood-edge: #8d5c73;
+  --desk-top: #f3dce6;
+  --accent: #df779e;
+  --case-back: #f2e8f8;
+  --trim-light: #fae7f0;
+  --trim-dark: #a67895;
+  --hill-a: #d8a7cb;
+  --hill-b: #897aa8;
+  --hill-c: #b28eb8;
+}
+
+html[data-theme="ocean"] {
+  --wall: #d6eef0;
+  --wall-light: #f2fcfd;
+  --wall-shadow: #9ecad0;
+  --floor: #7aaab3;
+  --ink: #173a47;
+  --muted: #456e7a;
+  --wood: #4f8594;
+  --wood-light: #89bcc7;
+  --wood-edge: #2d5966;
+  --desk-top: #b6dee3;
+  --accent: #e07a67;
+  --case-back: #c8e7ea;
+  --trim-light: #a9dde0;
+  --trim-dark: #2c6270;
+  --hill-a: #4f9e9e;
+  --hill-b: #286575;
+  --hill-c: #39818c;
+  --window-radius: 50%;
+}
+
+html[data-theme="alchemy"] {
+  --wall: #2b233d;
+  --wall-light: #faf3fc;
+  --wall-shadow: #1b1529;
+  --floor: #36283e;
+  --ink: #1e162b;
+  --muted: #5a4e6e;
+  --wood: #6e4e44;
+  --wood-light: #a67e5f;
+  --wood-edge: #47302a;
+  --desk-top: #825b4e;
+  --accent: #c78b4b;
+  --case-back: #392e50;
+  --trim-light: #7c6891;
+  --trim-dark: #211833;
+  --hill-a: #4f416e;
+  --hill-b: #2b2342;
+  --hill-c: #3b3157;
+}

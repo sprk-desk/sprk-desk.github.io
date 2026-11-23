@@ -1,0 +1,119 @@
+/* Responsive Adaptation: Desktop 1440px, Tablet, and Narrow Mobile 390px */
+
+@media (max-width: 900px) {
+  .sprk-grid-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .sprk-grid-2,
+  .sprk-grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .sprk-shop-roof-tabs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .sprk-turntable-card {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+  .sprk-turntable-controls {
+    width: 100%;
+  }
+
+  .sprk-disc-grid,
+  .sprk-skins-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sprk-sky-grid,
+  .sprk-weather-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .sprk-shop-dept-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sprk-shop-wallet-note {
+    text-align: left;
+  }
+
+  .sprk-dialog {
+    width: calc(100vw - 16px);
+    max-height: calc(100vh - 20px);
+    border-radius: 14px;
+  }
+
+  .sprk-preview-dialog {
+    width: calc(100vw - 20px);
+  }
+
+  .sprk-dialog[data-dialog-skin="diary"] .sprk-dialog-header,
+  .sprk-dialog[data-dialog-skin="diary"] .sprk-dialog-body {
+    padding-left: 20px;
+  }
+
+  /* Keep all room objects proportional, reachable (>=40px), and non-overlapping on 390px mobile */
+  html body .window-object {
+    top: 3%;
+    left: 2.5%;
+    width: 40%;
+    height: 29%;
+  }
+
+  html body .window-object .window-curtain {
+    width: 12%;
+  }
+
+  html body .merchant-bird {
+    width: 52px;
+    height: 56px;
+    right: 4%;
+    bottom: 2%;
+  }
+
+  html body .bookcase {
+    top: 3%;
+    right: 2.5%;
+    width: 52%;
+    height: 40%;
+  }
+
+  html body .bookcase .shelf-deco-candle,
+  html body .bookcase .shelf-deco-bookend,
+  html body .bookcase .bookcase-fairy-lights,
+  html body .desk .desk-deco-charm {
+    display: none;
+  }
+
+  html body .desk-clock:not(.is-placed) { left: 5%; bottom: 8%; }
+  html body .desk-hourglass:not(.is-placed) { left: 37%; bottom: 8%; }
+  html body .desk-plant:not(.is-placed) { right: 4%; bottom: 4%; }
+  html body .wall-calendar:not(.is-placed) { left: 7%; bottom: 6%; }
+  html body .trophy:not(.is-placed) { right: 10%; bottom: 5%; }
+  html body .photo-frame:not(.is-placed) { left: 4%; bottom: 10%; }
+  html body .photo-frame .portrait-badge { font-size: 7.5px; padding: 1px 4px; max-width: 155%; }
+  html body .mascot:not(.is-placed) { left: 48%; bottom: 4%; }
+  html body .custom-prop:not(.is-placed) { left: 56%; bottom: 6%; }
+  html body .cabinet-drawer .drawer-pull { width: 52%; }
+
+  html body .desk {
+    height: 40%;
+  }
+
+  html body .desk .desk-blotter { left: 17%; width: 63%; top: 15%; height: 61%; }
+  html body .desk .desk-keyboard-mouse { left: 22%; top: 20%; width: 33%; min-width: 112px; }
+  html body .desk .desk-pen-cup { left: 66%; top: 12%; width: 32px; min-width: 0; }
+  html body .desk .desk-coaster { right: 1.8%; top: 53.5%; width: 54px; min-width: 0; }
+
+  html body .desk-lamp:not(.is-placed) { left: 2%; top: -15%; }
+  html body .desk-computer { left: 22%; top: -14%; }
+  html body .desk-phone:not(.is-placed) { left: 3%; top: 43%; }
+  html body .desk-notebook:not(.is-placed) { left: 21%; top: 46%; }
+  html body .desk-headphones:not(.is-placed) { right: 20%; top: 41%; }
+  html body .coffee-mug:not(.is-placed) { right: 2%; top: 42%; }
+}
