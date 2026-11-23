@@ -58,7 +58,9 @@ $root .bird-sprite {
       vintage: `$root .bird-branch { display: none; }`,
       anime: `$root .bird-branch { background: linear-gradient(#e9bfd0 0 42%, #be8aa2 44%); }`,
       ocean: `$root .bird-branch { background: linear-gradient(#bfa486 0 42%, #876c50 44%); }`,
-      alchemy: `$root .bird-branch { background: linear-gradient(#7d5f53 0 42%, #4d3730 44%); }`
+      alchemy: `$root .bird-branch { background: linear-gradient(#7d5f53 0 42%, #4d3730 44%); }`,
+      editorial: `$root .bird-branch { bottom: 0; height: 8%; border-radius: 2px; transform: rotate(0deg); background: linear-gradient(#2c2c2c 0 42%, #111111 44%); }`,
+      noir: `$root .bird-branch { display: none; }`
     }
   };
 }

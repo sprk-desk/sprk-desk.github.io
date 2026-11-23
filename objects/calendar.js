@@ -25,7 +25,9 @@ $root {
       modern: `$root { --cal-head: #43919c; }`,
       anime: `$root { --cal-head: #e682a8; }`,
       ocean: `$root { --cal-head: #e07a67; }`,
-      alchemy: `$root { --cal-head: #6b4982; }`
+      alchemy: `$root { --cal-head: #6b4982; }`,
+      editorial: `$root { --cal-head: #111111; }`,
+      noir: `$root { --cal-head: #242424; }`
     },
     skins: {
       default: { css: "" },

@@ -31,7 +31,9 @@ $root .notebook-svg {
       modern: `$root { --nb-cover: #eef7f9; --nb-spine: #397987; }`,
       anime: `$root { --nb-cover: #fcebf3; --nb-spine: #e07fa4; }`,
       ocean: `$root { --nb-cover: #e3f7f8; --nb-spine: #e07a67; }`,
-      alchemy: `$root { --nb-cover: #e9d9f0; --nb-spine: #5f4178; }`
+      alchemy: `$root { --nb-cover: #e9d9f0; --nb-spine: #5f4178; }`,
+      editorial: `$root { --nb-cover: #f8f8f6; --nb-spine: #141414; }`,
+      noir: `$root { --nb-cover: #2c2c2c; --nb-spine: #080808; }`
     },
     skins: {
       default: { css: "" },

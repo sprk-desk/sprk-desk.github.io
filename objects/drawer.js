@@ -138,7 +138,9 @@ $root .drawer-pull::after {
       modern: `$root { background: linear-gradient(145deg, #a7cbd4, #5c8a99); } $root .drawer-pull { background: linear-gradient(#ffffff, #cbe0e6); }`,
       anime: `$root { background: linear-gradient(145deg, #e9bfd0, #b87e99); } $root .drawer-pull { background: linear-gradient(#fff5f9, #eab7cc); }`,
       ocean: `$root { background: linear-gradient(145deg, #86bdc7, #3d7585); } $root .drawer-pull { background: linear-gradient(#fff3d9, #d4a65e); }`,
-      alchemy: `$root { background: linear-gradient(145deg, #755873, #432e4a); } $root .drawer-pull { background: linear-gradient(#f5deb0, #b88246); }`
+      alchemy: `$root { background: linear-gradient(145deg, #755873, #432e4a); } $root .drawer-pull { background: linear-gradient(#f5deb0, #b88246); }`,
+      editorial: `$root { border-radius: 0; background: linear-gradient(145deg, #ededeb, #d2d2ce); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.65), 0 2px 0 rgba(15, 15, 15, 0.28); } $root .drawer-pull { border-radius: 2px; background: linear-gradient(#ffffff, #d9d9d5); } $root .drawer-pull::after { background: #141414; } .drawer-well .drawer-file-a { background: #ffffff; } .drawer-well .drawer-file-b { background: #d4d4d0; }`,
+      noir: `$root { border-radius: 0; border-color: #050505; background: linear-gradient(145deg, #2d2d2d, #1c1c1c); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 2px 0 rgba(0, 0, 0, 0.55); } $root .drawer-pull { border-radius: 2px; border-color: #050505; background: linear-gradient(#424242, #262626); } $root .drawer-pull::after { border-color: #050505; background: #e8e8e4; } .drawer-well { background: linear-gradient(180deg, #101010, #060606); } .drawer-well .drawer-file-a { background: #e8e8e4; } .drawer-well .drawer-file-b { background: #6a6a6a; }`
     },
     skins: {
       default: { css: "" },

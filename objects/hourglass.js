@@ -25,7 +25,9 @@ $root {
       modern: `$root { --hg-frame: #588a9a; --hg-sand: #63c5cc; --hg-glass: #f0fafb; }`,
       anime: `$root { --hg-frame: #d489ad; --hg-sand: #f7a6c9; --hg-glass: #fff5fa; }`,
       ocean: `$root { --hg-frame: #c89648; --hg-sand: #5bc2cf; --hg-glass: #e3f9fb; }`,
-      alchemy: `$root { --hg-frame: #6b4e7d; --hg-sand: #d8a752; --hg-glass: #ece0f7; }`
+      alchemy: `$root { --hg-frame: #6b4e7d; --hg-sand: #d8a752; --hg-glass: #ece0f7; }`,
+      editorial: `$root { --hg-frame: #181818; --hg-sand: #525250; --hg-glass: #f7f7f5; }`,
+      noir: `$root { --hg-frame: #3b3b3b; --hg-sand: #dcdcd8; --hg-glass: #222222; }`
     },
     skins: {
       default: { css: "" },

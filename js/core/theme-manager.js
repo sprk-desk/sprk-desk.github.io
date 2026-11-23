@@ -17,7 +17,9 @@ export const ROOM_THEMES = [
   { id: "cottagecore", name: "Cottagecore", metaColor: "#edf2e1", swatch: ["#edf2e1", "#789e64", "#c5945d"], description: "Meadow sage walls, botanical charm, and honey oak", customSprites: false },
   { id: "autumn", name: "Autumn Evening", metaColor: "#f2dec8", swatch: ["#f2dec8", "#cf6a3c", "#8a4f32"], description: "Amber foliage, warm caramel wood, and late-afternoon sun", customSprites: false },
   { id: "winter", name: "Winter Cabin", metaColor: "#dfeaf2", swatch: ["#dfeaf2", "#6892b0", "#7d543c"], description: "Frosted window frames, cedar timber, and hearth warmth", customSprites: false },
-  { id: "midnight", name: "Midnight Library", metaColor: "#1a2036", swatch: ["#1a2036", "#d4a84f", "#3a2e4a"], description: "Deep indigo plaster, walnut shelves, and brass reading glow", customSprites: false }
+  { id: "midnight", name: "Midnight Library", metaColor: "#1a2036", swatch: ["#1a2036", "#d4a84f", "#3a2e4a"], description: "Deep indigo plaster, walnut shelves, and brass reading glow", customSprites: false },
+  { id: "editorial", name: "Swiss Editorial", metaColor: "#f4f4f1", swatch: ["#f4f4f1", "#111111", "#8c8c88"], description: "Bold black-and-white architectural minimalism and gallery contrast", customSprites: true },
+  { id: "noir", name: "Obsidian Minimal", metaColor: "#141414", swatch: ["#141414", "#f2f2ef", "#383838"], description: "Matte obsidian walls, steel shelving, and stark monochrome focus", customSprites: true }
 ];
 
 class ThemeManager {

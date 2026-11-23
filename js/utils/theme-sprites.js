@@ -19,7 +19,9 @@ export const THEMED_SPRITE_IDS = [
   "modern",
   "anime",
   "ocean",
-  "alchemy"
+  "alchemy",
+  "editorial",
+  "noir"
 ];
 
 export const ALL_SPRITE_THEME_IDS = ["comic", ...THEMED_SPRITE_IDS];

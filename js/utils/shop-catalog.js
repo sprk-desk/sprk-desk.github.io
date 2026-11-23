@@ -130,6 +130,18 @@ export const THEME_PALETTES = {
     ink: "#1e162b", wood: "#6e4e44", woodLight: "#a67e5f", deskTop: "#825b4e",
     accent: "#c78b4b", caseBack: "#392e50", hillA: "#4f416e", hillB: "#2b2342",
     skyTop: "#1b1736", skyBottom: "#61426d", windowShape: "arch"
+  },
+  editorial: {
+    wall: "#f4f4f1", wallLight: "#ffffff", wallShadow: "#d4d4cf", floor: "#e2e2dd",
+    ink: "#0f0f0f", wood: "#383838", woodLight: "#666664", deskTop: "#e6e6e2",
+    accent: "#111111", caseBack: "#fafaf8", hillA: "#b8b8b3", hillB: "#3a3a38",
+    skyTop: "#d6d6d2", skyBottom: "#f8f8f6", windowShape: "rect"
+  },
+  noir: {
+    wall: "#151515", wallLight: "#f5f5f2", wallShadow: "#0a0a0a", floor: "#0e0e0e",
+    ink: "#0d0d0d", wood: "#2b2b2b", woodLight: "#4d4d4b", deskTop: "#242424",
+    accent: "#1f1f1f", caseBack: "#1e1e1e", hillA: "#303030", hillB: "#181818",
+    skyTop: "#090909", skyBottom: "#262626", windowShape: "rect"
   }
 };
 
@@ -182,6 +194,8 @@ export const SHOP_CATALOG = [
   { id: "theme_anime", category: "theme", targetObject: "room", name: "Anime Lo-Fi Studio", description: "Pastel sakura bonsai, neko monitor, bunny headphones, and twilight vibe.", price: 55, rarity: "artisan", premiumOnly: false, swatch: "#df779e", themeId: "anime" },
   { id: "theme_ocean", category: "theme", targetObject: "room", name: "Coral Observatory", description: "Submarine porthole view, sea otter buddy, puffin sailor, and jellyfish lamp.", price: 50, rarity: "rare", premiumOnly: false, swatch: "#e07a67", themeId: "ocean" },
   { id: "theme_alchemy", category: "theme", targetObject: "room", name: "Starlight Apothecary", description: "Moonlit crystals, wizard cat familiar, and enchanted brass furnishings.", price: 60, rarity: "artisan", premiumOnly: false, swatch: "#c78b4b", themeId: "alchemy" },
+  { id: "theme_editorial", category: "theme", targetObject: "room", name: "Swiss Editorial", description: "Stark gallery white walls, bold black ink geometry, and monochrome studio objects.", price: 30, rarity: "rare", premiumOnly: false, swatch: "#111111", themeId: "editorial" },
+  { id: "theme_noir", category: "theme", targetObject: "room", name: "Obsidian Minimal", description: "Matte black architecture, charcoal steel shelving, and high-contrast bone accents.", price: 35, rarity: "artisan", premiumOnly: false, swatch: "#262626", themeId: "noir" },
 
   // --- Object Skins (10) ---
   { id: "skin_plant_lavender", category: "skin", targetObject: "plant", name: "Lavender Terracotta", description: "Soft lavender botanical leaves in a glazed violet pot.", price: 20, rarity: "common", premiumOnly: false, swatch: "#9c83bd", skinName: "lavender" },

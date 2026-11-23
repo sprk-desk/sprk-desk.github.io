@@ -11,14 +11,15 @@ import {
   getShopPreviewDescriptor
 } from "./shop-catalog.js";
 
-test("shop categories include all, theme, skin, music, and ambience", () => {
+test("shop categories include all, theme, skin, deco, music, and ambience", () => {
   const ids = SHOP_CATEGORIES.map((c) => c.id);
-  assert.deepEqual(ids, ["all", "theme", "skin", "music", "ambience"]);
+  assert.deepEqual(ids, ["all", "theme", "skin", "deco", "music", "ambience"]);
 });
 
 test("normalizeShopCategory resolves valid categories and falls back to all", () => {
   assert.equal(normalizeShopCategory("theme"), "theme");
   assert.equal(normalizeShopCategory(" SKIN "), "skin");
+  assert.equal(normalizeShopCategory("deco"), "deco");
   assert.equal(normalizeShopCategory("music"), "music");
   assert.equal(normalizeShopCategory("ambience"), "ambience");
   assert.equal(normalizeShopCategory("unknown"), "all");
@@ -28,26 +29,29 @@ test("normalizeShopCategory resolves valid categories and falls back to all", ()
 test("filterShopCatalog and getShopCategoryCounts cover every catalog item", () => {
   const counts = getShopCategoryCounts(SHOP_CATALOG);
   assert.equal(counts.all, SHOP_CATALOG.length);
-  assert.equal(counts.theme, 14);
+  assert.equal(counts.theme, 16);
   assert.equal(counts.skin, 10);
+  assert.equal(counts.deco, 14);
   assert.equal(counts.music, 5);
   assert.equal(counts.ambience, 4);
 
-  for (const cat of ["theme", "skin", "music", "ambience"]) {
+  for (const cat of ["theme", "skin", "deco", "music", "ambience"]) {
     const filtered = filterShopCatalog(SHOP_CATALOG, cat);
     assert.equal(filtered.length, counts[cat]);
     assert.ok(filtered.every((item) => item.category === cat));
   }
 
   const grouped = groupShopCatalogByCategory(SHOP_CATALOG);
-  assert.equal(grouped.length, 4);
-  assert.deepEqual(grouped.map((g) => g.category.id), ["theme", "skin", "music", "ambience"]);
+  assert.equal(grouped.length, 5);
+  assert.deepEqual(grouped.map((g) => g.category.id), ["theme", "skin", "deco", "music", "ambience"]);
 });
 
 test("every theme in SHOP_CATALOG has a valid palette and room preview descriptor", () => {
   const themes = filterShopCatalog(SHOP_CATALOG, "theme");
   assert.equal(SHOP_CATALOG.find((item) => item.id === "theme_comic").price, 0);
   assert.ok(SHOP_CATALOG.find((item) => item.id === "theme_modern").price > 0);
+  assert.ok(SHOP_CATALOG.find((item) => item.id === "theme_editorial").price > 0);
+  assert.ok(SHOP_CATALOG.find((item) => item.id === "theme_noir").price > 0);
 
   for (const item of themes) {
     assert.ok(THEME_PALETTES[item.themeId], `Missing palette for ${item.themeId}`);

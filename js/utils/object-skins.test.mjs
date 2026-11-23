@@ -40,7 +40,9 @@ test("getObjectSkinInventory splits owned vs unowned skins cleanly for an object
   const unownedIds = inv.unowned.map((s) => s.skinId);
   assert.ok(unownedIds.includes("theme:ocean"));
   assert.ok(unownedIds.includes("theme:jungle"));
-  assert.equal(THEME_BUNDLE_IDS.length, 8);
+  assert.ok(unownedIds.includes("theme:editorial"));
+  assert.ok(unownedIds.includes("theme:noir"));
+  assert.equal(THEME_BUNDLE_IDS.length, 10);
 });
 
 test("new users get only the comic theme bundle for free", () => {

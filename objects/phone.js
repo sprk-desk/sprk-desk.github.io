@@ -37,7 +37,9 @@ $root .phone-svg {
       modern: `$root { --phone-body: #498694; }`,
       anime: `$root { --phone-body: #e694b4; }`,
       ocean: `$root { --phone-body: #3e8c9e; }`,
-      alchemy: `$root { --phone-body: #5f4578; }`
+      alchemy: `$root { --phone-body: #5f4578; }`,
+      editorial: `$root { --phone-body: #e4e4e0; }`,
+      noir: `$root { --phone-body: #242424; }`
     },
     skins: {
       default: { css: "" },

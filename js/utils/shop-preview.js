@@ -137,7 +137,7 @@ export function renderMiniThumbnail(item, currentThemeId = "comic") {
     const spriteSrc = hasCustomSpritePack(desc.themeId)
       ? resolveObjectSpriteSrc(desc.themeId, "buddy")
       : null;
-    const isNightSky = desc.themeId === "space" || desc.themeId === "midnight" || desc.themeId === "alchemy";
+    const isNightSky = desc.themeId === "space" || desc.themeId === "midnight" || desc.themeId === "alchemy" || desc.themeId === "noir";
 
     return `
       <div class="sprk-shop-thumb is-theme" style="background:${escapeHtml(p.wall)};--thumb-ink:${escapeHtml(p.ink)};--thumb-wood:${escapeHtml(p.wood)};--thumb-desk:${escapeHtml(p.deskTop)};--thumb-accent:${escapeHtml(p.accent)};">
@@ -216,7 +216,7 @@ export function renderRoomStageMarkup({
   darknessPct = 10
 }) {
   const pack = resolveThemeSpritePack(themeId);
-  const isNight = timeOfDay === "night" || themeId === "space" || themeId === "midnight" || themeId === "alchemy";
+  const isNight = timeOfDay === "night" || themeId === "space" || themeId === "midnight" || themeId === "alchemy" || themeId === "noir";
   const skyBg = timeOfDay && timeOfDay !== "auto"
     ? getSkyGradientForPhase(timeOfDay, palette.skyTop, palette.skyBottom)
     : `linear-gradient(180deg, ${palette.skyTop} 0%, ${palette.skyBottom} 100%)`;
@@ -316,7 +316,7 @@ export function renderPreviewStage(item, { currentThemeId = "comic", isPlayingSa
           themeId: desc.themeId,
           palette: desc.palette,
           lampOn: true,
-          darknessPct: desc.themeId === "space" || desc.themeId === "midnight" || desc.themeId === "alchemy" ? 18 : 4
+          darknessPct: desc.themeId === "space" || desc.themeId === "midnight" || desc.themeId === "alchemy" || desc.themeId === "noir" ? 18 : 4
         })}
         <div class="sprk-preview-caption">
           <span>Full Room View · ${escapeHtml(desc.hasCustomSprites ? "Includes custom sprite set" : "Custom palette & woodwork")}</span>

@@ -35,7 +35,9 @@ const OBJECT_TYPE_THEME_VARS = {
     modern: { "--clock-ear": "#cbe3e8", "--clock-shell": "#6293a3", "--clock-dial": "#ffffff" },
     anime: { "--clock-ear": "#f4a8c4", "--clock-shell": "#d99bc2", "--clock-dial": "#fff8fc" },
     ocean: { "--clock-ear": "#d9ab64", "--clock-shell": "#5395a3", "--clock-dial": "#effbfc" },
-    alchemy: { "--clock-ear": "#c78b4b", "--clock-shell": "#523b66", "--clock-dial": "#241936", "--clock-hand": "#f4d27a" }
+    alchemy: { "--clock-ear": "#c78b4b", "--clock-shell": "#523b66", "--clock-dial": "#241936", "--clock-hand": "#f4d27a" },
+    editorial: { "--clock-ear": "#e4e4e0", "--clock-shell": "#141414", "--clock-dial": "#ffffff", "--clock-hand": "#0a0a0a" },
+    noir: { "--clock-ear": "#333333", "--clock-shell": "#111111", "--clock-dial": "#1e1e1e", "--clock-hand": "#f5f5f2" }
   },
   hourglass: {
     space: { "--hg-frame": "#6a8aa8", "--hg-sand": "#7be2ed", "--hg-glass": "#d7f2f8" },
@@ -44,7 +46,9 @@ const OBJECT_TYPE_THEME_VARS = {
     modern: { "--hg-frame": "#588a9a", "--hg-sand": "#63c5cc", "--hg-glass": "#f0fafb" },
     anime: { "--hg-frame": "#d489ad", "--hg-sand": "#f7a6c9", "--hg-glass": "#fff5fa" },
     ocean: { "--hg-frame": "#c89648", "--hg-sand": "#5bc2cf", "--hg-glass": "#e3f9fb" },
-    alchemy: { "--hg-frame": "#6b4e7d", "--hg-sand": "#d8a752", "--hg-glass": "#ece0f7" }
+    alchemy: { "--hg-frame": "#6b4e7d", "--hg-sand": "#d8a752", "--hg-glass": "#ece0f7" },
+    editorial: { "--hg-frame": "#181818", "--hg-sand": "#525250", "--hg-glass": "#f7f7f5" },
+    noir: { "--hg-frame": "#3b3b3b", "--hg-sand": "#dcdcd8", "--hg-glass": "#222222" }
   },
   calendar: {
     space: { "--cal-head": "#3d8ea8" },
@@ -53,7 +57,9 @@ const OBJECT_TYPE_THEME_VARS = {
     modern: { "--cal-head": "#43919c" },
     anime: { "--cal-head": "#e682a8" },
     ocean: { "--cal-head": "#e07a67" },
-    alchemy: { "--cal-head": "#6b4982" }
+    alchemy: { "--cal-head": "#6b4982" },
+    editorial: { "--cal-head": "#111111" },
+    noir: { "--cal-head": "#242424" }
   },
   pinboard: {
     space: { "--pin-bg": "#36506e", "--note-a-bg": "#d6eef8", "--note-b-bg": "#a7d4e6" },
@@ -62,7 +68,9 @@ const OBJECT_TYPE_THEME_VARS = {
     modern: { "--pin-bg": "#c5dce0", "--note-a-bg": "#ffffff", "--note-b-bg": "#d5eef0" },
     anime: { "--pin-bg": "#e8c7da", "--note-a-bg": "#fff4f8", "--note-b-bg": "#e7dcfa" },
     ocean: { "--pin-bg": "#8cc4cb", "--note-a-bg": "#fff9e6", "--note-b-bg": "#ffd8cc" },
-    alchemy: { "--pin-bg": "#4a3b63", "--note-a-bg": "#f2e4ff", "--note-b-bg": "#f7e6c4" }
+    alchemy: { "--pin-bg": "#4a3b63", "--note-a-bg": "#f2e4ff", "--note-b-bg": "#f7e6c4" },
+    editorial: { "--pin-bg": "#e4e4e0", "--note-a-bg": "#ffffff", "--note-b-bg": "#d2d2ce" },
+    noir: { "--pin-bg": "#242424", "--note-a-bg": "#efefef", "--note-b-bg": "#3c3c3c" }
   },
   notebook: {
     space: { "--nb-cover": "#dce7f2", "--nb-spine": "#428ea8" },
@@ -71,7 +79,9 @@ const OBJECT_TYPE_THEME_VARS = {
     modern: { "--nb-cover": "#eef7f9", "--nb-spine": "#397987" },
     anime: { "--nb-cover": "#fcebf3", "--nb-spine": "#e07fa4" },
     ocean: { "--nb-cover": "#e3f7f8", "--nb-spine": "#e07a67" },
-    alchemy: { "--nb-cover": "#e9d9f0", "--nb-spine": "#5f4178" }
+    alchemy: { "--nb-cover": "#e9d9f0", "--nb-spine": "#5f4178" },
+    editorial: { "--nb-cover": "#ffffff", "--nb-spine": "#111111" },
+    noir: { "--nb-cover": "#2a2a2a", "--nb-spine": "#111111" }
   },
   "photo-frame": {
     space: { "--frame-bg": "#63809f", "--pic-sky": "#172844", "--pic-hill": "#5ec4cf" },
@@ -80,7 +90,9 @@ const OBJECT_TYPE_THEME_VARS = {
     modern: { "--frame-bg": "#7ea8b5", "--pic-sky": "#e6f2f4", "--pic-hill": "#2c5868" },
     anime: { "--frame-bg": "#d99eb8", "--pic-sky": "#f3c6de", "--pic-hill": "#9a82ba" },
     ocean: { "--frame-bg": "#5d9aa6", "--pic-sky": "#63bcc9", "--pic-hill": "#2f7e8e" },
-    alchemy: { "--frame-bg": "#7e5d72", "--pic-sky": "#281e3d", "--pic-hill": "#c78b4b" }
+    alchemy: { "--frame-bg": "#7e5d72", "--pic-sky": "#281e3d", "--pic-hill": "#c78b4b" },
+    editorial: { "--frame-bg": "#262626", "--pic-sky": "#f2f2ef", "--pic-hill": "#111111" },
+    noir: { "--frame-bg": "#3a3a38", "--pic-sky": "#121212", "--pic-hill": "#e8e8e4" }
   },
   phone: {
     space: { "--phone-body": "#4b6e8c" },
@@ -89,7 +101,9 @@ const OBJECT_TYPE_THEME_VARS = {
     modern: { "--phone-body": "#498694" },
     anime: { "--phone-body": "#e694b4" },
     ocean: { "--phone-body": "#3e8c9e" },
-    alchemy: { "--phone-body": "#5f4578" }
+    alchemy: { "--phone-body": "#5f4578" },
+    editorial: { "--phone-body": "#161616" },
+    noir: { "--phone-body": "#2c2c2c" }
   },
   bookshelf: {
     space: { "--book-1": "#4dc4d6", "--book-2": "#5b7899", "--book-3": "#e8be6b", "--book-4": "#36506e" },
@@ -98,7 +112,9 @@ const OBJECT_TYPE_THEME_VARS = {
     modern: { "--book-1": "#6cb0ba", "--book-2": "#e3ecee", "--book-3": "#f29b7a", "--book-4": "#3a6070" },
     anime: { "--book-1": "#f29ab8", "--book-2": "#a3d5c8", "--book-3": "#fbe094", "--book-4": "#b5a1e0" },
     ocean: { "--book-1": "#469aa8", "--book-2": "#eb8c76", "--book-3": "#f2d68a", "--book-4": "#2d687d" },
-    alchemy: { "--book-1": "#6b4275", "--book-2": "#3f6b5f", "--book-3": "#c78b4b", "--book-4": "#3d3669" }
+    alchemy: { "--book-1": "#6b4275", "--book-2": "#3f6b5f", "--book-3": "#c78b4b", "--book-4": "#3d3669" },
+    editorial: { "--book-1": "#111111", "--book-2": "#e8e8e4", "--book-3": "#666664", "--book-4": "#2b2b2b" },
+    noir: { "--book-1": "#f0f0ec", "--book-2": "#2e2e2e", "--book-3": "#7a7a76", "--book-4": "#171717" }
   },
   drawer: {
     space: { "--drawer-face": "#567291", "--drawer-pull-bg": "#c7dce8" },
@@ -107,7 +123,9 @@ const OBJECT_TYPE_THEME_VARS = {
     modern: { "--drawer-face": "#7faab6", "--drawer-pull-bg": "#eef7f9" },
     anime: { "--drawer-face": "#d89db6", "--drawer-pull-bg": "#ffeaf2" },
     ocean: { "--drawer-face": "#5d9aa6", "--drawer-pull-bg": "#f5dfb2" },
-    alchemy: { "--drawer-face": "#5c4362", "--drawer-pull-bg": "#dfb178" }
+    alchemy: { "--drawer-face": "#5c4362", "--drawer-pull-bg": "#dfb178" },
+    editorial: { "--drawer-face": "#d8d8d4", "--drawer-pull-bg": "#111111" },
+    noir: { "--drawer-face": "#262626", "--drawer-pull-bg": "#e4e4e0" }
   }
 };
 

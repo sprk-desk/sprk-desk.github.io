@@ -52,7 +52,9 @@ export const THEME_BUNDLE_IDS = [
   "jungle",
   "anime",
   "ocean",
-  "alchemy"
+  "alchemy",
+  "editorial",
+  "noir"
 ];
 
 export const STARTER_OBJECT_SKINS = {

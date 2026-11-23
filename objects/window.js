@@ -271,6 +271,23 @@ $root .window-shadow {
         $root .window-crossbar.vertical { width: 4px; box-shadow: none; }
         $root .window-crossbar.horizontal { height: 4px; box-shadow: none; }
         $root .window-curtain-rod, $root .window-curtain { display: none; }
+      `,
+      editorial: String.raw`
+        $root .window-frame-btn { border-radius: 2px; background: linear-gradient(100deg, #e8e8e4, #ffffff 45%, #d0d0cc); }
+        $root .window-view { border-radius: 1px; background: linear-gradient(180deg, #d8d8d4 0%, #ededeb 56%, #f8f8f6 100%); filter: grayscale(1); }
+        $root .window-crossbar.vertical { width: 4px; background: #141414; box-shadow: none; }
+        $root .window-crossbar.horizontal { height: 4px; background: #141414; box-shadow: none; }
+        $root .window-ledge { background: #2e2e2c; border-radius: 1px; }
+        $root .window-curtain-rod, $root .window-curtain { display: none; }
+      `,
+      noir: String.raw`
+        $root .window-frame-btn { border-radius: 2px; border-color: #3a3a38; background: linear-gradient(100deg, #1d1d1c, #2f2f2d 45%, #141413); }
+        $root .window-view { border-radius: 1px; border-color: #3a3a38; background: linear-gradient(180deg, #070707 0%, #161615 58%, #262624 100%); filter: grayscale(1); }
+        $root .window-crossbar.vertical { width: 4px; background: #3c3c3a; box-shadow: none; }
+        $root .window-crossbar.horizontal { height: 4px; background: #3c3c3a; box-shadow: none; }
+        $root .window-ledge { background: #1f1f1e; border-color: #3a3a38; border-radius: 1px; }
+        $root .distant-star { opacity: 0.9; color: #f2f2ef; }
+        $root .window-curtain-rod, $root .window-curtain { display: none; }
       `
     }
   };

@@ -62,7 +62,9 @@ $root .photo-scene[data-photo-theme="vintage"] .photo-art-vintage,
 $root .photo-scene[data-photo-theme="modern"] .photo-art-modern,
 $root .photo-scene[data-photo-theme="anime"] .photo-art-anime,
 $root .photo-scene[data-photo-theme="ocean"] .photo-art-ocean,
-$root .photo-scene[data-photo-theme="alchemy"] .photo-art-alchemy {
+$root .photo-scene[data-photo-theme="alchemy"] .photo-art-alchemy,
+$root .photo-scene[data-photo-theme="editorial"] .photo-art-editorial,
+$root .photo-scene[data-photo-theme="noir"] .photo-art-noir {
   display: block;
 }
 
@@ -100,7 +102,9 @@ $root .portrait-badge {
       modern: `$root { background: linear-gradient(135deg, #d7e7eb, #588a9a); }`,
       anime: `$root { background: linear-gradient(135deg, #f7d6e6, #b888ac); }`,
       ocean: `$root { background: linear-gradient(135deg, #b8e3e6, #3f7c8a); }`,
-      alchemy: `$root { background: linear-gradient(135deg, #b88856, #4b3863); }`
+      alchemy: `$root { background: linear-gradient(135deg, #b88856, #4b3863); }`,
+      editorial: `$root { border-radius: 2px; background: linear-gradient(135deg, #ffffff, #d8d8d4); box-shadow: 2px 3px 0 #0f0f0f; } $root .frame-back { background: #ffffff; } $root .photo-scene { border-radius: 0; background: #f4f4f1; } $root .portrait-badge { border-radius: 2px; }`,
+      noir: `$root { border-radius: 2px; border-color: #050505; background: linear-gradient(135deg, #323232, #171717); box-shadow: 2px 3px 0 rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(255, 255, 255, 0.14); } $root .frame-back { background: #1c1c1c; } $root .photo-scene { border-radius: 0; border-color: #050505; background: #101010; } $root .portrait-badge { border-radius: 2px; background: #161616; color: #f2f2ef; border-color: #d8d8d4; }`
     },
     skins: {
       default: { css: "" },

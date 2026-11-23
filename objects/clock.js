@@ -66,7 +66,9 @@ $root.is-focus-running .clock-face i {
       modern: `$root { --clock-ear: #cbe3e8; --clock-shell: #6293a3; --clock-dial: #ffffff; --clock-hand: #193b4b; }`,
       anime: `$root { --clock-ear: #f4a8c4; --clock-shell: #d99bc2; --clock-dial: #fff8fc; --clock-hand: #704970; }`,
       ocean: `$root { --clock-ear: #d9ab64; --clock-shell: #5395a3; --clock-dial: #effbfc; --clock-hand: #173a47; }`,
-      alchemy: `$root { --clock-ear: #c78b4b; --clock-shell: #523b66; --clock-dial: #241936; --clock-hand: #f4d27a; }`
+      alchemy: `$root { --clock-ear: #c78b4b; --clock-shell: #523b66; --clock-dial: #241936; --clock-hand: #f4d27a; }`,
+      editorial: `$root { --clock-ear: #e4e4e0; --clock-shell: #141414; --clock-dial: #ffffff; --clock-hand: #0a0a0a; }`,
+      noir: `$root { --clock-ear: #363634; --clock-shell: #141414; --clock-dial: #ecece8; --clock-hand: #0e0e0e; }`
     },
     skins: {
       default: { css: "" },

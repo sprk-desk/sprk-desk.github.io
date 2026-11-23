@@ -29,7 +29,9 @@ $root .books-svg {
       modern: `$root { --book-1: #6cb0ba; --book-2: #e3ecee; --book-3: #f29b7a; --book-4: #3a6070; --book-5: #9cc2c9; }`,
       anime: `$root { --book-1: #f29ab8; --book-2: #a3d5c8; --book-3: #fbe094; --book-4: #b5a1e0; --book-5: #f7b8a1; }`,
       ocean: `$root { --book-1: #469aa8; --book-2: #eb8c76; --book-3: #f2d68a; --book-4: #2d687d; --book-5: #89c9cf; }`,
-      alchemy: `$root { --book-1: #6b4275; --book-2: #3f6b5f; --book-3: #c78b4b; --book-4: #3d3669; --book-5: #8f4e63; }`
+      alchemy: `$root { --book-1: #6b4275; --book-2: #3f6b5f; --book-3: #c78b4b; --book-4: #3d3669; --book-5: #8f4e63; }`,
+      editorial: `$root { --book-1: #111111; --book-2: #e8e8e4; --book-3: #666664; --book-4: #2b2b2b; --book-5: #a8a8a3; }`,
+      noir: `$root { --book-1: #f0f0ec; --book-2: #2e2e2e; --book-3: #7a7a76; --book-4: #171717; --book-5: #50504d; }`
     },
     skins: {
       default: { css: "" },
