@@ -11,6 +11,7 @@ import { buildSpectatorSafeRoomView } from "../utils/privacy-scope.js";
 import {
   formatProfilePayload,
   sanitizeAvatarUrl,
+  extractMissingColumn,
   extractMissingProfileColumn,
   buildProfileDbPayload,
   buildProfileAuthMetadata,
@@ -21,6 +22,8 @@ import { DEFAULT_DECORATIONS } from "../utils/decorations.js";
 
 let prefSyncTimer = null;
 let layoutSyncTimer = null;
+const missingUserSettingsCols = new Set();
+const missingStudyTasksCols = new Set();
 
 export async function syncAuthenticatedUserData() {
   if (!supabase.configured || !state.user?.id) return;
@@ -66,6 +69,39 @@ export async function syncAuthenticatedUserData() {
   const cloudSettings = settingsRes.data?.[0];
   if (cloudSettings) {
     savePreferences({
+      appMode: cloudSettings.app_mode === "deepfocus" || cloudSettings.app_mode === "cozy"
+        ? cloudSettings.app_mode
+        : state.preferences.appMode,
+      seriousMode: typeof cloudSettings.serious_mode === "boolean"
+        ? cloudSettings.serious_mode
+        : state.preferences.seriousMode,
+      hideGamification: typeof cloudSettings.hide_gamification === "boolean"
+        ? cloudSettings.hide_gamification
+        : state.preferences.hideGamification,
+      strictFocusLock: typeof cloudSettings.strict_focus_lock === "boolean"
+        ? cloudSettings.strict_focus_lock
+        : state.preferences.strictFocusLock,
+      autoCycleBreaks: typeof cloudSettings.auto_cycle_breaks === "boolean"
+        ? cloudSettings.auto_cycle_breaks
+        : state.preferences.autoCycleBreaks,
+      defaultFocusMinutes: typeof cloudSettings.default_focus_minutes === "number"
+        ? cloudSettings.default_focus_minutes
+        : state.preferences.defaultFocusMinutes,
+      muteChimes: typeof cloudSettings.mute_chimes === "boolean"
+        ? cloudSettings.mute_chimes
+        : state.preferences.muteChimes,
+      lowPassHz: typeof cloudSettings.low_pass_hz === "number"
+        ? cloudSettings.low_pass_hz
+        : state.preferences.lowPassHz,
+      autoDuskLamp: typeof cloudSettings.auto_dusk_lamp === "boolean"
+        ? cloudSettings.auto_dusk_lamp
+        : state.preferences.autoDuskLamp,
+      studyTogetherVisualMode: typeof cloudSettings.study_together_visual_mode === "boolean"
+        ? cloudSettings.study_together_visual_mode
+        : state.preferences.studyTogetherVisualMode,
+      deepFocus: cloudSettings.deep_focus && typeof cloudSettings.deep_focus === "object"
+        ? cloudSettings.deep_focus
+        : state.preferences.deepFocus,
       theme: cloudSettings.theme || state.preferences.theme,
       timeOfDay: cloudSettings.time_of_day || state.preferences.timeOfDay,
       weather: cloudSettings.weather || state.preferences.weather,
@@ -152,6 +188,7 @@ export async function syncAuthenticatedUserData() {
       priority: t.priority,
       dueDate: t.due_date || "",
       completed: Boolean(t.completed),
+      kanbanStatus: t.kanban_status || (t.completed ? "done" : "todo"),
       noteColor: t.note_color || "butter"
     })));
   }
@@ -219,7 +256,7 @@ export function scheduleCloudPreferencesSync(prefs = state.preferences) {
 
 export async function saveCloudPreferences(prefs = state.preferences) {
   if (!supabase.configured || !state.user?.id || state.spectatingRoom) return { error: null };
-  return supabase.upsert("user_settings", {
+  const rawPayload = {
     user_id: state.user.id,
     theme: prefs.theme || "comic",
     time_of_day: prefs.timeOfDay || "auto",
@@ -236,8 +273,35 @@ export async function saveCloudPreferences(prefs = state.preferences) {
     local_display_name: prefs.localDisplayName || state.user.displayName || "Student",
     active_music_id: prefs.activeMusicId || null,
     active_ambience_id: prefs.activeAmbienceId || null,
+    app_mode: prefs.appMode === "deepfocus" ? "deepfocus" : "cozy",
+    serious_mode: Boolean(prefs.seriousMode),
+    hide_gamification: Boolean(prefs.hideGamification),
+    strict_focus_lock: Boolean(prefs.strictFocusLock),
+    auto_cycle_breaks: Boolean(prefs.autoCycleBreaks),
+    default_focus_minutes: Number(prefs.defaultFocusMinutes || 25),
+    mute_chimes: Boolean(prefs.muteChimes),
+    low_pass_hz: Number(prefs.lowPassHz || 18000),
+    auto_dusk_lamp: Boolean(prefs.autoDuskLamp),
+    study_together_visual_mode: Boolean(prefs.studyTogetherVisualMode),
+    deep_focus: prefs.deepFocus || {},
     updated_at: new Date().toISOString()
-  }, "user_id");
+  };
+
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const payload = {};
+    for (const [key, val] of Object.entries(rawPayload)) {
+      if (!missingUserSettingsCols.has(key)) payload[key] = val;
+    }
+    const res = await supabase.upsert("user_settings", payload, "user_id");
+    if (!res.error) return res;
+    const missingCol = extractMissingColumn(res.error.message, "user_settings");
+    if (missingCol && missingCol !== "user_id" && !missingUserSettingsCols.has(missingCol)) {
+      missingUserSettingsCols.add(missingCol);
+      continue;
+    }
+    return res;
+  }
+  return { error: null };
 }
 
 export function scheduleCloudLayoutSync(layoutName, layoutJson) {
@@ -336,11 +400,11 @@ export async function updateProfile(fields) {
   return { data, error: error || metaRes.error };
 }
 
-export async function uploadAvatarFile(file) {
+async function uploadStudioImageFile(file, { filePrefix, errTypeLabel }) {
   if (!file) return { url: "", error: { message: "No file selected." } };
   const allowed = ["image/png", "image/jpeg", "image/webp", "image/gif"];
   if (!allowed.includes(file.type)) {
-    return { url: "", error: { message: "Please choose a PNG, JPG, WEBP, or GIF image." } };
+    return { url: "", error: { message: `Please choose a PNG, JPG, WEBP, or GIF ${errTypeLabel}.` } };
   }
   if (file.size > 2 * 1024 * 1024) {
     return { url: "", error: { message: "Image must be 2 MB or smaller." } };
@@ -348,7 +412,7 @@ export async function uploadAvatarFile(file) {
 
   if (supabase.configured && state.user?.id) {
     const ext = file.type.split("/")[1]?.replace("jpeg", "jpg") || "png";
-    const path = `${state.user.id}/avatar.${ext}`;
+    const path = `${state.user.id}/${filePrefix}.${ext}`;
     const { data, error } = await supabase.uploadFile("avatars", path, file);
     if (!error && data?.publicUrl) {
       return { url: data.publicUrl, error: null };
@@ -374,47 +438,18 @@ export async function uploadAvatarFile(file) {
   });
 }
 
-export async function uploadCustomPropFile(file) {
-  if (!file) return { url: "", error: { message: "No file selected." } };
-  const allowed = ["image/png", "image/jpeg", "image/webp", "image/gif"];
-  if (!allowed.includes(file.type)) {
-    return { url: "", error: { message: "Please choose a PNG, JPG, WEBP, or GIF sprite." } };
-  }
-  if (file.size > 2 * 1024 * 1024) {
-    return { url: "", error: { message: "Image must be 2 MB or smaller." } };
-  }
+export function uploadAvatarFile(file) {
+  return uploadStudioImageFile(file, { filePrefix: "avatar", errTypeLabel: "image" });
+}
 
-  if (supabase.configured && state.user?.id) {
-    const ext = file.type.split("/")[1]?.replace("jpeg", "jpg") || "png";
-    const path = `${state.user.id}/custom-prop.${ext}`;
-    const { data, error } = await supabase.uploadFile("avatars", path, file);
-    if (!error && data?.publicUrl) {
-      return { url: data.publicUrl, error: null };
-    }
-    if (error && !error.message?.includes("Cannot reach")) {
-      return { url: "", error };
-    }
-  }
-
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const safe = sanitizeAvatarUrl(String(reader.result || ""));
-      if (!safe) {
-        resolve({ url: "", error: { message: "Image file is too large for local storage (keep under 220 KB)." } });
-      } else {
-        resolve({ url: safe, error: null });
-      }
-    };
-    reader.onerror = () => resolve({ url: "", error: { message: "Could not read image file." } });
-    reader.readAsDataURL(file);
-  });
+export function uploadCustomPropFile(file) {
+  return uploadStudioImageFile(file, { filePrefix: "custom-prop", errTypeLabel: "sprite" });
 }
 
 // Productivity CRUD Cloud Helpers
 export async function syncTaskUpsert(task) {
   if (!supabase.configured || !state.user?.id) return;
-  return supabase.upsert("study_tasks", {
+  const rawPayload = {
     id: task.id,
     user_id: state.user.id,
     title: task.title,
@@ -422,9 +457,26 @@ export async function syncTaskUpsert(task) {
     priority: task.priority || "medium",
     due_date: task.dueDate || "",
     completed: Boolean(task.completed),
+    kanban_status: task.kanbanStatus || (task.completed ? "done" : "todo"),
     note_color: task.noteColor || "butter",
     updated_at: new Date().toISOString()
-  }, "id");
+  };
+
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const payload = {};
+    for (const [key, val] of Object.entries(rawPayload)) {
+      if (!missingStudyTasksCols.has(key)) payload[key] = val;
+    }
+    const res = await supabase.upsert("study_tasks", payload, "id");
+    if (!res.error) return res;
+    const missingCol = extractMissingColumn(res.error.message, "study_tasks");
+    if (missingCol && missingCol !== "id" && !missingStudyTasksCols.has(missingCol)) {
+      missingStudyTasksCols.add(missingCol);
+      continue;
+    }
+    return res;
+  }
+  return { error: null };
 }
 
 export async function syncTaskDelete(taskId) {

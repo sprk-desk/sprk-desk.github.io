@@ -152,3 +152,20 @@ export function computeStudyStreaks(records = [], todayStr) {
 
   return { currentStreak: current, longestStreak: longest, activeDaysCount: focusDays.size };
 }
+
+export function summarizeFocusMinutes(records = [], dateStr = null) {
+  let totalSeconds = 0;
+  let count = 0;
+  for (const r of records || []) {
+    if ((r.mode || "focus") !== "focus") continue;
+    if (dateStr && r.date !== dateStr) continue;
+    totalSeconds += Math.max(0, Number(r.durationSeconds || 0));
+    count += 1;
+  }
+  return {
+    totalSeconds,
+    totalMinutes: Math.round(totalSeconds / 60),
+    count
+  };
+}
+

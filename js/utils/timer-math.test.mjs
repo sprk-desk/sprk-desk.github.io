@@ -8,7 +8,8 @@ import {
   resumeFocusSession,
   completeFocusSession,
   calculateStudyCreditsForSession,
-  computeStudyStreaks
+  computeStudyStreaks,
+  summarizeFocusMinutes
 } from "./timer-math.js";
 
 test("focus session derives elapsed time from timestamps and excludes paused duration", () => {
@@ -68,3 +69,20 @@ test("study streak calculation counts consecutive focus days accurately", () => 
   assert.equal(streaks.longestStreak, 3);
   assert.equal(streaks.activeDaysCount, 4);
 });
+
+test("summarizeFocusMinutes excludes breaks and optionally filters by date", () => {
+  const records = [
+    { date: "2026-11-23", mode: "focus", durationSeconds: 1500 },
+    { date: "2026-11-23", mode: "short_break", durationSeconds: 300 },
+    { date: "2026-11-22", mode: "focus", durationSeconds: 900 }
+  ];
+  const all = summarizeFocusMinutes(records);
+  assert.equal(all.count, 2);
+  assert.equal(all.totalSeconds, 2400);
+  assert.equal(all.totalMinutes, 40);
+
+  const todayOnly = summarizeFocusMinutes(records, "2026-11-23");
+  assert.equal(todayOnly.count, 1);
+  assert.equal(todayOnly.totalMinutes, 25);
+});
+

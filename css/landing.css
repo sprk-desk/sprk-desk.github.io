@@ -487,8 +487,18 @@ html[data-page="home"] #deepfocus-shell {
   .home-aim-panel {
     grid-template-columns: 1fr;
   }
+  .home-topbar {
+    flex-wrap: wrap;
+    gap: 10px 14px;
+  }
   .home-nav {
-    display: none;
+    order: 3;
+    width: 100%;
+    justify-content: flex-start;
+    gap: 10px 18px;
+    flex-wrap: wrap;
+    padding-top: 8px;
+    border-top: 1px solid rgba(34, 28, 23, 0.08);
   }
 }
 

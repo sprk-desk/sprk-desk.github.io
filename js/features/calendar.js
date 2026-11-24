@@ -1,6 +1,6 @@
 // Wall Calendar -> Monthly Calendar, Weekly Subject Budgets & Exam Countdowns
 import { state, persistLocalCollection } from "../state.js";
-import { computeStudyStreaks } from "../utils/timer-math.js";
+import { computeStudyStreaks, summarizeFocusMinutes } from "../utils/timer-math.js";
 import { computeSubjectBudgetsProgress, computeExamCountdown } from "../utils/study-tools.js";
 import { escapeHtml, formatMinutesLabel, todayIsoDate, generateId } from "../utils/dom.js";
 
@@ -22,7 +22,7 @@ export const calendarFeature = {
       const budgets = state.localSubjectBudgets || [];
 
       const streaks = computeStudyStreaks(records, today);
-      const totalMinutes = Math.round(records.reduce((s, r) => s + (r.durationSeconds || 0), 0) / 60);
+      const totalMinutes = summarizeFocusMinutes(records).totalMinutes;
 
       const weekAgo = new Date(now.getTime() - 6 * 86400000).toISOString().slice(0, 10);
       const weeklyMinutes = Math.round(

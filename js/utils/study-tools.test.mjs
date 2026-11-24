@@ -13,8 +13,10 @@ import {
   formatStudyRecordsMarkdown,
   computeSyncedRoomPhase,
   kelvinToLampRgb,
-  validateBackupPayload
+  validateBackupPayload,
+  computeUnlockedAchievementIds
 } from "./study-tools.js";
+import { extractMissingColumn } from "./profile-helpers.js";
 
 test("flashcard SM-2 review schedules intervals accurately", () => {
   const t0 = 1_700_000_000_000;
@@ -117,3 +119,28 @@ test("backup validator accepts valid SPRK data and rejects malformed input", () 
   assert.equal(good.ok, true);
   assert.equal(good.data.localFlashcards.length, 1);
 });
+
+test("computeUnlockedAchievementIds derives focus milestones from verified sessions", () => {
+  const records = [
+    { date: "2026-11-23", mode: "focus", durationSeconds: 600, isManual: false, startedAt: "2026-11-23T08:15:00" },
+    { date: "2026-11-23", mode: "focus", durationSeconds: 36000, isManual: true, startedAt: "2026-11-23T22:00:00" }
+  ];
+  const res = computeUnlockedAchievementIds(records, [], "2026-11-23");
+  assert.equal(res.unlocked.has("first_focus"), true);
+  assert.equal(res.unlocked.has("morning_bird"), true);
+  assert.equal(res.unlocked.has("night_owl"), false);
+  assert.equal(res.unlocked.has("focus_master"), false);
+  assert.equal(res.verifiedMins, 10);
+});
+
+test("extractMissingColumn parses PostgREST and Postgres missing-column errors for any table", () => {
+  assert.equal(
+    extractMissingColumn("Could not find the 'kanban_status' column of 'study_tasks' in the schema cache", "study_tasks"),
+    "kanban_status"
+  );
+  assert.equal(
+    extractMissingColumn('column "deep_focus" of relation "user_settings" does not exist', "user_settings"),
+    "deep_focus"
+  );
+});
+

@@ -12,11 +12,9 @@ import {
   respondFriendRequest,
   visitFriendRoom
 } from "../services/database-service.js";
-import { sanitizeAvatarUrl, parseFavoriteSubjects, validateUsernameInput } from "../utils/profile-helpers.js";
+import { AVATAR_PRESETS, sanitizeAvatarUrl, parseFavoriteSubjects, validateUsernameInput } from "../utils/profile-helpers.js";
 import { dialogManager } from "../core/dialog-manager.js";
 import { escapeHtml } from "../utils/dom.js";
-
-const AVATAR_PRESETS = ["☺", "🦊", "🦉", "🐱", "🌿", "☕", "🎓", "🚀"];
 
 function renderAvatarVisual(avatarPreset, avatarUrl, size = 56) {
   const safeUrl = sanitizeAvatarUrl(avatarUrl || "");
@@ -462,33 +460,38 @@ export const profileFeature = {
         const password = container.querySelector("#auth-password")?.value || "";
         const displayName = container.querySelector("#auth-display")?.value.trim() || "Student";
 
-        if (authMode === "signin") {
-          const { error } = await signInWithEmail({ email, password });
-          if (error) {
-            statusMsg = error.message;
-            renderView();
+        try {
+          if (authMode === "signin") {
+            const { error } = await signInWithEmail({ email, password });
+            if (error) {
+              statusMsg = error.message;
+              renderView();
+            } else {
+              await syncAuthenticatedUserData();
+              mainTab = "profile";
+              rerender();
+            }
+          } else if (authMode === "register") {
+            const { error, requiresEmailConfirmation } = await signUpWithEmail({ email, password, displayName });
+            if (error) {
+              statusMsg = error.message;
+              renderView();
+            } else if (requiresEmailConfirmation) {
+              statusMsg = "Account created! Check your email to confirm before signing in.";
+              authMode = "signin";
+              renderView();
+            } else {
+              await syncAuthenticatedUserData();
+              mainTab = "profile";
+              rerender();
+            }
           } else {
-            await syncAuthenticatedUserData();
-            mainTab = "profile";
-            rerender();
-          }
-        } else if (authMode === "register") {
-          const { error, requiresEmailConfirmation } = await signUpWithEmail({ email, password, displayName });
-          if (error) {
-            statusMsg = error.message;
+            const { error } = await sendPasswordRecovery(email);
+            statusMsg = error ? error.message : "Password reset email sent.";
             renderView();
-          } else if (requiresEmailConfirmation) {
-            statusMsg = "Account created! Check your email to confirm before signing in.";
-            authMode = "signin";
-            renderView();
-          } else {
-            await syncAuthenticatedUserData();
-            mainTab = "profile";
-            rerender();
           }
-        } else {
-          const { error } = await sendPasswordRecovery(email);
-          statusMsg = error ? error.message : "Password reset email sent.";
+        } catch (err) {
+          statusMsg = err?.message || "Authentication request failed.";
           renderView();
         }
       });

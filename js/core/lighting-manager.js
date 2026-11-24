@@ -3,6 +3,7 @@ import { state } from "../state.js";
 import { bus } from "./event-bus.js";
 import { computeLampLightCoords } from "../utils/lighting-math.js";
 import { kelvinToLampRgb } from "../utils/study-tools.js";
+import { parsePageRoute, PAGE_ROUTES } from "../utils/page-routes.js";
 
 export const TIME_PHASES = [
   { id: "auto", label: "Auto (Local Clock)" },
@@ -100,7 +101,10 @@ class LightingManager {
     bus.on("layout:changed", () => this.updateLampOrigin());
     this.apply();
     window.setInterval(() => {
-      if (state.preferences.timeOfDay === "auto") this.apply();
+      const page = parsePageRoute(window.location.pathname, window.location.search).page;
+      if (state.preferences.timeOfDay === "auto" && (page === PAGE_ROUTES.COZY || page === PAGE_ROUTES.DEEPFOCUS)) {
+        this.apply();
+      }
     }, 60_000);
   }
 
@@ -147,7 +151,7 @@ class LightingManager {
 
     const hour = new Date().getHours();
     const isDuskOrNight = hour >= 18 || hour < 6;
-    const autoDuskActive = Boolean(prefs.autoDuskLamp && isDuskOrNight);
+    const autoDuskActive = !spectating && Boolean(prefs.autoDuskLamp && isDuskOrNight);
     const effectiveLampOn = lighting.lampOn !== false || autoDuskActive;
 
     root.dataset.timePhase = phase;
@@ -195,14 +199,17 @@ class LightingManager {
       cancelAnimationFrame(this.rafId);
       this.rafId = null;
     }
-    const weather = state.preferences.weather || "clear";
+    const page = parsePageRoute(window.location.pathname, window.location.search).page;
+    const weather = state.spectatingRoom
+      ? (state.spectatingRoom.weather || state.preferences.weather || "clear")
+      : (state.preferences.weather || "clear");
     const reduced = Boolean(state.preferences.reducedMotion) ||
       Boolean(state.preferences.lowPerformance);
 
     if (!this.ctx || !this.canvas) return;
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    if (weather === "clear") {
+    if (page !== PAGE_ROUTES.COZY || weather === "clear") {
       this.particles = [];
       return;
     }
@@ -250,7 +257,9 @@ class LightingManager {
     if (!this.ctx || !this.canvas) return;
     const w = this.canvas.width;
     const h = this.canvas.height;
-    const weather = state.preferences.weather;
+    const weather = state.spectatingRoom
+      ? (state.spectatingRoom.weather || state.preferences.weather || "clear")
+      : (state.preferences.weather || "clear");
     this.ctx.clearRect(0, 0, w, h);
 
     for (let i = 0; i < this.particles.length; i += 1) {

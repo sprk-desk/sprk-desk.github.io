@@ -5,6 +5,7 @@ import { dialogManager } from "../core/dialog-manager.js";
 import { toggleStudyTogetherVisualMode } from "../core/settings-manager.js";
 import { presenceService } from "../services/presence-service.js";
 import { visitFriendRoom } from "../services/database-service.js";
+import { parseCurrentPage, PAGE_ROUTES } from "../router.js";
 import { sanitizeAvatarUrl } from "../utils/profile-helpers.js";
 import { escapeHtml } from "../utils/dom.js";
 
@@ -160,6 +161,8 @@ export function initStudyCircle() {
   bus.on("spectator:changed", render);
 
   window.setInterval(() => {
-    if (state.preferences?.studyTogetherVisualMode) render();
+    if (parseCurrentPage().page === PAGE_ROUTES.COZY && state.preferences?.studyTogetherVisualMode) {
+      render();
+    }
   }, 15_000);
 }

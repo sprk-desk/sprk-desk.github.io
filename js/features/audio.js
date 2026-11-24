@@ -6,20 +6,18 @@ import { SHOP_CATALOG } from "../utils/shop-catalog.js";
 import { purchaseShopItem } from "../services/economy-service.js";
 import { computeVisualizerBars } from "../utils/dialog-objects.js";
 import { partitionMusicDiscs } from "../utils/audio-loops.js";
+import { BUILTIN_DISCS as BASE_BUILTIN_DISCS } from "../utils/study-tools.js";
 import { escapeHtml } from "../utils/dom.js";
 
-const BUILTIN_DISCS = [
-  { id: "disc_rainy", name: "Rainy Study", icon: "🌧", swatch: "#5fa3b8", mix: { rain: 0.65, wind: 0.25, lofi: 0.35 } },
-  { id: "disc_hearth", name: "Cozy Hearth", icon: "🔥", swatch: "#df7a50", mix: { fireplace: 0.7, rain: 0.25 } },
-  { id: "disc_keys", name: "Lo-Fi Keys", icon: "🎹", swatch: "#d99254", mix: { lofi: 0.6, whiteNoise: 0.2 } }
-];
+const BUILTIN_ICONS = { disc_rainy: "🌧", disc_hearth: "🔥", disc_keys: "🎹" };
+const BUILTIN_DISCS = BASE_BUILTIN_DISCS.map((d) => ({ ...d, icon: BUILTIN_ICONS[d.id] || "💿" }));
 
 export const audioFeature = {
   skin: "audio",
   eyebrow: "",
   title: "Headphones",
   icon: "🎧",
-  render(container, { rerender }) {
+  render(container) {
     let tab = "discs"; // discs | mixer | saved
     let activeDiscId = state.preferences.activeMusicId || "disc_rainy";
     let statusMsg = "";
@@ -240,7 +238,10 @@ export const audioFeature = {
               ? `<div class="sprk-meta">No custom mixes saved yet.</div>`
               : `<div style="display:flex;gap:8px;flex-wrap:wrap;">
                   ${Object.keys(presets).map((name) => `
-                    <button type="button" class="sprk-btn" data-load-preset="${escapeHtml(name)}">${seriousMode ? "" : "💿 "}${escapeHtml(name)}</button>
+                    <div style="display:inline-flex;align-items:center;gap:4px;">
+                      <button type="button" class="sprk-btn" data-load-preset="${escapeHtml(name)}">${seriousMode ? "" : "💿 "}${escapeHtml(name)}</button>
+                      <button type="button" class="sprk-btn" data-del-preset="${escapeHtml(name)}" aria-label="Delete mix ${escapeHtml(name)}" style="min-height:36px;padding:0 10px;">×</button>
+                    </div>
                   `).join("")}
                 </div>`}
           </div>
@@ -258,11 +259,11 @@ export const audioFeature = {
       container.querySelector("#audio-master-toggle")?.addEventListener("click", async () => {
         if (previewSnapshot && audioManager.isPlaying) {
           restorePreviewSnapshot();
-          rerender();
+          renderView();
           return;
         }
         await audioManager.togglePlay();
-        rerender();
+        renderView();
       });
 
       container.querySelector("#audio-master-vol")?.addEventListener("input", (e) => {
@@ -323,7 +324,7 @@ export const audioFeature = {
           if (disc) {
             await applyMix(disc.mix, disc.id);
           } else {
-            rerender();
+            renderView();
           }
         });
       });
@@ -349,12 +350,25 @@ export const audioFeature = {
         });
       });
 
+      container.querySelectorAll("[data-del-preset]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const next = { ...presets };
+          delete next[btn.dataset.delPreset];
+          persistLocalCollection("localAudioPresets", next);
+          renderView();
+        });
+      });
+
       container.querySelector("#audio-save-preset")?.addEventListener("click", () => {
-        const idx = Object.keys(presets).length + 1;
+        let idx = 1;
+        while (Object.prototype.hasOwnProperty.call(presets, `Mix ${idx}`)) {
+          idx += 1;
+        }
         persistLocalCollection("localAudioPresets", {
           ...presets,
           [`Mix ${idx}`]: { ...audioManager.levels }
         });
+        statusMsg = `Saved Mix ${idx}.`;
         renderView();
       });
 

@@ -40,7 +40,8 @@ import {
   computeElapsedActiveSeconds,
   computeRemainingSeconds,
   pauseFocusSession,
-  resumeFocusSession
+  resumeFocusSession,
+  summarizeFocusMinutes
 } from "../utils/timer-math.js";
 import { escapeHtml, formatDuration, todayIsoDate, generateId } from "../utils/dom.js";
 
@@ -105,11 +106,13 @@ export function initDeepFocusWorkspace() {
 
     if ((page !== PAGE_ROUTES.COZY && page !== PAGE_ROUTES.DEEPFOCUS) || isSpectating) {
       modeSwitcherEl.hidden = true;
+      modeSwitcherEl.classList.remove("is-pure-zen");
       return;
     }
 
     const isDf = page === PAGE_ROUTES.DEEPFOCUS;
     modeSwitcherEl.hidden = false;
+    modeSwitcherEl.classList.toggle("is-pure-zen", Boolean(zenMode && isDf));
     modeSwitcherEl.innerHTML = `
       <div class="sprk-mode-switch" role="group" aria-label="Workspace mode">
         <button type="button" class="sprk-mode-switch-btn ${!isDf ? "is-active" : ""}" data-switch-mode="cozy">Cozy Study</button>
@@ -408,7 +411,7 @@ export function initDeepFocusWorkspace() {
     const userShort = state.user ? (state.user.displayName || "Account").split(" ")[0] : "Account";
 
     const innerItems = [
-      { id: "music", label: audioPlaying ? "Playing" : "Music", icon: RADIAL_ICONS.music, action: "music", active: activeModal === "music" || audioPlaying, title: "Music & 8-Channel Mixer" },
+      { id: "music", label: audioPlaying ? "Playing" : "Music", icon: RADIAL_ICONS.music, action: "music", active: activeModal === "music" || audioPlaying, title: "Music & 9-Channel Mixer" },
       { id: "settings", label: "Settings", icon: RADIAL_ICONS.settings, action: "settings", active: activeDrawer === "settings", title: "Workspace Settings & Scenes" },
       { id: "account", label: userShort, icon: RADIAL_ICONS.account, action: "account", active: false, title: "Account, Profile & Friends" },
       { id: "home", label: "Home", icon: RADIAL_ICONS.home, action: "home", active: false, title: "Main SPRK Desk Website" }
@@ -678,15 +681,16 @@ export function initDeepFocusWorkspace() {
     const todayFocusRecords = (state.localStudyRecords || []).filter(
       (r) => r.date === today && (r.mode || "focus") === "focus"
     );
-    const todayFocusMins = Math.round(
-      todayFocusRecords.reduce((sum, r) => sum + (r.durationSeconds || 0), 0) / 60
-    );
-    const blocksDone = Number(prefs.pomodoroCyclesCompleted || todayFocusRecords.length || 0);
+    const todayFocusMins = summarizeFocusMinutes(todayFocusRecords).totalMinutes;
+    const blocksDone = todayFocusRecords.length;
     const dailyGoalBlocks = appearance.settings.dailyBlockGoal || 8;
     const openTasks = (state.localTasks || []).filter((t) => !t.completed);
     const pendingCheckIn = state.pendingCheckInRecordId
       ? (state.localStudyRecords || []).find((r) => r.id === state.pendingCheckInRecordId)
       : null;
+    const prevDrawerScrollTop = activeDrawer === "settings"
+      ? (shellEl.querySelector(".df-settings-scroll")?.scrollTop || 0)
+      : 0;
 
     shellEl.innerHTML = `
       <div class="df-backdrop-wrap" aria-hidden="true">
@@ -792,6 +796,8 @@ export function initDeepFocusWorkspace() {
                 <span aria-hidden="true">·</span>
                 <span>R Reset</span>
                 <span aria-hidden="true">·</span>
+                <span>F Zen</span>
+                <span aria-hidden="true">·</span>
                 <span>M Menu</span>
               </div>
             `}
@@ -805,6 +811,10 @@ export function initDeepFocusWorkspace() {
       ${modals.renderModalHtml()}
     `;
 
+    if (activeDrawer === "settings" && prevDrawerScrollTop > 0) {
+      const nextScrollEl = shellEl.querySelector(".df-settings-scroll");
+      if (nextScrollEl) nextScrollEl.scrollTop = prevDrawerScrollTop;
+    }
     document.documentElement.classList.toggle(
       "df-overlay-active",
       Boolean(hubExpanded || modals.getActiveModal() || activeDrawer === "settings")
@@ -1119,13 +1129,17 @@ export function initDeepFocusWorkspace() {
         if (key === "particleOpacityPct") {
           const readout = shellEl.querySelector("#df-val-particleOpacity");
           if (readout) readout.textContent = `${val}%`;
-          savePreferences({ deepFocus: { particleOpacity: val / 100 } });
+          savePreferences({ deepFocus: { particleOpacity: val / 100 } }, { skipCloudSync: true, skipRender: true });
         } else {
           const readout = shellEl.querySelector(`#df-val-${key}`);
           if (readout) readout.textContent = `${val}${unit}`;
-          savePreferences({ deepFocus: { [key]: val } });
+          savePreferences({ deepFocus: { [key]: val } }, { skipCloudSync: true, skipRender: true });
         }
         syncParticlesAndBackdrop();
+      });
+
+      slider.addEventListener("change", () => {
+        savePreferences({ deepFocus: state.preferences?.deepFocus || {} }, { skipRender: true });
       });
     });
 
@@ -1229,7 +1243,9 @@ export function initDeepFocusWorkspace() {
   renderShell();
 
   bus.on("page:changed", () => renderShell());
-  bus.on("preferences:changed", () => renderShell());
+  bus.on("preferences:changed", (payload) => {
+    if (!payload?.skipRender) renderShell();
+  });
   bus.on("state:activeSession", () => renderShell());
   bus.on("auth:changed", () => renderShell());
   bus.on("profile:changed", () => renderShell());

@@ -67,6 +67,15 @@ class DialogManager {
       event.preventDefault();
       this.close();
     });
+
+    const previewDialog = document.getElementById("sprk-preview-dialog");
+    previewDialog?.addEventListener("click", (event) => {
+      if (event.target === previewDialog && previewDialog.open) previewDialog.close();
+    });
+    previewDialog?.addEventListener("cancel", (event) => {
+      event.preventDefault();
+      if (previewDialog.open) previewDialog.close();
+    });
   }
 
   register(feature, renderer) {
@@ -168,7 +177,9 @@ class DialogManager {
     const closePreview = () => {
       if (previewDialog.open) previewDialog.close();
     };
-    previewClose?.addEventListener("click", closePreview, { once: true });
+    if (previewClose) {
+      previewClose.onclick = closePreview;
+    }
 
     previewEyebrow.textContent = skinEntry.kind === "theme-bundle"
       ? `Theme Bundle Skin · ${skinEntry.bundleName || skinEntry.name}`

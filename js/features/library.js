@@ -3,28 +3,12 @@ import { state, persistLocalCollection } from "../state.js";
 import { supabase } from "../services/supabase.js";
 import { escapeHtml, generateId } from "../utils/dom.js";
 import { syncSavedResourceUpsert, syncSavedResourceDelete } from "../services/database-service.js";
-import { createFlashcard, reviewFlashcard, getDueFlashcards } from "../utils/study-tools.js";
-
-const STARTER_GUIDES = [
-  {
-    id: "guide_pomodoro",
-    title: "25/5 Focus Blocks",
-    category: "Focus",
-    spine: "#df7761",
-    summary: "Short rhythmic intervals preserve working memory.",
-    audience: "public",
-    author: "SPRK"
-  },
-  {
-    id: "guide_active_recall",
-    title: "Active Recall Notes",
-    category: "Method",
-    spine: "#6ba689",
-    summary: "Write three memory bullets after every page.",
-    audience: "public",
-    author: "SPRK"
-  }
-];
+import {
+  STARTER_GUIDES,
+  createFlashcard,
+  reviewFlashcard,
+  getDueFlashcards
+} from "../utils/study-tools.js";
 
 export const libraryFeature = {
   skin: "library",
@@ -62,31 +46,7 @@ export const libraryFeature = {
           <div style="margin-bottom:12px;">
             <input id="lib-search" class="sprk-input" type="search" placeholder="Search shelf..." value="${escapeHtml(query)}" />
           </div>
-          <div style="display:grid;gap:10px;">
-            ${items.map((item, idx) => {
-              const bookmarked = state.localSavedResources.some((s) => s.id === item.id);
-              const spine = item.spine || ["#df7761", "#6ba689", "#e6be67", "#6c8eb1"][idx % 4];
-              return `
-                <div class="sprk-card sprk-book-card">
-                  <div style="display:flex;gap:12px;min-width:0;">
-                    <span class="sprk-book-spine" style="background:${escapeHtml(spine)};" aria-hidden="true"></span>
-                    <div style="min-width:0;">
-                      <strong style="font-size:14.5px;">${escapeHtml(item.title)}</strong>
-                      <div class="sprk-meta" style="margin:3px 0 4px;">
-                        <span>${escapeHtml(item.category)}</span>
-                        <span aria-hidden="true">·</span>
-                        <span>${escapeHtml(item.author || "Community")}</span>
-                      </div>
-                      <p style="margin:0;font-size:12.5px;color:var(--muted);">${escapeHtml(item.summary)}</p>
-                    </div>
-                  </div>
-                  <button type="button" class="sprk-btn ${bookmarked ? "sprk-btn-primary" : ""}" data-bookmark="${escapeHtml(item.id)}" style="min-height:34px;padding:4px 12px;align-self:center;">
-                    ${bookmarked ? "Saved" : "Save"}
-                  </button>
-                </div>
-              `;
-            }).join("")}
-          </div>
+          <div id="lib-guides-list" style="display:grid;gap:10px;"></div>
         ` : tab === "flashcards" ? `
           <div style="display:grid;gap:14px;">
             ${activeCard ? `
@@ -184,6 +144,60 @@ export const libraryFeature = {
         `}
       `;
 
+      const renderGuidesList = () => {
+        const listEl = container.querySelector("#lib-guides-list");
+        if (!listEl) return;
+        const filtered = [...STARTER_GUIDES, ...(state.libraryResources || [])].filter((r) => {
+          if (!query) return true;
+          const q = query.toLowerCase();
+          return (r.title || "").toLowerCase().includes(q) || (r.category || "").toLowerCase().includes(q);
+        });
+        listEl.innerHTML = filtered.length === 0
+          ? `<div class="sprk-empty">No guides match your search.</div>`
+          : filtered.map((item, idx) => {
+            const bookmarked = state.localSavedResources.some((s) => s.id === item.id);
+            const spine = item.spine || ["#df7761", "#6ba689", "#e6be67", "#6c8eb1"][idx % 4];
+            return `
+              <div class="sprk-card sprk-book-card">
+                <div style="display:flex;gap:12px;min-width:0;">
+                  <span class="sprk-book-spine" style="background:${escapeHtml(spine)};" aria-hidden="true"></span>
+                  <div style="min-width:0;">
+                    <strong style="font-size:14.5px;">${escapeHtml(item.title)}</strong>
+                    <div class="sprk-meta" style="margin:3px 0 4px;">
+                      <span>${escapeHtml(item.category)}</span>
+                      <span aria-hidden="true">·</span>
+                      <span>${escapeHtml(item.author || "Community")}</span>
+                    </div>
+                    <p style="margin:0;font-size:12.5px;color:var(--muted);">${escapeHtml(item.summary)}</p>
+                  </div>
+                </div>
+                <button type="button" class="sprk-btn ${bookmarked ? "sprk-btn-primary" : ""}" data-bookmark="${escapeHtml(item.id)}" style="min-height:34px;padding:4px 12px;align-self:center;">
+                  ${bookmarked ? "Saved" : "Save"}
+                </button>
+              </div>
+            `;
+          }).join("");
+
+        listEl.querySelectorAll("[data-bookmark]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const id = btn.dataset.bookmark;
+            const exists = state.localSavedResources.some((s) => s.id === id);
+            if (exists) {
+              persistLocalCollection("localSavedResources", state.localSavedResources.filter((s) => s.id !== id));
+              syncSavedResourceDelete(id);
+            } else {
+              const found = filtered.find((i) => i.id === id);
+              if (found) {
+                persistLocalCollection("localSavedResources", [found, ...state.localSavedResources]);
+                syncSavedResourceUpsert(found);
+              }
+            }
+            renderGuidesList();
+          });
+        });
+      };
+      renderGuidesList();
+
       container.querySelectorAll("[data-ltab]").forEach((btn) => {
         btn.addEventListener("click", () => {
           tab = btn.dataset.ltab;
@@ -194,25 +208,7 @@ export const libraryFeature = {
 
       container.querySelector("#lib-search")?.addEventListener("input", (e) => {
         query = e.target.value;
-        renderView();
-      });
-
-      container.querySelectorAll("[data-bookmark]").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const id = btn.dataset.bookmark;
-          const exists = state.localSavedResources.some((s) => s.id === id);
-          if (exists) {
-            persistLocalCollection("localSavedResources", state.localSavedResources.filter((s) => s.id !== id));
-            syncSavedResourceDelete(id);
-          } else {
-            const found = items.find((i) => i.id === id);
-            if (found) {
-              persistLocalCollection("localSavedResources", [found, ...state.localSavedResources]);
-              syncSavedResourceUpsert(found);
-            }
-          }
-          renderView();
-        });
+        renderGuidesList();
       });
 
       container.querySelector("#flashcard-reveal-btn")?.addEventListener("click", () => {

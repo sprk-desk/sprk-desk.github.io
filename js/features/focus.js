@@ -12,11 +12,14 @@ import {
   pauseFocusSession,
   resumeFocusSession,
   completeFocusSession,
-  calculateStudyCreditsForSession
+  calculateStudyCreditsForSession,
+  summarizeFocusMinutes
 } from "../utils/timer-math.js";
 import { escapeHtml, formatDuration, todayIsoDate, generateId } from "../utils/dom.js";
 import { completeServerFocusSession } from "../services/economy-service.js";
 import { supabase } from "../services/supabase.js";
+
+let finishingSessionId = null;
 
 function updateClockVisualAndWhisper() {
   const clockBtn = document.querySelector(".desk-clock");
@@ -78,10 +81,12 @@ export function initFocusBackgroundLoop() {
 
 export async function finishActiveFocusSession({ autoCompleted = false } = {}) {
   const sess = state.activeSession;
-  if (!sess) return null;
-  const completed = completeFocusSession(sess);
-  const verifiedSeconds = Math.max(0, Math.round((completed.accumulatedActiveMs || 0) / 1000));
-  const today = todayIsoDate();
+  if (!sess || finishingSessionId === sess.id) return null;
+  finishingSessionId = sess.id;
+  try {
+    const completed = completeFocusSession(sess);
+    const verifiedSeconds = Math.max(0, Math.round((completed.accumulatedActiveMs || 0) / 1000));
+    const today = todayIsoDate();
 
   const earnedToday = state.localStudyRecords
     .filter((r) => r.date === today)
@@ -162,10 +167,13 @@ export async function finishActiveFocusSession({ autoCompleted = false } = {}) {
     state.pendingNextPomodoroStep = null;
   }
 
-  updateClockVisualAndWhisper();
-  if (autoCompleted) audioManager.playChime("complete");
-  bus.emit("focus:completed", record);
-  return record;
+    updateClockVisualAndWhisper();
+    if (autoCompleted) audioManager.playChime("complete");
+    bus.emit("focus:completed", record);
+    return record;
+  } finally {
+    finishingSessionId = null;
+  }
 }
 
 export const focusFeature = {
@@ -173,7 +181,7 @@ export const focusFeature = {
   eyebrow: "",
   title: "Wall Clock",
   icon: "◔",
-  render(container, { rerender }) {
+  render(container) {
     let tab = "timer"; // timer | stats
     let selectedMinutes = Number(state.preferences?.defaultFocusMinutes || APP_CONFIG.defaults.focus.focusMinutes);
     let selectedMode = "focus";
@@ -191,7 +199,7 @@ export const focusFeature = {
 
       const today = todayIsoDate();
       const todayRecords = state.localStudyRecords.filter((r) => r.date === today && r.mode === "focus");
-      const todayMinutes = Math.round(todayRecords.reduce((sum, r) => sum + (r.durationSeconds || 0), 0) / 60);
+      const todayMinutes = summarizeFocusMinutes(state.localStudyRecords, today).totalMinutes;
       const todayCredits = todayRecords.reduce((sum, r) => sum + (r.creditsAwarded || 0), 0);
 
       const pendingRecord = state.pendingCheckInRecordId
@@ -258,14 +266,14 @@ export const focusFeature = {
             <div style="position:relative;width:154px;height:154px;display:grid;place-items:center;">
               <svg viewBox="0 0 100 100" width="154" height="154" aria-hidden="true">
                 <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(52,44,37,0.12)" stroke-width="6" />
-                <circle cx="50" cy="50" r="45" fill="none" stroke="var(--accent)" stroke-width="6"
+                <circle id="focus-ring-progress" cx="50" cy="50" r="45" fill="none" stroke="var(--accent)" stroke-width="6"
                   stroke-linecap="round" stroke-dasharray="282.7" stroke-dashoffset="${dashOffset}"
                   transform="rotate(-90 50 50)" />
               </svg>
               <div style="position:absolute;text-align:center;">
                 <div class="tabular-nums" id="focus-readout" style="font-size:30px;font-weight:700;line-height:1;">${formatDuration(remaining)}</div>
                 <div class="sprk-meta" style="justify-content:center;margin-top:4px;">
-                  <span>${escapeHtml(sess ? (sess.status === "paused" ? "Paused" : (sess.mode === "focus" ? "Focus" : "Break")) : "Ready")}</span>
+                  <span id="focus-state-label">${escapeHtml(sess ? (sess.status === "paused" ? "Paused" : (sess.mode === "focus" ? "Focus" : "Break")) : "Ready")}</span>
                 </div>
               </div>
             </div>
@@ -294,7 +302,7 @@ export const focusFeature = {
               <div class="sprk-badge-row">
                 <span class="sprk-badge-chip">${escapeHtml(sess.subject)}</span>
                 <span class="sprk-badge-chip">${escapeHtml(sess.scope)}</span>
-                <span class="sprk-badge-chip tabular-nums">${formatDuration(computeElapsedActiveSeconds(sess))}</span>
+                <span class="sprk-badge-chip tabular-nums" id="focus-elapsed-chip">${formatDuration(computeElapsedActiveSeconds(sess))}</span>
                 ${prefs.strictFocusLock && sess.mode === "focus" ? `<span class="sprk-badge-chip tabular-nums">Strict Lock · ${sess.interruptions || 0} switches</span>` : ""}
               </div>
               <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;">
@@ -456,7 +464,7 @@ export const focusFeature = {
 
       container.querySelector("#focus-finish-btn")?.addEventListener("click", async () => {
         const rec = await finishActiveFocusSession({ autoCompleted: false });
-        rerender();
+        renderView();
         const fb = container.querySelector("#focus-feedback");
         if (fb && rec) {
           fb.textContent = `Logged ${formatDuration(rec.durationSeconds)} · ${rec.subject}${rec.creditsAwarded ? ` (+${rec.creditsAwarded} SC)` : ""}`;
@@ -472,9 +480,21 @@ export const focusFeature = {
 
     renderView();
     const interval = window.setInterval(() => {
-      if (!state.activeSession || state.activeSession.status !== "running") return;
+      const sess = state.activeSession;
+      if (!sess || sess.status !== "running") return;
+      const remaining = computeRemainingSeconds(sess);
+      const total = Math.max(1, Number(sess.targetSeconds || 1500));
+      const pct = Math.min(100, Math.max(0, ((total - remaining) / total) * 100));
+      const dashOffset = (282.7 * (1 - pct / 100)).toFixed(1);
+
       const readout = container.querySelector("#focus-readout");
-      if (readout) readout.textContent = formatDuration(computeRemainingSeconds(state.activeSession));
+      const ringEl = container.querySelector("#focus-ring-progress");
+      const elapsedEl = container.querySelector("#focus-elapsed-chip");
+      const stateEl = container.querySelector("#focus-state-label");
+      if (readout) readout.textContent = formatDuration(remaining);
+      if (ringEl) ringEl.setAttribute("stroke-dashoffset", dashOffset);
+      if (elapsedEl) elapsedEl.textContent = formatDuration(computeElapsedActiveSeconds(sess));
+      if (stateEl) stateEl.textContent = sess.mode === "focus" ? "Focus" : "Break";
     }, 1000);
 
     return () => clearInterval(interval);

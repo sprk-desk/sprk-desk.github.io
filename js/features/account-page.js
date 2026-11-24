@@ -16,10 +16,9 @@ import {
 import { presenceService } from "../services/presence-service.js";
 import { setAppMode } from "../core/settings-manager.js";
 import { navigateToPage, parseCurrentPage, PAGE_ROUTES } from "../router.js";
-import { sanitizeAvatarUrl, parseFavoriteSubjects, validateUsernameInput } from "../utils/profile-helpers.js";
+import { AVATAR_PRESETS, sanitizeAvatarUrl, parseFavoriteSubjects, validateUsernameInput } from "../utils/profile-helpers.js";
+import { summarizeFocusMinutes } from "../utils/timer-math.js";
 import { escapeHtml, formatMinutesLabel } from "../utils/dom.js";
-
-const AVATAR_PRESETS = ["☺", "🦊", "🦉", "🐱", "🌿", "☕", "🎓", "🚀"];
 
 export function initAccountPage() {
   const shellEl = document.getElementById("sprk-account-shell");
@@ -83,11 +82,7 @@ export function initAccountPage() {
     const friendEntries = presenceSnap.entries || [];
     const preferredMode = state.preferences?.appMode === "deepfocus" ? "deepfocus" : "cozy";
 
-    const totalFocusMins = Math.round(
-      (state.localStudyRecords || [])
-        .filter((r) => (r.mode || "focus") === "focus")
-        .reduce((s, r) => s + Number(r.durationSeconds || 0), 0) / 60
-    );
+    const totalFocusMins = summarizeFocusMinutes(state.localStudyRecords).totalMinutes;
 
     const activeInspect = inspectedFriend || friendEntries[0] || null;
 
@@ -652,32 +647,37 @@ export function initAccountPage() {
       const password = shellEl.querySelector("#acc-auth-password")?.value || "";
       const displayName = shellEl.querySelector("#acc-auth-display")?.value.trim() || "Student";
 
-      if (authMode === "signin") {
-        const { error } = await signInWithEmail({ email, password });
-        if (error) {
-          statusMsg = error.message;
+      try {
+        if (authMode === "signin") {
+          const { error } = await signInWithEmail({ email, password });
+          if (error) {
+            statusMsg = error.message;
+          } else {
+            await syncAuthenticatedUserData();
+            activeTab = "profile";
+            statusMsg = "Signed in.";
+          }
+          render();
+        } else if (authMode === "register") {
+          const { error, requiresEmailConfirmation } = await signUpWithEmail({ email, password, displayName });
+          if (error) {
+            statusMsg = error.message;
+          } else if (requiresEmailConfirmation) {
+            statusMsg = "Account created. Check your email to confirm before signing in.";
+            authMode = "signin";
+          } else {
+            await syncAuthenticatedUserData();
+            activeTab = "profile";
+            statusMsg = "Account created and signed in.";
+          }
+          render();
         } else {
-          await syncAuthenticatedUserData();
-          activeTab = "profile";
-          statusMsg = "Signed in.";
+          const { error } = await sendPasswordRecovery(email);
+          statusMsg = error ? error.message : "Password reset email sent.";
+          render();
         }
-        render();
-      } else if (authMode === "register") {
-        const { error, requiresEmailConfirmation } = await signUpWithEmail({ email, password, displayName });
-        if (error) {
-          statusMsg = error.message;
-        } else if (requiresEmailConfirmation) {
-          statusMsg = "Account created. Check your email to confirm before signing in.";
-          authMode = "signin";
-        } else {
-          await syncAuthenticatedUserData();
-          activeTab = "profile";
-          statusMsg = "Account created and signed in.";
-        }
-        render();
-      } else {
-        const { error } = await sendPasswordRecovery(email);
-        statusMsg = error ? error.message : "Password reset email sent.";
+      } catch (err) {
+        statusMsg = err?.message || "Authentication request failed.";
         render();
       }
     });

@@ -296,7 +296,8 @@ export const settingsFeature = {
         statusMessage = next
           ? `Serious Mode enabled (${themeMeta?.name || res.themeId} applied free).`
           : `Returned to Regular Mode (${themeMeta?.name || res.themeId}).`;
-        rerender();
+        dialogManager.syncHeader("settings");
+        renderView();
       });
 
       container.querySelectorAll("[data-serious-preset]").forEach((btn) => {
@@ -314,7 +315,8 @@ export const settingsFeature = {
           }
           setSeriousPresetTheme(target);
           statusMessage = `Applied ${target === "noir" ? "Obsidian Minimal" : "Swiss Editorial"}.`;
-          rerender();
+          dialogManager.syncHeader("settings");
+          renderView();
         });
       });
 
@@ -332,7 +334,8 @@ export const settingsFeature = {
           const prof = allProfiles.find((p) => p.id === btn.dataset.applyProfile);
           if (prof && applyWorkspaceProfile(prof)) {
             statusMessage = `Applied workspace profile: ${prof.name}.`;
-            rerender();
+            dialogManager.syncHeader("settings");
+            renderView();
           }
         });
       });
@@ -447,6 +450,7 @@ export const settingsFeature = {
           priority: "medium",
           dueDate: "",
           noteColor: "butter",
+          kanbanStatus: "todo",
           completed: false
         };
         persistLocalCollection("localTasks", [newTask, ...(state.localTasks || [])]);
@@ -458,7 +462,13 @@ export const settingsFeature = {
         cb.addEventListener("change", () => {
           const id = cb.dataset.quickToggleTask;
           const nextTasks = (state.localTasks || []).map((t) =>
-            t.id === id ? { ...t, completed: cb.checked } : t
+            t.id === id
+              ? {
+                  ...t,
+                  completed: cb.checked,
+                  kanbanStatus: cb.checked ? "done" : (t.kanbanStatus === "progress" ? "progress" : "todo")
+                }
+              : t
           );
           persistLocalCollection("localTasks", nextTasks);
           const updated = nextTasks.find((t) => t.id === id);

@@ -3,6 +3,8 @@
 const SAFE_IMAGE_DATA_URL_RE = /^data:image\/(png|jpeg|jpg|webp|gif);base64,[A-Za-z0-9+/=]+$/i;
 const MAX_AVATAR_DATA_URL_LEN = 320_000;
 
+export const AVATAR_PRESETS = Object.freeze(["☺", "🦊", "🦉", "🐱", "🌿", "☕", "🎓", "🚀"]);
+
 export function sanitizeAvatarUrl(rawUrl) {
   if (typeof rawUrl !== "string") return "";
   const trimmed = rawUrl.trim();
@@ -81,18 +83,30 @@ export function formatProfilePayload(fields = {}) {
   };
 }
 
-export function extractMissingProfileColumn(errorMessage = "") {
+export function extractMissingColumn(errorMessage = "", tableName = null) {
   const msg = String(errorMessage || "");
   const patterns = [
     /Could not find the ['"]([a-zA-Z0-9_]+)['"] column/i,
-    /column ['"]?([a-zA-Z0-9_]+)['"]? of relation ['"]?profiles['"]? does not exist/i,
-    /column profiles\.([a-zA-Z0-9_]+) does not exist/i
+    /column ['"]?([a-zA-Z0-9_]+)['"]? of relation ['"]?[a-zA-Z0-9_]+['"]? does not exist/i,
+    /column [a-zA-Z0-9_]+\.([a-zA-Z0-9_]+) does not exist/i
   ];
+  if (tableName) {
+    const escaped = String(tableName).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    patterns.unshift(
+      new RegExp(`Could not find the ['"]([a-zA-Z0-9_]+)['"] column of ['"]${escaped}['"]`, "i"),
+      new RegExp(`column ['"]?([a-zA-Z0-9_]+)['"]? of relation ['"]?${escaped}['"]? does not exist`, "i"),
+      new RegExp(`column ${escaped}\\.([a-zA-Z0-9_]+) does not exist`, "i")
+    );
+  }
   for (const re of patterns) {
     const match = msg.match(re);
     if (match?.[1]) return match[1];
   }
   return null;
+}
+
+export function extractMissingProfileColumn(errorMessage = "") {
+  return extractMissingColumn(errorMessage, "profiles");
 }
 
 export function buildProfileDbPayload(clean = {}, fields = {}, excludedColumns = []) {

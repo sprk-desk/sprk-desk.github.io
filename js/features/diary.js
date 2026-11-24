@@ -1,20 +1,8 @@
 // Desk Notebook -> Private Diary, Markdown Study Notes, Preview & Export
 import { state, persistLocalCollection } from "../state.js";
-import { escapeHtml, generateId } from "../utils/dom.js";
+import { escapeHtml, generateId, downloadFile } from "../utils/dom.js";
 import { renderSafeMarkdownHtml } from "../utils/study-tools.js";
 import { syncNoteUpsert, syncNoteDelete } from "../services/database-service.js";
-
-function downloadTextFile(filename, content, mime = "text/markdown;charset=utf-8") {
-  const blob = new Blob([content], { type: mime });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
 
 export const diaryFeature = {
   skin: "diary",
@@ -95,23 +83,65 @@ export const diaryFeature = {
           <div style="margin-bottom:12px;">
             <input id="diary-search" class="sprk-input" type="search" placeholder="Search ${activeFolder}..." value="${escapeHtml(searchQuery)}" />
           </div>
-          <div style="display:grid;gap:8px;">
-            ${notes.length === 0 ? `<div class="sprk-empty">No pages yet.</div>` : notes.map((n) => `
-              <div class="sprk-card" style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
-                <div style="min-width:0;flex:1;">
-                  <div class="sprk-hand" style="font-size:21px;font-weight:700;margin-bottom:4px;">${escapeHtml(n.title)}</div>
-                  <div class="sprk-md-body">${renderSafeMarkdownHtml(n.content)}</div>
-                  <div class="sprk-meta" style="margin-top:6px;">${escapeHtml((n.updatedAt || "").slice(0, 10))}</div>
-                </div>
-                <div style="display:flex;gap:6px;flex-shrink:0;">
-                  <button type="button" class="sprk-btn" data-edit-note="${escapeHtml(n.id)}" style="min-height:32px;padding:4px 10px;">${seriousMode ? "Edit" : "✎"}</button>
-                  <button type="button" class="sprk-btn" data-del-note="${escapeHtml(n.id)}" aria-label="Delete ${escapeHtml(n.title)}" style="min-height:32px;padding:4px 10px;">×</button>
-                </div>
-              </div>
-            `).join("")}
-          </div>
+          <div id="diary-notes-list" style="display:grid;gap:8px;"></div>
         `}
       `;
+
+      const bindNoteRowActions = (scopeEl) => {
+        scopeEl?.querySelectorAll("[data-edit-note]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            editingId = btn.dataset.editNote;
+            const note = (state.localDiary || []).find((n) => n.id === editingId);
+            draftTitle = note?.title || "";
+            draftContent = note?.content || "";
+            previewMd = false;
+            tab = "write";
+            renderView();
+          });
+        });
+
+        scopeEl?.querySelectorAll("[data-del-note]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const id = btn.dataset.delNote;
+            persistLocalCollection("localDiary", state.localDiary.filter((n) => n.id !== id));
+            syncNoteDelete(id);
+            if (editingId === id) {
+              editingId = null;
+              draftTitle = "";
+              draftContent = "";
+            }
+            renderNotesList();
+          });
+        });
+      };
+
+      const renderNotesList = () => {
+        const listEl = container.querySelector("#diary-notes-list");
+        if (!listEl) return;
+        const filteredNotes = (state.localDiary || []).filter((n) => {
+          if ((n.folder || "diary") !== activeFolder) return false;
+          if (!searchQuery) return true;
+          const q = searchQuery.toLowerCase();
+          return (n.title || "").toLowerCase().includes(q) || (n.content || "").toLowerCase().includes(q);
+        });
+        listEl.innerHTML = filteredNotes.length === 0
+          ? `<div class="sprk-empty">No pages yet.</div>`
+          : filteredNotes.map((n) => `
+            <div class="sprk-card" style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+              <div style="min-width:0;flex:1;">
+                <div class="sprk-hand" style="font-size:21px;font-weight:700;margin-bottom:4px;">${escapeHtml(n.title)}</div>
+                <div class="sprk-md-body">${renderSafeMarkdownHtml(n.content)}</div>
+                <div class="sprk-meta" style="margin-top:6px;">${escapeHtml((n.updatedAt || "").slice(0, 10))}</div>
+              </div>
+              <div style="display:flex;gap:6px;flex-shrink:0;">
+                <button type="button" class="sprk-btn" data-edit-note="${escapeHtml(n.id)}" style="min-height:32px;padding:4px 10px;">${seriousMode ? "Edit" : "✎"}</button>
+                <button type="button" class="sprk-btn" data-del-note="${escapeHtml(n.id)}" aria-label="Delete ${escapeHtml(n.title)}" style="min-height:32px;padding:4px 10px;">×</button>
+              </div>
+            </div>
+          `).join("");
+        bindNoteRowActions(listEl);
+      };
+      renderNotesList();
 
       container.querySelectorAll("[data-dtab]").forEach((btn) => {
         btn.addEventListener("click", () => {
@@ -150,7 +180,7 @@ export const diaryFeature = {
         const md = notes
           .map((n) => `# ${n.title}\n_Updated: ${(n.updatedAt || "").slice(0, 10)}_\n\n${n.content}\n`)
           .join("\n---\n\n");
-        downloadTextFile(`sprk-${activeFolder}.md`, md);
+        downloadFile(`sprk-${activeFolder}.md`, md, "text/markdown;charset=utf-8");
       });
 
       container.querySelector("#diary-toggle-preview")?.addEventListener("click", () => {
@@ -161,7 +191,7 @@ export const diaryFeature = {
 
       container.querySelector("#diary-search")?.addEventListener("input", (e) => {
         searchQuery = e.target.value;
-        renderView();
+        renderNotesList();
       });
 
       container.querySelector("#diary-cancel-edit")?.addEventListener("click", () => {
@@ -205,33 +235,8 @@ export const diaryFeature = {
         renderView();
       });
 
-      container.querySelectorAll("[data-edit-note]").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          editingId = btn.dataset.editNote;
-          const note = (state.localDiary || []).find((n) => n.id === editingId);
-          draftTitle = note?.title || "";
-          draftContent = note?.content || "";
-          previewMd = false;
-          tab = "write";
-          renderView();
-        });
-      });
+      };
 
-      container.querySelectorAll("[data-del-note]").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const id = btn.dataset.delNote;
-          persistLocalCollection("localDiary", state.localDiary.filter((n) => n.id !== id));
-          syncNoteDelete(id);
-          if (editingId === id) {
-            editingId = null;
-            draftTitle = "";
-            draftContent = "";
-          }
-          renderView();
-        });
-      });
-    };
-
-    renderView();
+      renderView();
   }
 };

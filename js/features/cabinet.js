@@ -4,21 +4,9 @@ import { SHOP_CATALOG } from "../services/economy-service.js";
 import { equipShopItem, isShopItemEquipped } from "./shop.js";
 import { renderMiniThumbnail } from "../utils/shop-preview.js";
 import { dialogManager } from "../core/dialog-manager.js";
-import { escapeHtml, todayIsoDate } from "../utils/dom.js";
+import { escapeHtml, todayIsoDate, downloadFile } from "../utils/dom.js";
 import { validateBackupPayload } from "../utils/study-tools.js";
 import { syncSavedResourceDelete } from "../services/database-service.js";
-
-function downloadJsonFile(filename, obj) {
-  const blob = new Blob([JSON.stringify(obj, null, 2)], { type: "application/json;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
 
 export const cabinetFeature = {
   skin: "cabinet",
@@ -127,7 +115,7 @@ export const cabinetFeature = {
           localWorkspaceProfiles: state.localWorkspaceProfiles,
           localAudioPresets: state.localAudioPresets
         };
-        downloadJsonFile(`sprk-desk-backup-${todayIsoDate()}.json`, snapshot);
+        downloadFile(`sprk-desk-backup-${todayIsoDate()}.json`, JSON.stringify(snapshot, null, 2), "application/json;charset=utf-8");
         statusMsg = "Full workspace backup downloaded.";
         renderView();
       });

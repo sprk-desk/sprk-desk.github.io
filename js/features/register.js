@@ -1,20 +1,8 @@
 // Hourglass -> Study Register, CSV/Markdown Export & Session Quality History
 import { state, persistLocalCollection } from "../state.js";
-import { escapeHtml, formatDuration, todayIsoDate, generateId } from "../utils/dom.js";
+import { escapeHtml, formatDuration, todayIsoDate, generateId, downloadFile } from "../utils/dom.js";
 import { formatStudyRecordsCsv, formatStudyRecordsMarkdown } from "../utils/study-tools.js";
 import { syncManualStudyRecord } from "../services/database-service.js";
-
-function downloadStudyFile(filename, content, mime) {
-  const blob = new Blob([content], { type: mime });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
 
 export const registerFeature = {
   skin: "register",
@@ -98,11 +86,11 @@ export const registerFeature = {
       });
 
       container.querySelector("#reg-export-csv")?.addEventListener("click", () => {
-        downloadStudyFile(`sprk-study-log-${todayIsoDate()}.csv`, formatStudyRecordsCsv(records), "text/csv;charset=utf-8");
+        downloadFile(`sprk-study-log-${todayIsoDate()}.csv`, formatStudyRecordsCsv(records), "text/csv;charset=utf-8");
       });
 
       container.querySelector("#reg-export-md")?.addEventListener("click", () => {
-        downloadStudyFile(`sprk-study-log-${todayIsoDate()}.md`, formatStudyRecordsMarkdown(records), "text/markdown;charset=utf-8");
+        downloadFile(`sprk-study-log-${todayIsoDate()}.md`, formatStudyRecordsMarkdown(records), "text/markdown;charset=utf-8");
       });
 
       container.querySelector("#manual-record-form")?.addEventListener("submit", (e) => {

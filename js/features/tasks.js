@@ -1,6 +1,7 @@
 // Cork Pinboard -> Pinned Sticky-Note Tasks, New Note & Study Goals Tabs
 import { state, persistLocalCollection } from "../state.js";
 import { escapeHtml, generateId, todayIsoDate } from "../utils/dom.js";
+import { summarizeFocusMinutes } from "../utils/timer-math.js";
 import { syncTaskUpsert, syncTaskDelete } from "../services/database-service.js";
 
 export const tasksFeature = {
@@ -17,11 +18,7 @@ export const tasksFeature = {
       const seriousMode = Boolean(state.preferences?.seriousMode);
       const openCount = tasks.filter((t) => !t.completed).length;
       const today = todayIsoDate();
-      const todayFocusMins = Math.round(
-        (state.localStudyRecords || [])
-          .filter((r) => r.date === today && (r.mode || "focus") === "focus")
-          .reduce((a, b) => a + (b.durationSeconds || 0), 0) / 60
-      );
+      const todayFocusMins = summarizeFocusMinutes(state.localStudyRecords, today).totalMinutes;
 
       container.innerHTML = `
         <nav class="sprk-tabs sprk-tabs-pinboard" role="tablist" aria-label="Pinboard sections">
@@ -125,6 +122,7 @@ export const tasksFeature = {
           priority: container.querySelector("#task-priority").value,
           dueDate: container.querySelector("#task-due").value || "",
           noteColor: container.querySelector("#task-color").value,
+          kanbanStatus: "todo",
           completed: false
         };
         persistLocalCollection("localTasks", [newTask, ...state.localTasks]);
@@ -136,7 +134,15 @@ export const tasksFeature = {
       container.querySelectorAll("[data-toggle-task]").forEach((cb) => {
         cb.addEventListener("change", () => {
           const id = cb.dataset.toggleTask;
-          const nextTasks = state.localTasks.map((t) => (t.id === id ? { ...t, completed: cb.checked } : t));
+          const nextTasks = state.localTasks.map((t) =>
+            t.id === id
+              ? {
+                  ...t,
+                  completed: cb.checked,
+                  kanbanStatus: cb.checked ? "done" : (t.kanbanStatus === "progress" ? "progress" : "todo")
+                }
+              : t
+          );
           persistLocalCollection("localTasks", nextTasks);
           const updated = nextTasks.find((t) => t.id === id);
           if (updated) syncTaskUpsert(updated);

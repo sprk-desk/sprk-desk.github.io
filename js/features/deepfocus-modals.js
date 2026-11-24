@@ -29,8 +29,13 @@ import {
   moveTaskToKanbanColumn,
   computeDeepFocusAnalytics
 } from "../utils/deepfocus-config.js";
-import { computeStudyStreaks, createFocusSession } from "../utils/timer-math.js";
+import { computeStudyStreaks, createFocusSession, summarizeFocusMinutes } from "../utils/timer-math.js";
 import {
+  BUILTIN_DISCS,
+  STARTER_GUIDES,
+  BODY_DOUBLING_HALLS,
+  ACHIEVEMENT_DEFS,
+  computeUnlockedAchievementIds,
   computeSubjectBudgetsProgress,
   computeExamCountdown,
   renderSafeMarkdownHtml,
@@ -44,88 +49,7 @@ import {
 } from "../utils/study-tools.js";
 import { isThemeAccessibleInMode, isThemeFreeInMode } from "../utils/room-settings.js";
 import { sanitizeAvatarUrl } from "../utils/profile-helpers.js";
-import { escapeHtml, formatDuration, formatMinutesLabel, todayIsoDate, generateId } from "../utils/dom.js";
-
-const BUILTIN_DISCS = [
-  { id: "disc_rainy", name: "Rainy Study", swatch: "#5fa3b8", mix: { rain: 0.65, wind: 0.25, lofi: 0.35 } },
-  { id: "disc_hearth", name: "Cozy Hearth", swatch: "#df7a50", mix: { fireplace: 0.7, rain: 0.25 } },
-  { id: "disc_keys", name: "Lo-Fi Keys", swatch: "#d99254", mix: { lofi: 0.6, whiteNoise: 0.2 } }
-];
-
-const STARTER_GUIDES = [
-  {
-    id: "guide_pomodoro",
-    title: "25/5 Focus Blocks",
-    category: "Focus",
-    summary: "Short rhythmic intervals preserve working memory.",
-    author: "SPRK"
-  },
-  {
-    id: "guide_active_recall",
-    title: "Active Recall Notes",
-    category: "Method",
-    summary: "Write three memory bullets after every page.",
-    author: "SPRK"
-  }
-];
-
-const BODY_DOUBLING_HALLS = [
-  {
-    id: "hall_classic",
-    name: "Quiet Library · 25/5",
-    focusMinutes: 25,
-    breakMinutes: 5,
-    epochMs: 1700000000000,
-    peers: [
-      { desk: "Desk 01", subject: "Organic Chemistry" },
-      { desk: "Desk 02", subject: "Algorithms Problem Set" },
-      { desk: "Desk 03", subject: "Reading Notes" }
-    ]
-  },
-  {
-    id: "hall_deep",
-    name: "Deep Hall · 50/10",
-    focusMinutes: 50,
-    breakMinutes: 10,
-    epochMs: 1700000000000,
-    peers: [
-      { desk: "Desk 01", subject: "Thesis Draft" },
-      { desk: "Desk 02", subject: "Real Analysis" },
-      { desk: "Desk 03", subject: "Anatomy Anki" }
-    ]
-  },
-  {
-    id: "hall_sprint",
-    name: "Exam Hall · 45/15",
-    focusMinutes: 45,
-    breakMinutes: 15,
-    epochMs: 1700000000000,
-    peers: [
-      { desk: "Desk 01", subject: "Mock Paper #2" },
-      { desk: "Desk 02", subject: "Macroeconomics" }
-    ]
-  }
-];
-
-const MILESTONE_DEFS = [
-  { id: "first_focus", title: "First Spark", rule: "5m+ focus block", rewardSc: 10 },
-  { id: "morning_bird", title: "Morning Focus", rule: "Session before 9 AM", rewardSc: 15 },
-  { id: "night_owl", title: "Late Night Focus", rule: "Session after 9 PM", rewardSc: 15 },
-  { id: "streak_7", title: "7-Day Rhythm", rule: "7-day study streak", rewardSc: 30 },
-  { id: "focus_master", title: "Focus Craftsman", rule: "10h verified total", rewardSc: 40 }
-];
-
-function downloadFile(filename, content, mime = "text/plain;charset=utf-8") {
-  const blob = new Blob([content], { type: mime });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
+import { downloadFile, escapeHtml, formatDuration, formatMinutesLabel, todayIsoDate, generateId } from "../utils/dom.js";
 
 export function createDeepFocusModalController({
   shellEl,
@@ -277,7 +201,7 @@ export function createDeepFocusModalController({
 
       <nav class="df-modal-tabs" role="tablist">
         <button type="button" class="df-mtab ${subTab === "discs" ? "is-active" : ""}" data-dfm-tab="discs">Discs (${ownedDiscs.length})</button>
-        <button type="button" class="df-mtab ${subTab === "mixer" ? "is-active" : ""}" data-dfm-tab="mixer">8-Channel Mixer</button>
+        <button type="button" class="df-mtab ${subTab === "mixer" ? "is-active" : ""}" data-dfm-tab="mixer">9-Channel Mixer</button>
         <button type="button" class="df-mtab ${subTab === "saved" ? "is-active" : ""}" data-dfm-tab="saved">Saved Mixes (${Object.keys(presets).length})</button>
       </nav>
 
@@ -357,7 +281,7 @@ export function createDeepFocusModalController({
             <button type="button" class="df-btn-accent" id="dfm-save-preset">+ Save Current Mix</button>
           </div>
           ${Object.keys(presets).length === 0
-            ? `<div class="df-empty-box">Adjust sliders in the 8-Channel Mixer and save your favorite combinations here.</div>`
+            ? `<div class="df-empty-box">Adjust sliders in the 9-Channel Mixer and save your favorite combinations here.</div>`
             : `<div class="df-list-grid-2">
                 ${Object.keys(presets).map((name) => `
                   <div class="df-item-card">
@@ -382,9 +306,7 @@ export function createDeepFocusModalController({
     const exams = state.localExams || [];
     const records = (state.localStudyRecords || []).filter((r) => (r.mode || "focus") === "focus");
     const today = todayIsoDate();
-    const todayFocusMins = Math.round(
-      records.filter((r) => r.date === today).reduce((s, r) => s + Number(r.durationSeconds || 0), 0) / 60
-    );
+    const todayFocusMins = summarizeFocusMinutes(records, today).totalMinutes;
     const budgetProgress = computeSubjectBudgetsProgress(budgets, records, new Date());
     const selectedTaskId = getSelectedTaskId?.() || "";
 
@@ -508,21 +430,63 @@ export function createDeepFocusModalController({
     `;
   };
 
-  const renderKnowledgeModalBody = () => {
-    const cards = state.localFlashcards || [];
-    const dueCards = getDueFlashcards(cards, Date.now());
-    const activeCard = dueCards[0] || null;
-    const notes = (state.localDiary || []).filter((n) => {
+  const getFilteredDiaryNotes = () =>
+    (state.localDiary || []).filter((n) => {
       if ((n.folder || "diary") !== diaryFolder) return false;
       if (!diaryQuery) return true;
       const q = diaryQuery.toLowerCase();
       return (n.title || "").toLowerCase().includes(q) || (n.content || "").toLowerCase().includes(q);
     });
-    const guides = [...STARTER_GUIDES, ...(state.libraryResources || [])].filter((r) => {
+
+  const getFilteredGuides = () =>
+    [...STARTER_GUIDES, ...(state.libraryResources || [])].filter((r) => {
       if (!libQuery) return true;
       const q = libQuery.toLowerCase();
       return (r.title || "").toLowerCase().includes(q) || (r.category || "").toLowerCase().includes(q);
     });
+
+  const renderDiaryListInnerHtml = (notes) =>
+    notes.length === 0
+      ? `<div class="df-empty-box">No entries in ${diaryFolder} yet.</div>`
+      : notes.map((n) => `
+          <article class="df-item-card" style="align-items:flex-start;">
+            <div style="min-width:0;flex:1;">
+              <strong style="font-size:14px;">${escapeHtml(n.title)}</strong>
+              <div class="df-md-inline">${renderSafeMarkdownHtml(n.content)}</div>
+              <div class="df-muted" style="font-size:11px;margin-top:4px;">${escapeHtml((n.updatedAt || "").slice(0, 10))}</div>
+            </div>
+            <div class="df-item-card-acts">
+              <button type="button" class="df-btn-subtle" data-dfm-edit-note="${escapeHtml(n.id)}">Edit</button>
+              <button type="button" class="df-icon-btn" data-dfm-del-note="${escapeHtml(n.id)}" aria-label="Delete note">×</button>
+            </div>
+          </article>
+        `).join("");
+
+  const renderGuidesListInnerHtml = (guides) =>
+    guides.length === 0
+      ? `<div class="df-empty-box">No study guides match "${escapeHtml(libQuery)}".</div>`
+      : guides.map((g) => {
+          const saved = (state.localSavedResources || []).some((s) => s.id === g.id);
+          return `
+            <div class="df-item-card">
+              <div style="min-width:0;">
+                <strong>${escapeHtml(g.title)}</strong>
+                <div class="df-muted">${escapeHtml(g.category || "Guide")} · ${escapeHtml(g.author || "Community")}</div>
+                <p style="margin:4px 0 0;font-size:12.5px;color:#cbd5e1;">${escapeHtml(g.summary)}</p>
+              </div>
+              <button type="button" class="${saved ? "df-btn-accent" : "df-btn-subtle"}" data-dfm-bookmark="${escapeHtml(g.id)}">
+                ${saved ? "Saved" : "Save"}
+              </button>
+            </div>
+          `;
+        }).join("");
+
+  const renderKnowledgeModalBody = () => {
+    const cards = state.localFlashcards || [];
+    const dueCards = getDueFlashcards(cards, Date.now());
+    const activeCard = dueCards[0] || null;
+    const notes = getFilteredDiaryNotes();
+    const guides = getFilteredGuides();
     const signedIn = Boolean(state.user?.id && supabase.configured);
 
     return `
@@ -563,20 +527,8 @@ export function createDeepFocusModalController({
           </form>
         ` : `
           <input id="dfm-diary-search" class="df-input" type="search" value="${escapeHtml(diaryQuery)}" placeholder="Search ${diaryFolder}..." />
-          <div class="df-stack">
-            ${notes.length === 0 ? `<div class="df-empty-box">No entries in ${diaryFolder} yet.</div>` : notes.map((n) => `
-              <article class="df-item-card" style="align-items:flex-start;">
-                <div style="min-width:0;flex:1;">
-                  <strong style="font-size:14px;">${escapeHtml(n.title)}</strong>
-                  <div class="df-md-inline">${renderSafeMarkdownHtml(n.content)}</div>
-                  <div class="df-muted" style="font-size:11px;margin-top:4px;">${escapeHtml((n.updatedAt || "").slice(0, 10))}</div>
-                </div>
-                <div class="df-item-card-acts">
-                  <button type="button" class="df-btn-subtle" data-dfm-edit-note="${escapeHtml(n.id)}">Edit</button>
-                  <button type="button" class="df-icon-btn" data-dfm-del-note="${escapeHtml(n.id)}" aria-label="Delete note">×</button>
-                </div>
-              </article>
-            `).join("")}
+          <div class="df-stack" id="dfm-diary-list">
+            ${renderDiaryListInnerHtml(notes)}
           </div>
         `}
       ` : subTab === "flashcards" ? `
@@ -631,22 +583,8 @@ export function createDeepFocusModalController({
       ` : `
         <div class="df-stack">
           <input id="dfm-lib-search" class="df-input" type="search" value="${escapeHtml(libQuery)}" placeholder="Search study guides..." />
-          <div class="df-stack">
-            ${guides.map((g) => {
-              const saved = (state.localSavedResources || []).some((s) => s.id === g.id);
-              return `
-                <div class="df-item-card">
-                  <div style="min-width:0;">
-                    <strong>${escapeHtml(g.title)}</strong>
-                    <div class="df-muted">${escapeHtml(g.category || "Guide")} · ${escapeHtml(g.author || "Community")}</div>
-                    <p style="margin:4px 0 0;font-size:12.5px;color:#cbd5e1;">${escapeHtml(g.summary)}</p>
-                  </div>
-                  <button type="button" class="${saved ? "df-btn-accent" : "df-btn-subtle"}" data-dfm-bookmark="${escapeHtml(g.id)}">
-                    ${saved ? "Saved" : "Save"}
-                  </button>
-                </div>
-              `;
-            }).join("")}
+          <div class="df-stack" id="dfm-lib-list">
+            ${renderGuidesListInnerHtml(guides)}
           </div>
 
           <form id="dfm-lib-publish" class="df-stack df-item-card" style="flex-direction:column;align-items:stretch;">
@@ -704,24 +642,15 @@ export function createDeepFocusModalController({
       `);
     }
 
-    // Milestones calculation
     const verifiedRecords = focusRecords.filter((r) => !r.isManual);
-    const verifiedMins = Math.round(verifiedRecords.reduce((a, b) => a + (b.durationSeconds || 0), 0) / 60);
-    const unlocked = new Set(state.unlockedAchievementIds || []);
-    if (verifiedRecords.some((r) => (r.durationSeconds || 0) >= 300)) unlocked.add("first_focus");
-    if (streaks.longestStreak >= 7) unlocked.add("streak_7");
-    if (verifiedMins >= 600) unlocked.add("focus_master");
-    for (const r of verifiedRecords) {
-      const hour = new Date(r.startedAt || Date.now()).getHours();
-      if (hour < 9) unlocked.add("morning_bird");
-      if (hour >= 21) unlocked.add("night_owl");
-    }
+    const verifiedMins = summarizeFocusMinutes(verifiedRecords).totalMinutes;
+    const unlocked = computeUnlockedAchievementIds(records, state.unlockedAchievementIds, today);
 
     return `
       <nav class="df-modal-tabs" role="tablist">
         <button type="button" class="df-mtab ${subTab === "analytics" ? "is-active" : ""}" data-dfm-tab="analytics">Analytics &amp; Calendar</button>
         <button type="button" class="df-mtab ${subTab === "register" ? "is-active" : ""}" data-dfm-tab="register">Register (${records.length})</button>
-        <button type="button" class="df-mtab ${subTab === "milestones" ? "is-active" : ""}" data-dfm-tab="milestones">Milestones (${unlocked.size}/${MILESTONE_DEFS.length})</button>
+        <button type="button" class="df-mtab ${subTab === "milestones" ? "is-active" : ""}" data-dfm-tab="milestones">Milestones (${unlocked.size}/${ACHIEVEMENT_DEFS.length})</button>
         <button type="button" class="df-mtab ${subTab === "archive" ? "is-active" : ""}" data-dfm-tab="archive">Archive &amp; Backup</button>
       </nav>
 
@@ -811,18 +740,18 @@ export function createDeepFocusModalController({
           <div class="df-item-card" style="flex-direction:column;align-items:stretch;">
             <div class="df-sec-head">
               <strong>Focus Passport</strong>
-              <span class="tabular-nums df-muted">${formatMinutesLabel(verifiedMins)} verified · ${unlocked.size}/${MILESTONE_DEFS.length} milestones</span>
+              <span class="tabular-nums df-muted">${formatMinutesLabel(verifiedMins)} verified · ${unlocked.size}/${ACHIEVEMENT_DEFS.length} milestones</span>
             </div>
-            <div class="df-subj-track"><div class="df-subj-fill" style="width:${Math.round((unlocked.size / MILESTONE_DEFS.length) * 100)}%;"></div></div>
+            <div class="df-subj-track"><div class="df-subj-fill" style="width:${Math.round((unlocked.size / ACHIEVEMENT_DEFS.length) * 100)}%;"></div></div>
           </div>
           <div class="df-list-grid-2">
-            ${MILESTONE_DEFS.map((m) => {
+            ${ACHIEVEMENT_DEFS.map((m) => {
               const isDone = unlocked.has(m.id);
               return `
                 <div class="df-item-card ${isDone ? "is-active" : ""}">
                   <div>
                     <strong>${escapeHtml(m.title)}</strong>
-                    <div class="df-muted">${escapeHtml(m.rule)} · ${isDone ? "Completed" : `+${m.rewardSc} SC`}</div>
+                    <div class="df-muted">${escapeHtml(m.rule)} · ${isDone ? "Completed" : "Locked"}</div>
                   </div>
                   <span class="tabular-nums ${isDone ? "is-accent-text" : "df-muted"}">${isDone ? "✓" : "—"}</span>
                 </div>
@@ -1339,9 +1268,11 @@ export function createDeepFocusModalController({
 
       backdrop.querySelector("#dfm-save-preset")?.addEventListener("click", () => {
         const presets = state.localAudioPresets || {};
-        const idx = Object.keys(presets).length + 1;
-        persistLocalCollection("localAudioPresets", { ...presets, [`Mix ${idx}`]: { ...audioManager.levels } });
-        statusMsg = `Saved Mix ${idx}.`;
+        let idx = 1;
+        while (Object.prototype.hasOwnProperty.call(presets, `Mix ${idx}`)) idx += 1;
+        const mixName = `Mix ${idx}`;
+        persistLocalCollection("localAudioPresets", { ...presets, [mixName]: { ...audioManager.levels } });
+        statusMsg = `Saved ${mixName}.`;
         onWorkspaceMutated?.();
       });
 
@@ -1544,9 +1475,57 @@ export function createDeepFocusModalController({
         draftContent = "";
         onWorkspaceMutated?.();
       });
+      const bindDiaryListEvents = () => {
+        backdrop.querySelectorAll("[data-dfm-edit-note]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const note = (state.localDiary || []).find((n) => n.id === btn.dataset.dfmEditNote);
+            if (!note) return;
+            diaryEditingId = note.id;
+            draftTitle = note.title || "";
+            draftContent = note.content || "";
+            diaryWriteOpen = true;
+            diaryPreviewMd = false;
+            onWorkspaceMutated?.();
+          });
+        });
+
+        backdrop.querySelectorAll("[data-dfm-del-note]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const id = btn.dataset.dfmDelNote;
+            persistLocalCollection("localDiary", (state.localDiary || []).filter((n) => n.id !== id));
+            syncNoteDelete(id);
+            onWorkspaceMutated?.();
+          });
+        });
+      };
+
+      const bindGuidesListEvents = () => {
+        backdrop.querySelectorAll("[data-dfm-bookmark]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const id = btn.dataset.dfmBookmark;
+            const saved = state.localSavedResources || [];
+            if (saved.some((s) => s.id === id)) {
+              persistLocalCollection("localSavedResources", saved.filter((s) => s.id !== id));
+              syncSavedResourceDelete(id);
+            } else {
+              const found = [...STARTER_GUIDES, ...(state.libraryResources || [])].find((g) => g.id === id);
+              if (found) {
+                persistLocalCollection("localSavedResources", [found, ...saved]);
+                syncSavedResourceUpsert(found);
+              }
+            }
+            onWorkspaceMutated?.();
+          });
+        });
+      };
+
       backdrop.querySelector("#dfm-diary-search")?.addEventListener("input", (e) => {
         diaryQuery = e.target.value;
-        onWorkspaceMutated?.();
+        const listEl = backdrop.querySelector("#dfm-diary-list");
+        if (listEl) {
+          listEl.innerHTML = renderDiaryListInnerHtml(getFilteredDiaryNotes());
+          bindDiaryListEvents();
+        }
       });
       backdrop.querySelector("#dfm-diary-export")?.addEventListener("click", () => {
         const list = (state.localDiary || []).filter((n) => (n.folder || "diary") === diaryFolder);
@@ -1584,27 +1563,7 @@ export function createDeepFocusModalController({
         onWorkspaceMutated?.();
       });
 
-      backdrop.querySelectorAll("[data-dfm-edit-note]").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const note = (state.localDiary || []).find((n) => n.id === btn.dataset.dfmEditNote);
-          if (!note) return;
-          diaryEditingId = note.id;
-          draftTitle = note.title || "";
-          draftContent = note.content || "";
-          diaryWriteOpen = true;
-          diaryPreviewMd = false;
-          onWorkspaceMutated?.();
-        });
-      });
-
-      backdrop.querySelectorAll("[data-dfm-del-note]").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const id = btn.dataset.dfmDelNote;
-          persistLocalCollection("localDiary", (state.localDiary || []).filter((n) => n.id !== id));
-          syncNoteDelete(id);
-          onWorkspaceMutated?.();
-        });
-      });
+      bindDiaryListEvents();
 
       // Flashcards
       backdrop.querySelector("#dfm-fc-reveal")?.addEventListener("click", () => {
@@ -1650,26 +1609,14 @@ export function createDeepFocusModalController({
       // Library Guides
       backdrop.querySelector("#dfm-lib-search")?.addEventListener("input", (e) => {
         libQuery = e.target.value;
-        onWorkspaceMutated?.();
+        const listEl = backdrop.querySelector("#dfm-lib-list");
+        if (listEl) {
+          listEl.innerHTML = renderGuidesListInnerHtml(getFilteredGuides());
+          bindGuidesListEvents();
+        }
       });
 
-      backdrop.querySelectorAll("[data-dfm-bookmark]").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const id = btn.dataset.dfmBookmark;
-          const saved = state.localSavedResources || [];
-          if (saved.some((s) => s.id === id)) {
-            persistLocalCollection("localSavedResources", saved.filter((s) => s.id !== id));
-            syncSavedResourceDelete(id);
-          } else {
-            const found = [...STARTER_GUIDES, ...(state.libraryResources || [])].find((g) => g.id === id);
-            if (found) {
-              persistLocalCollection("localSavedResources", [found, ...saved]);
-              syncSavedResourceUpsert(found);
-            }
-          }
-          onWorkspaceMutated?.();
-        });
-      });
+      bindGuidesListEvents();
 
       backdrop.querySelector("#dfm-lib-publish")?.addEventListener("submit", async (e) => {
         e.preventDefault();

@@ -7,36 +7,16 @@ import {
   resolveSeriousModeTransition,
   isSeriousTheme,
   isThemeAccessibleInMode,
-  SERIOUS_OBJECT_NAMES
+  SERIOUS_OBJECT_NAMES,
+  SELECTOR_FEATURE_PAIRS
 } from "../utils/room-settings.js";
+import { parsePageRoute, getPagePath, PAGE_ROUTES } from "../utils/page-routes.js";
 import {
   resolveEffectiveComputerSkinKey,
   getComputerScreenFrameBox,
   sanitizeComputerScreenPrefs
 } from "../utils/computer-screen.js";
 import { loadLocalScreenBlob } from "../services/local-media-store.js";
-
-const SELECTOR_FEATURE_PAIRS = [
-  [".desk-clock", "focus"],
-  [".desk-hourglass", "register"],
-  [".wall-calendar", "calendar"],
-  [".pinboard", "tasks"],
-  [".desk-notebook", "diary"],
-  [".desk-headphones", "audio"],
-  [".merchant-bird", "shop"],
-  [".desk-plant", "customization"],
-  [".window-frame-btn", "environment"],
-  [".photo-frame", "profile"],
-  [".desk-phone", "friends"],
-  [".desk-computer", "community"],
-  [".mascot", "buddy"],
-  [".bookshelf", "library"],
-  [".cabinet-drawer", "cabinet"],
-  [".trophy", "achievements"],
-  [".coffee-mug", "coffee"],
-  [".custom-prop", "customProp"],
-  [".settings-panel", "settings"]
-];
 
 let activeScreenObjectUrl = null;
 let mediaSyncSeq = 0;
@@ -149,14 +129,7 @@ export function applyRoomSettingsToDocument() {
   const prefs = state.preferences || {};
   const root = document.documentElement;
   const seriousMode = Boolean(prefs.seriousMode);
-  const currentPath = window.location.pathname.replace(/\/+$/, "") || "/";
-  let currentPage = "home";
-  if (currentPath.endsWith("/cozy-study")) currentPage = "cozy";
-  else if (currentPath.endsWith("/deep-focus")) currentPage = "deepfocus";
-  else if (currentPath.endsWith("/account")) currentPage = "account";
-  else if (window.location.search.includes("page=account")) currentPage = "account";
-  else if (window.location.search.includes("page=cozy")) currentPage = "cozy";
-  else if (window.location.search.includes("page=deepfocus")) currentPage = "deepfocus";
+  const currentPage = parsePageRoute(window.location.pathname, window.location.search).page;
 
   const appMode = currentPage === "deepfocus"
     ? "deepfocus"
@@ -232,11 +205,12 @@ export function setSeriousPresetTheme(themeId) {
 
 export function setAppMode(nextMode, { syncUrl = true } = {}) {
   const mode = nextMode === "deepfocus" ? "deepfocus" : "cozy";
+  const page = mode === "deepfocus" ? PAGE_ROUTES.DEEPFOCUS : PAGE_ROUTES.COZY;
   savePreferences({ appMode: mode });
   if (syncUrl) {
-    const targetPath = mode === "deepfocus" ? "/deep-focus" : "/cozy-study";
+    const targetPath = getPagePath(page);
     if (window.location.pathname !== targetPath) {
-      window.history.pushState({ page: mode === "deepfocus" ? "deepfocus" : "cozy" }, "", targetPath);
+      window.history.pushState({ page }, "", targetPath);
     }
   }
   applyRoomSettingsToDocument();

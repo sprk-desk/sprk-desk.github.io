@@ -94,7 +94,7 @@ export function initLandingPage() {
               <ul class="home-mode-points">
                 <li>Pomodoro, custom timer &amp; stopwatch with Zen mode (F) &amp; ⌘K</li>
                 <li>Drag-and-drop Kanban tasks, Markdown notes, flashcards &amp; analytics</li>
-                <li>Custom backdrops, particle engine &amp; 8-channel sound mixer</li>
+                <li>Custom backdrops, particle engine &amp; 9-channel sound mixer</li>
               </ul>
               <div class="home-mode-footer">
                 <span class="home-route-code">/deep-focus</span>
@@ -131,7 +131,7 @@ export function initLandingPage() {
             <div class="home-shared-item">
               <span class="home-shared-num">03</span>
               <div>
-                <h3>Turntable Discs &amp; 8-Channel Sound Mixer</h3>
+                <h3>Turntable Discs &amp; 9-Channel Sound Mixer</h3>
                 <p>Blend procedural rain, wind, hearth fire, lo-fi tones, cafe murmur, and brown/pink/white noise with acoustic low-pass warmth and custom saved mixes.</p>
               </div>
             </div>

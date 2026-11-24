@@ -1,5 +1,6 @@
 // Pure utilities for Spaced-Repetition Flashcards, Pomodoro Cycles, Subject Budgets,
 // Exam Countdowns, Safe Markdown Rendering, CSV/MD Export, Body-Doubling Clock & Backup Validation
+import { computeStudyStreaks } from "./timer-math.js";
 
 export function createFlashcard({ id, deck = "General", front, back, nowMs = Date.now() }) {
   return {
@@ -375,6 +376,94 @@ export const BUILTIN_WORKSPACE_PROFILES = [
   }
 ];
 
+export const BUILTIN_DISCS = Object.freeze([
+  { id: "disc_rainy", name: "Rainy Study", swatch: "#5fa3b8", mix: { rain: 0.65, wind: 0.25, lofi: 0.35 } },
+  { id: "disc_hearth", name: "Cozy Hearth", swatch: "#df7a50", mix: { fireplace: 0.7, rain: 0.25 } },
+  { id: "disc_keys", name: "Lo-Fi Keys", swatch: "#d99254", mix: { lofi: 0.6, whiteNoise: 0.2 } }
+]);
+
+export const STARTER_GUIDES = Object.freeze([
+  {
+    id: "guide_pomodoro",
+    title: "25/5 Focus Blocks",
+    category: "Focus",
+    summary: "Short rhythmic intervals preserve working memory.",
+    author: "SPRK"
+  },
+  {
+    id: "guide_active_recall",
+    title: "Active Recall Notes",
+    category: "Method",
+    summary: "Write three memory bullets after every page.",
+    author: "SPRK"
+  }
+]);
+
+export const BODY_DOUBLING_HALLS = Object.freeze([
+  {
+    id: "hall_classic",
+    name: "Quiet Library · 25/5",
+    focusMinutes: 25,
+    breakMinutes: 5,
+    epochMs: 1700000000000,
+    peers: [
+      { desk: "Desk 01", subject: "Organic Chemistry" },
+      { desk: "Desk 02", subject: "Algorithms Problem Set" },
+      { desk: "Desk 03", subject: "Reading Notes" }
+    ]
+  },
+  {
+    id: "hall_deep",
+    name: "Deep Hall · 50/10",
+    focusMinutes: 50,
+    breakMinutes: 10,
+    epochMs: 1700000000000,
+    peers: [
+      { desk: "Desk 01", subject: "Thesis Draft" },
+      { desk: "Desk 02", subject: "Real Analysis" },
+      { desk: "Desk 03", subject: "Anatomy Anki" }
+    ]
+  },
+  {
+    id: "hall_sprint",
+    name: "Exam Hall · 45/15",
+    focusMinutes: 45,
+    breakMinutes: 15,
+    epochMs: 1700000000000,
+    peers: [
+      { desk: "Desk 01", subject: "Mock Paper #2" },
+      { desk: "Desk 02", subject: "Macroeconomics" }
+    ]
+  }
+]);
+
+export const ACHIEVEMENT_DEFS = Object.freeze([
+  { id: "first_focus", title: "First Spark", rule: "5m+ focus block" },
+  { id: "morning_bird", title: "Morning Focus", rule: "Session before 9 AM" },
+  { id: "night_owl", title: "Late Night Focus", rule: "Session after 9 PM" },
+  { id: "streak_7", title: "7-Day Rhythm", rule: "7-day study streak" },
+  { id: "focus_master", title: "Focus Craftsman", rule: "10h verified total" }
+]);
+
+export function computeUnlockedAchievementIds(records = [], persistedIds = [], todayStr) {
+  const focusRecords = (records || []).filter((r) => (r.mode || "focus") === "focus");
+  const verifiedRecords = focusRecords.filter((r) => !r.isManual);
+  const verifiedSeconds = verifiedRecords.reduce((sum, r) => sum + Number(r.durationSeconds || 0), 0);
+  const verifiedMins = Math.round(verifiedSeconds / 60);
+  const streaks = computeStudyStreaks(focusRecords, todayStr);
+  const unlocked = new Set(persistedIds || []);
+
+  if (verifiedRecords.some((r) => (r.durationSeconds || 0) >= 300)) unlocked.add("first_focus");
+  if (streaks.longestStreak >= 7) unlocked.add("streak_7");
+  if (verifiedMins >= 600) unlocked.add("focus_master");
+  for (const r of verifiedRecords) {
+    const hour = new Date(r.startedAt || Date.now()).getHours();
+    if (hour < 9) unlocked.add("morning_bird");
+    if (hour >= 21) unlocked.add("night_owl");
+  }
+  return { unlocked, verifiedMins, streaks };
+}
+
 export function validateBackupPayload(raw) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
     return { ok: false, error: "Invalid JSON object." };
@@ -404,3 +493,4 @@ export function validateBackupPayload(raw) {
   }
   return { ok: true, data };
 }
+

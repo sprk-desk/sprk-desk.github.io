@@ -375,8 +375,18 @@ html[data-page="account"] #deepfocus-shell {
   .acc-form-grid {
     grid-template-columns: 1fr;
   }
+  .acc-topbar {
+    flex-wrap: wrap;
+    gap: 10px 14px;
+  }
   .acc-nav {
-    display: none;
+    order: 3;
+    width: 100%;
+    justify-content: flex-start;
+    gap: 10px 18px;
+    flex-wrap: wrap;
+    padding-top: 8px;
+    border-top: 1px solid rgba(36, 30, 25, 0.1);
   }
 }
 

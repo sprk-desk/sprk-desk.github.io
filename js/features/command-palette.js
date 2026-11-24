@@ -11,6 +11,7 @@ import {
   applyWorkspaceProfile
 } from "../core/settings-manager.js";
 import { parseCurrentPage, navigateToPage, PAGE_ROUTES } from "../router.js";
+import { isFeatureHiddenInSeriousMode } from "../utils/room-settings.js";
 import { BUILTIN_WORKSPACE_PROFILES } from "../utils/study-tools.js";
 import { createFocusSession } from "../utils/timer-math.js";
 import { escapeHtml, generateId } from "../utils/dom.js";
@@ -187,7 +188,7 @@ function getCommands() {
     {
       id: "tool_audio",
       group: "Study Tools",
-      label: "Music Studio · Sound Discs & 8-Channel Mixer",
+      label: "Music Studio · Sound Discs & 9-Channel Mixer",
       hint: isDeepFocus ? "Music" : "Headphones",
       keywords: "headphones audio music brown pink noise lofi low-pass warmth mixer",
       run: () => openWorkspaceTool("audio", ".desk-headphones", null, "music", "discs")
@@ -210,6 +211,7 @@ function getCommands() {
     },
     {
       id: "tool_milestones",
+      feature: "achievements",
       group: "Study Tools",
       label: "Focus Milestones & Study Passport",
       hint: isDeepFocus ? "Insights" : "Trophy",
@@ -242,6 +244,7 @@ function getCommands() {
     },
     {
       id: "tool_break",
+      feature: "coffee",
       group: "Study Tools",
       label: "Recovery & 20-20-20 Eye Rest Break",
       hint: isDeepFocus ? "Break" : "Coffee",
@@ -256,7 +259,7 @@ function getCommands() {
       keywords: "settings control panel serious strict lock backdrop particles",
       run: () => openWorkspaceTool("settings", ".settings-panel", null, "settings", "")
     }
-  ];
+  ].filter((cmd) => !cmd.feature || !isFeatureHiddenInSeriousMode(cmd.feature, serious));
 }
 
 function renderList() {

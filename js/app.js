@@ -29,6 +29,7 @@ import {
   exitSpectatorRoom
 } from "./services/database-service.js";
 import { sanitizeAvatarUrl } from "./utils/profile-helpers.js";
+import { SELECTOR_FEATURE_PAIRS } from "./utils/room-settings.js";
 
 import { focusFeature, initFocusBackgroundLoop } from "./features/focus.js";
 import { registerFeature } from "./features/register.js";
@@ -56,28 +57,6 @@ import { initStudyCircle } from "./features/study-circle.js";
 import { initDeepFocusWorkspace } from "./features/deepfocus.js";
 import { initLandingPage } from "./features/landing.js";
 import { initAccountPage } from "./features/account-page.js";
-
-const FEATURE_OBJECT_MAP = [
-  [".desk-clock", "focus"],
-  [".desk-hourglass", "register"],
-  [".wall-calendar", "calendar"],
-  [".pinboard", "tasks"],
-  [".desk-notebook", "diary"],
-  [".desk-headphones", "audio"],
-  [".merchant-bird", "shop"],
-  [".desk-plant", "customization"],
-  [".window-frame-btn", "environment"],
-  [".photo-frame", "profile"],
-  [".desk-phone", "friends"],
-  [".desk-computer", "community"],
-  [".mascot", "buddy"],
-  [".bookshelf", "library"],
-  [".cabinet-drawer", "cabinet"],
-  [".trophy", "achievements"],
-  [".coffee-mug", "coffee"],
-  [".custom-prop", "customProp"],
-  [".settings-panel", "settings"]
-];
 
 async function bootstrap() {
   const roomObjects = createRoomObjects();
@@ -136,7 +115,7 @@ async function bootstrap() {
   dialogManager.register("ops", adminFeature);
 
   // Wire physical room object buttons
-  for (const [selector, feature] of FEATURE_OBJECT_MAP) {
+  for (const [selector, feature] of SELECTOR_FEATURE_PAIRS) {
     const el = document.querySelector(selector);
     if (!el) continue;
     el.addEventListener("click", () => {
@@ -224,14 +203,21 @@ async function bootstrap() {
     if (page !== PAGE_ROUTES.COZY && dialogManager.dialog?.open) {
       dialogManager.close({ syncHash: false });
     }
+    let switchedMode = false;
     if (page === PAGE_ROUTES.COZY) {
-      if (state.preferences.appMode !== "cozy") setAppMode("cozy", { syncUrl: false });
+      if (state.preferences.appMode !== "cozy") {
+        setAppMode("cozy", { syncUrl: false });
+        switchedMode = true;
+      }
       if (lastRecordedWorkspacePage !== PAGE_ROUTES.COZY) {
         recordWorkspaceVisit("cozy");
         lastRecordedWorkspacePage = PAGE_ROUTES.COZY;
       }
     } else if (page === PAGE_ROUTES.DEEPFOCUS) {
-      if (state.preferences.appMode !== "deepfocus") setAppMode("deepfocus", { syncUrl: false });
+      if (state.preferences.appMode !== "deepfocus") {
+        setAppMode("deepfocus", { syncUrl: false });
+        switchedMode = true;
+      }
       if (lastRecordedWorkspacePage !== PAGE_ROUTES.DEEPFOCUS) {
         recordWorkspaceVisit("deepfocus");
         lastRecordedWorkspacePage = PAGE_ROUTES.DEEPFOCUS;
@@ -239,8 +225,10 @@ async function bootstrap() {
     } else {
       lastRecordedWorkspacePage = null;
     }
-    applyRoomSettingsToDocument();
-    lightingManager.apply();
+    if (!switchedMode) {
+      applyRoomSettingsToDocument();
+      lightingManager.apply();
+    }
   });
 
   const maybeRedirectHomeForSignedInUser = () => {
@@ -308,15 +296,26 @@ async function bootstrap() {
 
   initFocusBackgroundLoop();
 
+  let startupSyncPending = Boolean(state.supabaseConfigured);
+
   bus.on("auth:changed", () => {
-    if (state.user?.id) maybeRedirectHomeForSignedInUser();
+    if (!startupSyncPending && state.user?.id) maybeRedirectHomeForSignedInUser();
+  });
+
+  bus.on("sync:completed", () => {
+    audioManager.setLowPassFilter(state.preferences?.lowPassHz || 18000);
+    applyRoomSettingsToDocument();
   });
 
   if (state.supabaseConfigured) {
-    const user = await restoreSession();
-    if (user) {
-      await syncAuthenticatedUserData();
-      maybeRedirectHomeForSignedInUser();
+    try {
+      const user = await restoreSession();
+      if (user) {
+        await syncAuthenticatedUserData();
+        maybeRedirectHomeForSignedInUser();
+      }
+    } finally {
+      startupSyncPending = false;
     }
   } else {
     maybeRedirectHomeForSignedInUser();

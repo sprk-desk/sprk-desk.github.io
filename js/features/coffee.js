@@ -40,7 +40,7 @@ export const coffeeFeature = {
 
         <div class="sprk-card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
           <div class="sprk-badge-row">
-            <span class="sprk-badge-chip tabular-nums">${countdown > 0 ? `${seriousMode ? "Eye Rest" : "🌬 Breathe"} · ${countdown}s` : (seriousMode ? "20-20-20 Eye Rest" : "💧 20-20-20 Eye Rest")}</span>
+            <span class="sprk-badge-chip tabular-nums" id="coffee-breathe-badge">${countdown > 0 ? `${seriousMode ? "Eye Rest" : "🌬 Breathe"} · ${countdown}s` : (seriousMode ? "20-20-20 Eye Rest" : "💧 20-20-20 Eye Rest")}</span>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <button type="button" class="sprk-btn" id="coffee-sip-btn">Take a Sip</button>
@@ -74,10 +74,24 @@ export const coffeeFeature = {
         audioManager.playChime("sip");
       });
 
+      const syncBreatheDom = () => {
+        const badge = container.querySelector("#coffee-breathe-badge");
+        const btn = container.querySelector("#coffee-breathe-btn");
+        const isSerious = Boolean(state.preferences?.seriousMode);
+        if (badge) {
+          badge.textContent = countdown > 0
+            ? `${isSerious ? "Eye Rest" : "🌬 Breathe"} · ${countdown}s`
+            : (isSerious ? "20-20-20 Eye Rest" : "💧 20-20-20 Eye Rest");
+        }
+        if (btn) {
+          btn.textContent = countdown > 0 ? "Restart 20s" : "20s Break";
+        }
+      };
+
       container.querySelector("#coffee-breathe-btn")?.addEventListener("click", () => {
         if (intervalId) window.clearInterval(intervalId);
         countdown = 20;
-        renderView();
+        syncBreatheDom();
         intervalId = window.setInterval(() => {
           countdown -= 1;
           if (countdown <= 0) {
@@ -86,7 +100,7 @@ export const coffeeFeature = {
             intervalId = null;
             audioManager.playChime("focus");
           }
-          renderView();
+          syncBreatheDom();
         }, 1000);
       });
 

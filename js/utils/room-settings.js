@@ -3,6 +3,28 @@
 export const SERIOUS_THEME_IDS = Object.freeze(["editorial", "noir"]);
 export const DARK_THEME_IDS = new Set(["space", "alchemy", "midnight", "noir"]);
 
+export const SELECTOR_FEATURE_PAIRS = Object.freeze([
+  [".desk-clock", "focus"],
+  [".desk-hourglass", "register"],
+  [".wall-calendar", "calendar"],
+  [".pinboard", "tasks"],
+  [".desk-notebook", "diary"],
+  [".desk-headphones", "audio"],
+  [".merchant-bird", "shop"],
+  [".desk-plant", "customization"],
+  [".window-frame-btn", "environment"],
+  [".photo-frame", "profile"],
+  [".desk-phone", "friends"],
+  [".desk-computer", "community"],
+  [".mascot", "buddy"],
+  [".bookshelf", "library"],
+  [".cabinet-drawer", "cabinet"],
+  [".trophy", "achievements"],
+  [".coffee-mug", "coffee"],
+  [".custom-prop", "customProp"],
+  [".settings-panel", "settings"]
+]);
+
 export const SERIOUS_OBJECT_NAMES = Object.freeze({
   focus: "Focus Timer",
   register: "Session Log",

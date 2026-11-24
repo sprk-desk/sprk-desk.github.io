@@ -2,46 +2,8 @@
 import { state, persistLocalCollection } from "../state.js";
 import { audioManager } from "../core/audio-manager.js";
 import { supabase } from "../services/supabase.js";
-import { computeSyncedRoomPhase } from "../utils/study-tools.js";
+import { BODY_DOUBLING_HALLS, computeSyncedRoomPhase } from "../utils/study-tools.js";
 import { escapeHtml, formatDuration } from "../utils/dom.js";
-
-const BODY_DOUBLING_HALLS = [
-  {
-    id: "hall_classic",
-    name: "Quiet Library · 25/5",
-    focusMinutes: 25,
-    breakMinutes: 5,
-    epochMs: 1700000000000,
-    peers: [
-      { desk: "Desk 01", subject: "Organic Chemistry" },
-      { desk: "Desk 02", subject: "Algorithms Problem Set" },
-      { desk: "Desk 03", subject: "Reading Notes" }
-    ]
-  },
-  {
-    id: "hall_deep",
-    name: "Deep Hall · 50/10",
-    focusMinutes: 50,
-    breakMinutes: 10,
-    epochMs: 1700000000000,
-    peers: [
-      { desk: "Desk 01", subject: "Thesis Draft" },
-      { desk: "Desk 02", subject: "Real Analysis" },
-      { desk: "Desk 03", subject: "Anatomy Anki" }
-    ]
-  },
-  {
-    id: "hall_sprint",
-    name: "Exam Hall · 45/15",
-    focusMinutes: 45,
-    breakMinutes: 15,
-    epochMs: 1700000000000,
-    peers: [
-      { desk: "Desk 01", subject: "Mock Paper #2" },
-      { desk: "Desk 02", subject: "Macroeconomics" }
-    ]
-  }
-];
 
 export const communityFeature = {
   skin: "community",
@@ -49,7 +11,7 @@ export const communityFeature = {
   title: "Study Computer",
   icon: "🖥",
   render(container) {
-    let tab = state.bodyDoublingRoom ? "bodydouble" : "bodydouble"; // default or user selected: bodydouble | discover | groups | create
+    let tab = "bodydouble"; // bodydouble | discover | groups | create
     let statusMsg = "";
     let lastPhase = null;
 
