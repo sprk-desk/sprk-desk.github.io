@@ -11,7 +11,8 @@ import {
   applyWorkspaceProfile
 } from "../core/settings-manager.js";
 import { parseCurrentPage, navigateToPage, PAGE_ROUTES } from "../router.js";
-import { isFeatureHiddenInSeriousMode } from "../utils/room-settings.js";
+import { isFeatureHiddenInSeriousMode, isFeatureAllowedForSpectator } from "../utils/room-settings.js";
+import { exitSpectatorRoom } from "../services/database-service.js";
 import { BUILTIN_WORKSPACE_PROFILES } from "../utils/study-tools.js";
 import { createFocusSession } from "../utils/timer-math.js";
 import { escapeHtml, generateId } from "../utils/dom.js";
@@ -62,6 +63,52 @@ function getCommands() {
   const profiles = [...BUILTIN_WORKSPACE_PROFILES, ...(state.localWorkspaceProfiles || [])];
   const currentPage = parseCurrentPage().page;
   const isDeepFocus = currentPage === PAGE_ROUTES.DEEPFOCUS;
+
+  if (state.spectatingRoom) {
+    const ownerName = state.spectatingRoom.profile?.displayName || "Student";
+    return [
+      {
+        id: "spec_exit",
+        group: `Visiting ${ownerName}`,
+        label: "Return to My Study Room",
+        hint: "Exit Visit",
+        keywords: "exit leave return home my room",
+        run: () => exitSpectatorRoom()
+      },
+      {
+        id: "spec_profile",
+        group: `Visiting ${ownerName}`,
+        label: `View ${ownerName}'s Profile Card`,
+        hint: "Portrait",
+        keywords: "profile bio subjects friend",
+        run: () => openWorkspaceTool("profile", ".photo-frame", null, "community", "")
+      },
+      {
+        id: "spec_achievements",
+        group: `Visiting ${ownerName}`,
+        label: `View ${ownerName}'s Achievements`,
+        hint: "Trophy",
+        keywords: "achievements badges milestones",
+        run: () => openWorkspaceTool("achievements", ".trophy", null, "insights", "milestones")
+      },
+      {
+        id: "spec_calendar",
+        group: `Visiting ${ownerName}`,
+        label: `View ${ownerName}'s Streaks & Calendar`,
+        hint: "Calendar",
+        keywords: "streaks calendar heatmap study stats",
+        run: () => openWorkspaceTool("calendar", ".wall-calendar", null, "insights", "analytics")
+      },
+      {
+        id: "spec_library",
+        group: `Visiting ${ownerName}`,
+        label: `Inspect ${ownerName}'s Bookshelf`,
+        hint: "Bookshelf",
+        keywords: "bookshelf library books guides",
+        run: () => openWorkspaceTool("library", ".bookshelf", null, "knowledge", "guides")
+      }
+    ].filter((cmd) => cmd.id === "spec_exit" || isFeatureAllowedForSpectator(cmd.id.replace("spec_", "")));
+  }
 
   return [
     {

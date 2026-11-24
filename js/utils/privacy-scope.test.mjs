@@ -10,7 +10,7 @@ import {
   getRelationshipStatus
 } from "./privacy-scope.js";
 
-test("spectator room view strips private diary, notes, and hidden status while keeping safe public fields", () => {
+test("spectator room view strips private diary, notes, and hidden status while keeping safe public fields and owner stats", () => {
   const safe = buildSpectatorSafeRoomView({
     displayName: "Mina",
     publicId: "SPRK-4821",
@@ -21,6 +21,14 @@ test("spectator room view strips private diary, notes, and hidden status while k
     onlineStatus: "online",
     currentActivity: "Organic Chemistry",
     privacy: { showOnlineStatus: false, showStudyActivity: false },
+    friendsCount: 6,
+    studyRecords: [{ id: "s1", date: "2026-04-12", mode: "focus", subject: "Optics", durationSeconds: 1500 }],
+    unlockedAchievementIds: ["first_focus"],
+    libraryResources: [
+      { id: "r1", title: "Public Notes", audience: "public" },
+      { id: "r2", title: "Private Draft", audience: "private" }
+    ],
+    savedResources: [{ id: "sr1", title: "Saved Quantum Book", category: "Physics" }],
     diaryEntries: [{ id: "d1", body: "Secret" }],
     privateNotes: [{ id: "n1", body: "Private" }]
   });
@@ -31,6 +39,12 @@ test("spectator room view strips private diary, notes, and hidden status while k
   assert.equal(safe.profile.examAim, "GRE Physics");
   assert.deepEqual(safe.profile.favoriteSubjects, ["Quantum Mechanics", "Optics"]);
   assert.equal(safe.lighting.windowBeamOn, false);
+  assert.equal(safe.friendsCount, 6);
+  assert.equal(safe.studyRecords.length, 1);
+  assert.deepEqual(safe.unlockedAchievementIds, ["first_focus"]);
+  assert.equal(safe.libraryResources.length, 1);
+  assert.equal(safe.libraryResources[0].id, "r1");
+  assert.equal(safe.savedResources.length, 1);
   assert.deepEqual(safe.diaryEntries, []);
   assert.deepEqual(safe.privateNotes, []);
 });

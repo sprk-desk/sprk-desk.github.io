@@ -17,11 +17,18 @@ export const achievementsFeature = {
   title: "Shelf Trophy",
   icon: "🏆",
   render(container) {
+    const sp = state.spectatingRoom;
+    const recordsSource = sp ? (sp.studyRecords || []) : state.localStudyRecords;
+    const unlockedSource = sp ? (sp.unlockedAchievementIds || []) : state.unlockedAchievementIds;
+    const ownerName = sp
+      ? (sp.profile?.displayName || "Student")
+      : (state.user?.displayName || state.preferences.localDisplayName || "Local Student");
+
     const {
       unlocked: computedUnlock,
       verifiedMins: totalMins,
       streaks
-    } = computeUnlockedAchievementIds(state.localStudyRecords, state.unlockedAchievementIds, todayIsoDate());
+    } = computeUnlockedAchievementIds(recordsSource, unlockedSource, todayIsoDate());
 
     const pct = Math.round((computedUnlock.size / ACHIEVEMENT_DEFS.length) * 100);
     const seriousMode = Boolean(state.preferences?.seriousMode);
@@ -29,7 +36,10 @@ export const achievementsFeature = {
     container.innerHTML = `
       <div class="sprk-card" style="margin-bottom:14px;">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
-          <strong style="font-size:17px;">${escapeHtml(state.user?.displayName || state.preferences.localDisplayName || "Local Student")}</strong>
+          <div>
+            <strong style="font-size:17px;">${escapeHtml(ownerName)}</strong>
+            ${sp ? `<div class="sprk-meta">Room owner's milestones &amp; study passport</div>` : ""}
+          </div>
           <div class="sprk-badge-row">
             <span class="sprk-badge-chip tabular-nums">${seriousMode ? formatMinutesLabel(totalMins) : `⏱ ${formatMinutesLabel(totalMins)}`}</span>
             <span class="sprk-badge-chip tabular-nums sprk-gamified">${seriousMode ? `${streaks.longestStreak}d streak` : `🔥 ${streaks.longestStreak}d`}</span>

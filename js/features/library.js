@@ -22,23 +22,36 @@ export const libraryFeature = {
     let showBack = false;
 
     const renderView = () => {
+      const sp = state.spectatingRoom;
       const seriousMode = Boolean(state.preferences?.seriousMode);
-      const cards = state.localFlashcards || [];
-      const dueCards = getDueFlashcards(cards, Date.now());
+      const cards = sp ? [] : (state.localFlashcards || []);
+      const dueCards = sp ? [] : getDueFlashcards(cards, Date.now());
       const activeCard = dueCards[0] || null;
+      if (sp) tab = "browse";
 
-      const items = [...STARTER_GUIDES, ...(state.libraryResources || [])].filter((r) => {
+      const ownerItems = sp
+        ? [...(sp.savedResources || []), ...(sp.libraryResources || [])]
+        : [...STARTER_GUIDES, ...(state.libraryResources || [])];
+
+      const items = ownerItems.filter((r) => {
         if (!query) return true;
         const q = query.toLowerCase();
         return (r.title || "").toLowerCase().includes(q) || (r.category || "").toLowerCase().includes(q);
       });
 
       container.innerHTML = `
-        <nav class="sprk-tabs sprk-tabs-bookshelf" role="tablist">
-          <button type="button" class="sprk-tab ${tab === "browse" ? "is-active" : ""}" data-ltab="browse">${seriousMode ? `Guides (${items.length})` : `📚 Guides (${items.length})`}</button>
-          <button type="button" class="sprk-tab ${tab === "flashcards" ? "is-active" : ""}" data-ltab="flashcards">${seriousMode ? `Flashcards (${dueCards.length} due)` : `🗂 Flashcards (${dueCards.length} due)`}</button>
-          <button type="button" class="sprk-tab ${tab === "share" ? "is-active" : ""}" data-ltab="share">+ Share Book</button>
-        </nav>
+        ${sp ? `
+          <div class="sprk-card" style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+            <strong>${escapeHtml(sp.profile?.displayName || "Student")}'s Bookshelf (${ownerItems.length})</strong>
+            <span class="sprk-meta">Saved &amp; shared guides</span>
+          </div>
+        ` : `
+          <nav class="sprk-tabs sprk-tabs-bookshelf" role="tablist">
+            <button type="button" class="sprk-tab ${tab === "browse" ? "is-active" : ""}" data-ltab="browse">${seriousMode ? `Guides (${items.length})` : `📚 Guides (${items.length})`}</button>
+            <button type="button" class="sprk-tab ${tab === "flashcards" ? "is-active" : ""}" data-ltab="flashcards">${seriousMode ? `Flashcards (${dueCards.length} due)` : `🗂 Flashcards (${dueCards.length} due)`}</button>
+            <button type="button" class="sprk-tab ${tab === "share" ? "is-active" : ""}" data-ltab="share">+ Share Book</button>
+          </nav>
+        `}
 
         ${statusMsg ? `<div class="sprk-notice" style="margin-bottom:12px;">${escapeHtml(statusMsg)}</div>` : ""}
 
@@ -147,15 +160,18 @@ export const libraryFeature = {
       const renderGuidesList = () => {
         const listEl = container.querySelector("#lib-guides-list");
         if (!listEl) return;
-        const filtered = [...STARTER_GUIDES, ...(state.libraryResources || [])].filter((r) => {
+        const baseList = sp
+          ? [...(sp.savedResources || []), ...(sp.libraryResources || [])]
+          : [...STARTER_GUIDES, ...(state.libraryResources || [])];
+        const filtered = baseList.filter((r) => {
           if (!query) return true;
           const q = query.toLowerCase();
           return (r.title || "").toLowerCase().includes(q) || (r.category || "").toLowerCase().includes(q);
         });
         listEl.innerHTML = filtered.length === 0
-          ? `<div class="sprk-empty">No guides match your search.</div>`
+          ? `<div class="sprk-empty">${sp ? "This student hasn't saved or shared any books on their shelf yet." : "No guides match your search."}</div>`
           : filtered.map((item, idx) => {
-            const bookmarked = state.localSavedResources.some((s) => s.id === item.id);
+            const bookmarked = !sp && state.localSavedResources.some((s) => s.id === item.id);
             const spine = item.spine || ["#df7761", "#6ba689", "#e6be67", "#6c8eb1"][idx % 4];
             return `
               <div class="sprk-card sprk-book-card">
@@ -164,16 +180,18 @@ export const libraryFeature = {
                   <div style="min-width:0;">
                     <strong style="font-size:14.5px;">${escapeHtml(item.title)}</strong>
                     <div class="sprk-meta" style="margin:3px 0 4px;">
-                      <span>${escapeHtml(item.category)}</span>
+                      <span>${escapeHtml(item.category || "Book")}</span>
                       <span aria-hidden="true">·</span>
-                      <span>${escapeHtml(item.author || "Community")}</span>
+                      <span>${escapeHtml(item.author || (sp ? sp.profile?.displayName : "Community") || "Community")}</span>
                     </div>
-                    <p style="margin:0;font-size:12.5px;color:var(--muted);">${escapeHtml(item.summary)}</p>
+                    <p style="margin:0;font-size:12.5px;color:var(--muted);">${escapeHtml(item.summary || "")}</p>
                   </div>
                 </div>
-                <button type="button" class="sprk-btn ${bookmarked ? "sprk-btn-primary" : ""}" data-bookmark="${escapeHtml(item.id)}" style="min-height:34px;padding:4px 12px;align-self:center;">
-                  ${bookmarked ? "Saved" : "Save"}
-                </button>
+                ${sp ? "" : `
+                  <button type="button" class="sprk-btn ${bookmarked ? "sprk-btn-primary" : ""}" data-bookmark="${escapeHtml(item.id)}" style="min-height:34px;padding:4px 12px;align-self:center;">
+                    ${bookmarked ? "Saved" : "Save"}
+                  </button>
+                `}
               </div>
             `;
           }).join("");

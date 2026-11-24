@@ -29,7 +29,11 @@ import {
   exitSpectatorRoom
 } from "./services/database-service.js";
 import { sanitizeAvatarUrl } from "./utils/profile-helpers.js";
-import { SELECTOR_FEATURE_PAIRS } from "./utils/room-settings.js";
+import {
+  SELECTOR_FEATURE_PAIRS,
+  isFeatureDisabled,
+  isFeatureAllowedForSpectator
+} from "./utils/room-settings.js";
 
 import { focusFeature, initFocusBackgroundLoop } from "./features/focus.js";
 import { registerFeature } from "./features/register.js";
@@ -116,11 +120,12 @@ async function bootstrap() {
 
   // Wire physical room object buttons
   for (const [selector, feature] of SELECTOR_FEATURE_PAIRS) {
+    if (isFeatureDisabled(feature)) continue;
     const el = document.querySelector(selector);
     if (!el) continue;
     el.addEventListener("click", () => {
-      if (state.spectatingRoom && (feature === "diary" || feature === "tasks" || feature === "cabinet")) {
-        return; // Spectators cannot open owner-only private features
+      if (state.spectatingRoom && !isFeatureAllowedForSpectator(feature)) {
+        return; // Spectators may only inspect profile, achievements, streaks calendar, and bookshelf
       }
       if (feature === "coffee") {
         audioManager.playChime("sip");
@@ -129,8 +134,9 @@ async function bootstrap() {
     });
   }
 
-  // Interactive ambient lamp toggle
+  // Interactive ambient lamp toggle (owner only)
   document.querySelector(".desk-lamp")?.addEventListener("click", () => {
+    if (state.spectatingRoom) return;
     const lampOn = state.preferences.lighting?.lampOn === false;
     savePreferences({ lighting: { lampOn } });
     lightingManager.apply();
@@ -180,6 +186,7 @@ async function bootstrap() {
   bus.on("profile:changed", syncPortraitBadge);
   bus.on("spectator:changed", () => {
     syncPortraitBadge();
+    applyRoomSettingsToDocument();
     decorationManager.apply();
     decorationManager.applyCustomProp();
   });
@@ -280,7 +287,11 @@ async function bootstrap() {
     if (parseCurrentPage().page !== PAGE_ROUTES.COZY) return;
     if (feature === "room") {
       dialogManager.close({ syncHash: false });
-    } else if (feature === "ops" && state.user?.role !== "admin") {
+    } else if (
+      isFeatureDisabled(feature) ||
+      (state.spectatingRoom && !isFeatureAllowedForSpectator(feature)) ||
+      (feature === "ops" && state.user?.role !== "admin")
+    ) {
       dialogManager.close({ syncHash: true });
     } else {
       dialogManager.open(feature, null, param, { syncHash: false });
@@ -289,7 +300,11 @@ async function bootstrap() {
 
   const initialRoute = parseHashRoute();
   if (initialPageInfo.page === PAGE_ROUTES.COZY && initialRoute.feature !== "room") {
-    if (!(initialRoute.feature === "ops" && state.user?.role !== "admin")) {
+    if (
+      !isFeatureDisabled(initialRoute.feature) &&
+      !(state.spectatingRoom && !isFeatureAllowedForSpectator(initialRoute.feature)) &&
+      !(initialRoute.feature === "ops" && state.user?.role !== "admin")
+    ) {
       dialogManager.open(initialRoute.feature, null, initialRoute.param, { syncHash: false });
     }
   }

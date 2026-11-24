@@ -8,7 +8,12 @@ import { renderPreviewStage } from "../utils/shop-preview.js";
 import { purchaseShopItem } from "../services/economy-service.js";
 import { skinManager } from "./skin-manager.js";
 import { escapeHtml } from "../utils/dom.js";
-import { resolveFeatureTabLabel, isFeatureHiddenInSeriousMode } from "../utils/room-settings.js";
+import {
+  resolveFeatureTabLabel,
+  isFeatureHiddenInSeriousMode,
+  isFeatureDisabled,
+  isFeatureAllowedForSpectator
+} from "../utils/room-settings.js";
 
 const FEATURE_TAB_LABELS = {
   focus: "⏱ Timer",
@@ -104,7 +109,7 @@ class DialogManager {
   syncModeBar(feature) {
     if (!this.modeBarEl) return;
     const objectType = getObjectTypeForFeature(feature);
-    if (!objectType) {
+    if (!objectType || state.spectatingRoom) {
       this.modeBarEl.innerHTML = "";
       this.modeBarEl.hidden = true;
       return;
@@ -357,6 +362,8 @@ class DialogManager {
 
   open(feature, triggerEl = null, param = null, { syncHash = true } = {}) {
     if (!this.dialog || !this.renderers.has(feature)) return;
+    if (isFeatureDisabled(feature)) return;
+    if (state.spectatingRoom && !isFeatureAllowedForSpectator(feature)) return;
     if (isFeatureHiddenInSeriousMode(feature, Boolean(state.preferences?.seriousMode))) {
       return;
     }

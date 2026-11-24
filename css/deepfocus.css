@@ -18,10 +18,11 @@
 }
 
 html[data-page="cozy"] .sprk-mode-switcher {
-  top: auto;
-  bottom: 14px;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 16px;
+  right: 18px;
+  bottom: auto;
+  left: auto;
+  transform: none;
 }
 
 html.df-overlay-active .sprk-mode-switcher {
@@ -33,23 +34,22 @@ html.df-overlay-active .sprk-mode-switcher {
 .sprk-mode-switch {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  padding: 3px;
-  border-radius: 10px;
-  border: 1px solid rgba(52, 44, 37, 0.22);
-  background: rgba(255, 250, 240, 0.88);
-  backdrop-filter: blur(12px);
-  box-shadow: 0 4px 16px rgba(24, 18, 12, 0.14);
+  gap: 3px;
+  padding: 4px;
+  border-radius: 11px;
+  border: 1.5px solid var(--ink, #342c25);
+  background: var(--wall-light, #fff8e9);
+  box-shadow: 2px 3px 0 rgba(35, 28, 22, 0.24);
 }
 
 .sprk-mode-switch-btn {
   appearance: none;
   border: 0;
   border-radius: 7px;
-  padding: 5px 11px;
+  padding: 6px 12px;
   min-height: 28px;
-  font: 600 12px/1 "Plus Jakarta Sans", system-ui, sans-serif;
-  color: #4f4338;
+  font: 700 12px/1 "Plus Jakarta Sans", system-ui, sans-serif;
+  color: var(--muted, #6e6152);
   background: transparent;
   cursor: pointer;
   white-space: nowrap;
@@ -57,37 +57,72 @@ html.df-overlay-active .sprk-mode-switcher {
 }
 
 .sprk-mode-switch-btn:hover {
-  color: #1f1914;
+  color: var(--ink, #342c25);
 }
 
 .sprk-mode-switch-btn.is-active {
-  background: #2f2720;
-  color: #fffaf2;
+  background: var(--accent, #e76d50);
+  color: #fffdf8;
 }
 
 .sprk-mode-switch-btn:focus-visible {
-  outline: 2px solid var(--accent, #38bdf8);
+  outline: 2px solid var(--accent, #e76d50);
   outline-offset: 2px;
 }
 
-/* Switcher adapts automatically in DeepFocus dark glass aesthetic */
+/* Switcher adapts automatically to active main theme inside DeepFocus */
 html[data-page="deepfocus"] .sprk-mode-switch {
-  border-color: rgba(255, 255, 255, 0.14);
-  background: rgba(15, 23, 38, 0.72);
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  border: 1.5px solid var(--ink, #342c25);
+  background: var(--wall-light, #fff8e9);
+  box-shadow: 2px 3px 0 rgba(35, 28, 22, 0.22);
 }
 
 html[data-page="deepfocus"] .sprk-mode-switch-btn {
-  color: rgba(226, 232, 240, 0.72);
+  color: var(--muted, #6e6152);
 }
 
 html[data-page="deepfocus"] .sprk-mode-switch-btn:hover {
-  color: #f8fafc;
+  color: var(--ink, #342c25);
 }
 
 html[data-page="deepfocus"] .sprk-mode-switch-btn.is-active {
-  background: var(--df-accent, #38bdf8);
-  color: #09111e;
+  background: var(--accent, #e76d50);
+  color: #fffdf8;
+}
+
+html[data-page="deepfocus"][data-theme="space"] .sprk-mode-switch,
+html[data-page="deepfocus"][data-theme="midnight"] .sprk-mode-switch,
+html[data-page="deepfocus"][data-theme="alchemy"] .sprk-mode-switch,
+html[data-page="deepfocus"][data-theme="noir"] .sprk-mode-switch {
+  border-color: color-mix(in srgb, var(--wall-light) 30%, var(--wall-shadow));
+  background: color-mix(in srgb, var(--wall) 92%, #070b14);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.42);
+}
+
+html[data-page="deepfocus"][data-theme="space"] .sprk-mode-switch-btn,
+html[data-page="deepfocus"][data-theme="midnight"] .sprk-mode-switch-btn,
+html[data-page="deepfocus"][data-theme="alchemy"] .sprk-mode-switch-btn,
+html[data-page="deepfocus"][data-theme="noir"] .sprk-mode-switch-btn {
+  color: color-mix(in srgb, var(--wall-light) 74%, var(--wall));
+}
+
+html[data-page="deepfocus"][data-theme="space"] .sprk-mode-switch-btn:hover,
+html[data-page="deepfocus"][data-theme="midnight"] .sprk-mode-switch-btn:hover,
+html[data-page="deepfocus"][data-theme="alchemy"] .sprk-mode-switch-btn:hover,
+html[data-page="deepfocus"][data-theme="noir"] .sprk-mode-switch-btn:hover {
+  color: var(--wall-light);
+}
+
+html[data-page="deepfocus"][data-theme="space"] .sprk-mode-switch-btn.is-active,
+html[data-page="deepfocus"][data-theme="midnight"] .sprk-mode-switch-btn.is-active,
+html[data-page="deepfocus"][data-theme="alchemy"] .sprk-mode-switch-btn.is-active {
+  background: var(--accent);
+  color: #0e1420;
+}
+
+html[data-page="deepfocus"][data-theme="noir"] .sprk-mode-switch-btn.is-active {
+  background: #f5f5f2;
+  color: #0d0d0d;
 }
 
 /* Hide Cozy Study Room elements cleanly when on DeepFocus page */
@@ -118,15 +153,22 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   height: 0;
 }
 
-/* DeepFocus Full-Viewport Shell */
+/* DeepFocus Full-Viewport Shell — Uses Active App Theme Colors & Main-Site Tactile Styling */
 .deepfocus-shell {
-  --df-accent: #38bdf8;
-  --df-accent-soft: rgba(56, 189, 248, 0.16);
-  --df-surface: rgba(15, 23, 38, 0.78);
-  --df-surface-solid: rgba(14, 21, 36, 0.96);
-  --df-border: rgba(255, 255, 255, 0.11);
-  --df-text: #f1f5f9;
-  --df-muted: #94a3b8;
+  --df-accent: var(--accent, #e76d50);
+  --df-accent-fg: #fffdf8;
+  --df-accent-soft: color-mix(in srgb, var(--df-accent) 16%, var(--wall-light, #fff8e9));
+  --df-surface: color-mix(in srgb, var(--wall-light, #fff8e9) 93%, transparent);
+  --df-surface-solid: var(--wall-light, #fff8e9);
+  --df-panel-bg: var(--wall, #f7eedb);
+  --df-card-bg: #ffffff;
+  --df-input-bg: #ffffff;
+  --df-border: color-mix(in srgb, var(--ink, #342c25) 26%, transparent);
+  --df-border-strong: var(--ink, #342c25);
+  --df-text: var(--ink, #342c25);
+  --df-muted: var(--muted, #6e6152);
+  --df-card-shadow: 3px 4px 0 rgba(52, 44, 37, 0.2), 0 18px 48px rgba(15, 12, 8, 0.24);
+  --df-btn-shadow: 1.5px 2px 0 var(--ink, #342c25);
 
   position: fixed;
   inset: 0;
@@ -134,7 +176,33 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   overflow: hidden;
   color: var(--df-text);
   font-family: "Plus Jakarta Sans", system-ui, sans-serif;
-  background: #0b1120;
+  background: var(--wall-shadow, #0b1120);
+}
+
+html[data-theme="space"] .deepfocus-shell,
+html[data-theme="midnight"] .deepfocus-shell,
+html[data-theme="alchemy"] .deepfocus-shell,
+html[data-theme="noir"] .deepfocus-shell {
+  --df-accent: var(--accent, #3194ad);
+  --df-accent-fg: #0b111c;
+  --df-accent-soft: color-mix(in srgb, var(--df-accent) 22%, var(--wall));
+  --df-surface: color-mix(in srgb, var(--wall) 92%, #070b14);
+  --df-surface-solid: color-mix(in srgb, var(--wall) 97%, #070b14);
+  --df-panel-bg: var(--wall-shadow);
+  --df-card-bg: color-mix(in srgb, var(--wall-light) 7%, var(--wall));
+  --df-input-bg: color-mix(in srgb, var(--wall-shadow) 85%, #060910);
+  --df-border: color-mix(in srgb, var(--wall-light) 18%, transparent);
+  --df-border-strong: color-mix(in srgb, var(--wall-light) 34%, var(--wall-shadow));
+  --df-text: var(--wall-light);
+  --df-muted: color-mix(in srgb, var(--wall-light) 72%, var(--wall));
+  --df-card-shadow: 0 22px 58px rgba(0, 0, 0, 0.56);
+  --df-btn-shadow: 1.5px 2px 0 rgba(0, 0, 0, 0.5);
+}
+
+html[data-theme="noir"] .deepfocus-shell {
+  --df-accent: #f5f5f2;
+  --df-accent-fg: #0d0d0d;
+  --df-accent-soft: rgba(245, 245, 242, 0.16);
 }
 
 .deepfocus-shell[hidden] {
@@ -220,13 +288,10 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  border: 1.5px solid rgba(255, 255, 255, 0.22);
-  background: rgba(12, 19, 34, 0.8);
-  backdrop-filter: blur(20px);
-  box-shadow:
-    0 12px 32px rgba(0, 0, 0, 0.42),
-    inset 0 1px 0 rgba(255, 255, 255, 0.14);
-  color: #f8fafc;
+  border: 2px solid var(--df-border-strong);
+  background: var(--df-surface-solid);
+  box-shadow: var(--df-btn-shadow), 0 10px 26px rgba(0, 0, 0, 0.28);
+  color: var(--df-text);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -238,22 +303,18 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 
 .df-radial-trigger:hover {
   transform: scale(1.06);
-  background: rgba(15, 24, 42, 0.94);
-  border-color: color-mix(in srgb, var(--df-accent) 60%, rgba(255, 255, 255, 0.3));
+  border-color: var(--df-accent);
 }
 
 .df-radial-trigger.is-open {
   background: var(--df-accent);
-  border-color: rgba(255, 255, 255, 0.45);
-  color: #08111f;
-  box-shadow: 0 0 28px color-mix(in srgb, var(--df-accent) 42%, transparent);
+  border-color: var(--df-border-strong);
+  color: var(--df-accent-fg);
+  box-shadow: var(--df-btn-shadow), 0 0 24px color-mix(in srgb, var(--df-accent) 42%, transparent);
 }
 
 .df-radial-trigger.is-audio-live:not(.is-open) {
-  border-color: color-mix(in srgb, var(--df-accent) 65%, transparent);
-  box-shadow:
-    0 12px 32px rgba(0, 0, 0, 0.42),
-    0 0 18px color-mix(in srgb, var(--df-accent) 26%, transparent);
+  border-color: var(--df-accent);
 }
 
 .df-radial-menu.is-pure-zen:not(.is-open) .df-radial-trigger {
@@ -269,7 +330,7 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   font: 700 9.5px/1 "Plus Jakarta Sans", system-ui, sans-serif;
   letter-spacing: 0.03em;
   text-transform: uppercase;
-  color: rgba(226, 232, 240, 0.9);
+  color: var(--df-text);
 }
 
 .df-trigger-close {
@@ -301,7 +362,7 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: rgba(226, 232, 240, 0.85);
+  background: var(--df-text);
   transition: background-color 150ms ease, box-shadow 150ms ease;
 }
 
@@ -376,14 +437,12 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  border: 1.5px solid rgba(255, 255, 255, 0.22);
-  background: rgba(13, 21, 37, 0.94);
-  box-shadow:
-    0 10px 24px rgba(0, 0, 0, 0.45),
-    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  border: 2px solid var(--df-border-strong);
+  background: var(--df-surface-solid);
+  box-shadow: var(--df-btn-shadow), 0 10px 22px rgba(0, 0, 0, 0.34);
   display: grid;
   place-items: center;
-  color: #e2e8f0;
+  color: var(--df-text);
   transition: transform 150ms cubic-bezier(0.22, 1.24, 0.36, 1), border-color 150ms ease, background-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
 }
 
@@ -391,38 +450,34 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 .df-radial-node:focus-visible .df-radial-orb {
   transform: scale(1.13);
   border-color: var(--df-accent);
-  background: rgba(19, 32, 56, 0.96);
-  color: #ffffff;
-  box-shadow:
-    0 12px 28px rgba(0, 0, 0, 0.55),
-    0 0 18px color-mix(in srgb, var(--df-accent) 34%, transparent);
+  background: var(--df-card-bg);
+  color: var(--df-accent);
 }
 
 .df-radial-node.is-active .df-radial-orb {
   background: var(--df-accent);
-  border-color: rgba(255, 255, 255, 0.5);
-  color: #08111f;
-  box-shadow: 0 0 22px color-mix(in srgb, var(--df-accent) 45%, transparent);
+  border-color: var(--df-border-strong);
+  color: var(--df-accent-fg);
 }
 
 .df-radial-label {
-  padding: 1px 5px;
+  padding: 2px 6px;
   border-radius: 6px;
-  background: rgba(8, 13, 24, 0.78);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  font: 600 10px/1.2 "Plus Jakarta Sans", system-ui, sans-serif;
-  color: #e2e8f0;
+  background: var(--df-surface-solid);
+  border: 1px solid var(--df-border-strong);
+  font: 700 10px/1.2 "Plus Jakarta Sans", system-ui, sans-serif;
+  color: var(--df-text);
   white-space: nowrap;
   max-width: 72px;
   overflow: hidden;
   text-overflow: ellipsis;
   pointer-events: none;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.32);
 }
 
 .df-radial-node.is-active .df-radial-label {
   color: var(--df-accent);
-  border-color: color-mix(in srgb, var(--df-accent) 45%, transparent);
+  border-color: var(--df-accent);
 }
 
 .df-hub-inline-link {
@@ -458,13 +513,13 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 
 .df-timer-card {
   width: 100%;
-  max-width: 456px;
+  max-width: 460px;
   padding: 26px 26px 22px;
-  border-radius: 24px;
+  border-radius: 18px;
   background: var(--df-surface);
-  backdrop-filter: blur(24px);
-  border: 1px solid var(--df-border);
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(18px);
+  border: 2px solid var(--df-border-strong);
+  box-shadow: var(--df-card-shadow);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -476,31 +531,30 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   grid-template-columns: repeat(3, 1fr);
   gap: 4px;
   width: 100%;
-  max-width: 300px;
+  max-width: 310px;
   padding: 4px;
-  border-radius: 12px;
-  background: rgba(9, 14, 25, 0.56);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: var(--df-panel-bg);
+  border: 1.5px solid var(--df-border-strong);
 }
 
 .df-seg-btn {
   appearance: none;
   border: 0;
-  border-radius: 8px;
+  border-radius: 7px;
   padding: 7px 10px;
   min-height: 32px;
   background: transparent;
   color: var(--df-muted);
-  font: 600 12.5px/1 "Plus Jakarta Sans", system-ui, sans-serif;
+  font: 700 12.5px/1 "Plus Jakarta Sans", system-ui, sans-serif;
   cursor: pointer;
   white-space: nowrap;
   transition: background-color 140ms ease, color 140ms ease;
 }
 
 .df-seg-btn.is-active {
-  background: var(--df-accent-soft);
-  color: var(--df-accent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--df-accent) 45%, transparent);
+  background: var(--df-accent);
+  color: var(--df-accent-fg);
 }
 
 .df-phase-pills {
@@ -513,11 +567,11 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 
 .df-phase-btn {
   appearance: none;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
+  border: 1.5px solid var(--df-border);
+  border-radius: 9px;
   padding: 5px 11px;
   min-height: 28px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--df-card-bg);
   color: var(--df-muted);
   font: 600 11.5px/1 "Plus Jakarta Sans", system-ui, sans-serif;
   cursor: pointer;
@@ -526,8 +580,9 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 
 .df-phase-btn.is-active {
   background: var(--df-accent-soft);
-  border-color: color-mix(in srgb, var(--df-accent) 55%, transparent);
-  color: #ffffff;
+  border-color: var(--df-accent);
+  color: var(--df-text);
+  font-weight: 700;
 }
 
 .df-mins-inline {
@@ -535,10 +590,10 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   min-height: 28px;
   padding: 3px 8px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(9, 14, 25, 0.6);
-  color: #f8fafc;
-  font: 600 12px/1 "JetBrains Mono", monospace;
+  border: 1.5px solid var(--df-border-strong);
+  background: var(--df-input-bg);
+  color: var(--df-text);
+  font: 700 12px/1 "JetBrains Mono", monospace;
   text-align: center;
 }
 
@@ -562,7 +617,7 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   font-size: clamp(3.35rem, 6vw, 4.65rem);
   line-height: 1;
   letter-spacing: -0.02em;
-  color: #ffffff;
+  color: var(--df-text);
 }
 
 .df-phase-status {
@@ -572,31 +627,12 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   color: var(--df-muted);
 }
 
-.df-task-bind-row {
-  display: grid;
-  grid-template-columns: 1.15fr 0.85fr;
-  gap: 8px;
-  width: 100%;
-}
-
-.df-select-inline,
-.df-input-inline {
-  min-height: 36px;
-  padding: 6px 10px;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(9, 14, 25, 0.56);
-  color: #f1f5f9;
-  font: 500 12.5px/1.2 "Plus Jakarta Sans", system-ui, sans-serif;
-  min-width: 0;
-}
-
 .df-active-session-line {
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: #e2e8f0;
+  color: var(--df-text);
 }
 
 .df-controls-row {
@@ -609,9 +645,9 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 
 .df-play-cta {
   appearance: none;
-  border: 0;
-  border-radius: 12px;
-  min-width: 124px;
+  border: 2px solid var(--df-border-strong);
+  border-radius: 10px;
+  min-width: 132px;
   min-height: 44px;
   padding: 10px 22px;
   display: inline-flex;
@@ -619,14 +655,16 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   justify-content: center;
   gap: 8px;
   background: var(--df-accent);
-  color: #08111f;
+  color: var(--df-accent-fg);
+  box-shadow: var(--df-btn-shadow);
   font: 700 14px/1 "Plus Jakarta Sans", system-ui, sans-serif;
   cursor: pointer;
   transition: transform 140ms ease, filter 140ms ease;
 }
 
 .df-play-cta:hover {
-  filter: brightness(1.07);
+  transform: translateY(-1px);
+  filter: brightness(1.05);
 }
 
 .df-play-cta:active {
@@ -635,18 +673,19 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 
 .df-ctrl-btn {
   appearance: none;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 12px;
+  border: 1.5px solid var(--df-border-strong);
+  border-radius: 10px;
   min-height: 44px;
   padding: 10px 14px;
-  background: rgba(255, 255, 255, 0.06);
-  color: #f1f5f9;
-  font: 600 13px/1 "Plus Jakarta Sans", system-ui, sans-serif;
+  background: var(--df-card-bg);
+  color: var(--df-text);
+  box-shadow: var(--df-btn-shadow);
+  font: 700 13px/1 "Plus Jakarta Sans", system-ui, sans-serif;
   cursor: pointer;
 }
 
 .df-ctrl-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--df-panel-bg);
 }
 
 .df-shortcuts-hint {
@@ -662,7 +701,7 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 .df-checkin-bar {
   width: 100%;
   padding-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1.5px solid var(--df-border);
   display: grid;
   gap: 8px;
 }
@@ -673,7 +712,7 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   align-items: center;
   gap: 8px;
   font-size: 12.5px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 /* Bottom-Right Clever Friends Online Dock & Popover Dialog */
@@ -691,26 +730,28 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   appearance: none;
   display: inline-flex;
   align-items: center;
-  gap: 9px;
-  min-height: 40px;
-  padding: 0 13px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(12, 19, 34, 0.78);
-  backdrop-filter: blur(20px);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.36);
-  color: #f1f5f9;
-  font: 500 12.5px/1 "Plus Jakarta Sans", system-ui, sans-serif;
+  gap: 8px;
+  min-height: 36px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--df-border-strong);
+  background: var(--df-surface-solid);
+  box-shadow: var(--df-btn-shadow);
+  color: var(--df-text);
+  font: 600 12.5px/1 "Plus Jakarta Sans", system-ui, sans-serif;
   cursor: pointer;
   white-space: nowrap;
-  transition: opacity 180ms ease, background-color 150ms ease, border-color 150ms ease;
+  transition: opacity 180ms ease, transform 140ms ease, background-color 150ms ease, border-color 150ms ease;
 }
 
-.df-friends-pill:hover,
+.df-friends-pill:hover {
+  transform: translateY(-1px);
+  border-color: var(--df-accent);
+}
+
 .df-friends-dock.is-open .df-friends-pill {
-  background: rgba(15, 24, 42, 0.94);
-  border-color: color-mix(in srgb, var(--df-accent) 45%, rgba(255, 255, 255, 0.24));
-  color: #ffffff;
+  background: var(--df-border-strong);
+  color: var(--df-surface-solid);
 }
 
 .df-friends-dock.is-pure-zen:not(.is-open) .df-friends-pill {
@@ -724,36 +765,33 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 
 .df-friends-ico {
   display: inline-flex;
-  color: #cbd5e1;
+  opacity: 0.85;
 }
 
 .df-friends-pill-text strong {
   font-weight: 700;
-  color: #ffffff;
 }
 
 .df-friends-caret {
   display: inline-flex;
-  color: var(--df-muted);
-  transition: transform 180ms ease, color 150ms ease;
+  opacity: 0.78;
+  transition: transform 180ms ease;
 }
 
 .df-friends-caret.is-open {
   transform: rotate(180deg);
-  color: var(--df-accent);
 }
 
 .df-friends-popover {
   position: absolute;
   bottom: calc(100% + 12px);
   right: 0;
-  width: 326px;
+  width: 344px;
   max-width: calc(100vw - 24px);
-  border-radius: 16px;
-  background: rgba(12, 19, 34, 0.95);
-  backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow: 0 22px 54px rgba(0, 0, 0, 0.56);
+  border-radius: 14px;
+  background: var(--df-surface-solid);
+  border: 2px solid var(--df-border-strong);
+  box-shadow: var(--df-card-shadow);
   transform-origin: bottom right;
   animation: dfPopoverUp 180ms cubic-bezier(0.22, 1.2, 0.36, 1);
 }
@@ -765,9 +803,9 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   right: 18px;
   width: 11px;
   height: 11px;
-  background: rgba(12, 19, 34, 0.95);
-  border-right: 1px solid rgba(255, 255, 255, 0.14);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  background: var(--df-surface-solid);
+  border-right: 2px solid var(--df-border-strong);
+  border-bottom: 2px solid var(--df-border-strong);
   transform: rotate(45deg);
 }
 
@@ -788,12 +826,12 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   justify-content: space-between;
   gap: 8px;
   padding: 12px 14px 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1.5px solid var(--df-border);
 }
 
 .df-fpop-body {
   padding: 10px 14px 14px;
-  max-height: 260px;
+  max-height: 290px;
   overflow-y: auto;
 }
 
@@ -822,32 +860,51 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #64748b;
+  background: #b8b3aa;
+  border: 1px solid var(--df-border-strong);
   flex-shrink: 0;
 }
 
+.df-live-indicator.is-online {
+  background: #e5b24a;
+}
+
 .df-live-indicator.is-live {
-  background: #22c55e;
-  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.24);
+  background: #4e9d68;
+  box-shadow: 0 0 0 3px rgba(78, 157, 104, 0.24);
 }
 
 .df-friends-list {
   display: grid;
-  gap: 9px;
+  gap: 8px;
 }
 
 .df-friend-row {
+  padding: 9px 10px;
+  border: 1.5px solid var(--df-border);
+  border-radius: 10px;
+  background: var(--df-card-bg);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.df-friend-row.is-studying {
+  border-color: var(--df-border-strong);
+}
+
+.df-friend-top {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
 }
 
 .df-friend-avatar {
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--df-panel-bg);
+  border: 1.5px solid var(--df-border-strong);
   display: grid;
   place-items: center;
   overflow: hidden;
@@ -867,55 +924,81 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   flex: 1;
 }
 
+.df-friend-name-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
 .df-friend-name {
   font-size: 12.5px;
   font-weight: 700;
-  color: #f8fafc;
+  color: var(--df-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .df-friend-sub {
-  font-size: 11.5px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
   color: var(--df-muted);
-  white-space: nowrap;
+}
+
+.df-friend-subject {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--df-text);
+}
+
+.df-friend-progress-track {
+  height: 5px;
+  border-radius: 99px;
+  background: var(--df-border);
   overflow: hidden;
-  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+.df-friend-progress-fill {
+  height: 100%;
+  background: var(--df-accent);
+  transition: width 0.25s ease;
 }
 
 .df-friend-dur {
   color: var(--df-accent);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .df-dock-disc-select {
   min-height: 32px;
   padding: 4px 8px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(9, 14, 25, 0.72);
-  color: #f1f5f9;
+  border: 1.5px solid var(--df-border-strong);
+  background: var(--df-input-bg);
+  color: var(--df-text);
   font: 600 12px/1 "Plus Jakarta Sans", system-ui, sans-serif;
 }
 
 .df-dock-play {
   appearance: none;
-  border: 0;
+  border: 1.5px solid var(--df-border-strong);
   border-radius: 10px;
   width: 34px;
   height: 34px;
   display: grid;
   place-items: center;
-  background: rgba(255, 255, 255, 0.1);
-  color: #f8fafc;
+  background: var(--df-card-bg);
+  color: var(--df-text);
   cursor: pointer;
   flex-shrink: 0;
 }
 
 .df-dock-play.is-playing {
   background: var(--df-accent);
-  color: #09111e;
+  color: var(--df-accent-fg);
 }
 
 /* Right Slide-Over Settings Drawer */
@@ -928,9 +1011,8 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   max-width: 100vw;
   z-index: 38;
   background: var(--df-surface-solid);
-  backdrop-filter: blur(24px);
-  border-left: 1px solid var(--df-border);
-  box-shadow: -16px 0 42px rgba(0, 0, 0, 0.45);
+  border-left: 2px solid var(--df-border-strong);
+  box-shadow: -16px 0 42px rgba(0, 0, 0, 0.28);
   display: flex;
   flex-direction: column;
 }
@@ -940,7 +1022,7 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   align-items: center;
   justify-content: space-between;
   padding: 16px 18px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1.5px solid var(--df-border);
   flex-shrink: 0;
 }
 
@@ -964,7 +1046,7 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   display: grid;
   gap: 10px;
   padding-bottom: 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1.5px solid var(--df-border);
 }
 
 .df-settings-group:last-child {
@@ -977,6 +1059,21 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   font-weight: 700;
   letter-spacing: 0.06em;
   color: var(--df-accent);
+}
+
+.df-settings-preview-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 11px;
+  border: 1.5px solid var(--df-border);
+  background: var(--df-card-bg);
+}
+
+.df-settings-preview-row .sprk-shop-thumb {
+  width: 54px;
+  height: 54px;
 }
 
 .df-settings-label-row {
@@ -996,22 +1093,23 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   appearance: none;
   border: 0;
   background: transparent;
-  color: var(--df-muted);
+  color: var(--df-accent);
   font-size: 11.5px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   text-decoration: underline;
 }
 
 .df-link-btn:hover {
-  color: #ffffff;
+  opacity: 0.85;
 }
 
 .df-field {
   display: grid;
   gap: 5px;
   font-size: 12px;
-  color: #cbd5e1;
+  font-weight: 600;
+  color: var(--df-text);
 }
 
 .df-custom-bg-row {
@@ -1024,7 +1122,8 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   display: grid;
   gap: 5px;
   font-size: 12px;
-  color: #cbd5e1;
+  font-weight: 600;
+  color: var(--df-text);
 }
 
 .df-slider-head {
@@ -1052,7 +1151,7 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   justify-content: space-between;
   gap: 10px;
   font-size: 12.5px;
-  color: #e2e8f0;
+  color: var(--df-text);
 }
 
 .df-seg-mini {
@@ -1062,20 +1161,20 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 
 .df-mini-act {
   appearance: none;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
-  color: #cbd5e1;
-  border-radius: 6px;
+  border: 1.5px solid var(--df-border);
+  background: var(--df-card-bg);
+  color: var(--df-muted);
+  border-radius: 7px;
   padding: 4px 8px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
 }
 
 .df-mini-act.is-accent {
-  border-color: color-mix(in srgb, var(--df-accent) 55%, transparent);
+  border-color: var(--df-accent);
   background: var(--df-accent-soft);
-  color: var(--df-accent);
+  color: var(--df-text);
 }
 
 .df-check-row {
@@ -1083,34 +1182,33 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   align-items: center;
   gap: 8px;
   font-size: 12.5px;
-  color: #cbd5e1;
+  color: var(--df-text);
   cursor: pointer;
 }
 
-/* Shared Glassmorphic Controls */
+/* Shared Tactile Controls matching Main App Website */
 .df-icon-btn {
   appearance: none;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.05);
-  color: #cbd5e1;
+  border: 1.5px solid var(--df-border-strong);
+  background: var(--df-card-bg);
+  color: var(--df-text);
   border-radius: 8px;
   min-width: 30px;
   min-height: 30px;
   padding: 0 8px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
 }
 
 .df-icon-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
+  background: var(--df-panel-bg);
 }
 
 .df-icon-btn.is-active {
-  background: var(--df-accent-soft);
-  border-color: color-mix(in srgb, var(--df-accent) 55%, transparent);
-  color: var(--df-accent);
+  background: var(--df-accent);
+  border-color: var(--df-border-strong);
+  color: var(--df-accent-fg);
 }
 
 .df-input,
@@ -1120,9 +1218,9 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   min-height: 36px;
   padding: 7px 10px;
   border-radius: 9px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(9, 14, 25, 0.72);
-  color: #f8fafc;
+  border: 1.5px solid var(--df-border-strong);
+  background: var(--df-input-bg);
+  color: var(--df-text);
   font: 500 12.5px/1.35 "Plus Jakarta Sans", system-ui, sans-serif;
 }
 
@@ -1134,19 +1232,21 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 
 .df-btn-accent {
   appearance: none;
-  border: 0;
+  border: 1.5px solid var(--df-border-strong);
   border-radius: 9px;
   min-height: 36px;
   padding: 6px 14px;
   background: var(--df-accent);
-  color: #09111e;
+  color: var(--df-accent-fg);
+  box-shadow: var(--df-btn-shadow);
   font: 700 12.5px/1 "Plus Jakarta Sans", system-ui, sans-serif;
   cursor: pointer;
   white-space: nowrap;
 }
 
 .df-btn-accent:hover:not(:disabled) {
-  filter: brightness(1.07);
+  transform: translateY(-1px);
+  filter: brightness(1.06);
 }
 
 .df-btn-accent:disabled,
@@ -1157,34 +1257,36 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 
 .df-btn-subtle {
   appearance: none;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 8px;
+  border: 1.5px solid var(--df-border-strong);
+  border-radius: 9px;
   min-height: 32px;
   padding: 4px 10px;
-  background: rgba(255, 255, 255, 0.06);
-  color: #e2e8f0;
+  background: var(--df-card-bg);
+  color: var(--df-text);
+  box-shadow: 1px 1.5px 0 rgba(35, 28, 22, 0.16);
   font: 600 12px/1 "Plus Jakarta Sans", system-ui, sans-serif;
   cursor: pointer;
   white-space: nowrap;
 }
 
 .df-btn-subtle:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--df-panel-bg);
 }
 
 .df-btn-subtle.is-accent {
   background: var(--df-accent-soft);
-  border-color: color-mix(in srgb, var(--df-accent) 55%, transparent);
-  color: var(--df-accent);
+  border-color: var(--df-accent);
+  color: var(--df-text);
 }
 
 .df-notice {
   padding: 9px 12px;
   border-radius: 9px;
-  border: 1px solid color-mix(in srgb, var(--df-accent) 45%, transparent);
+  border: 1.5px solid var(--df-accent);
   background: var(--df-accent-soft);
-  color: #f8fafc;
+  color: var(--df-text);
   font-size: 12.5px;
+  font-weight: 600;
 }
 
 .df-muted {
@@ -1202,8 +1304,8 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   position: fixed;
   inset: 0;
   z-index: 55;
-  background: rgba(6, 10, 18, 0.74);
-  backdrop-filter: blur(12px);
+  background: rgba(16, 13, 10, 0.54);
+  backdrop-filter: blur(8px);
   display: grid;
   place-items: center;
   padding: 20px;
@@ -1211,12 +1313,12 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 
 .df-modal-card {
   width: 100%;
-  max-width: 620px;
+  max-width: 660px;
   max-height: 86vh;
-  border-radius: 22px;
+  border-radius: 18px;
   background: var(--df-surface-solid);
-  border: 1px solid rgba(255, 255, 255, 0.13);
-  box-shadow: 0 32px 84px rgba(0, 0, 0, 0.62);
+  border: 2px solid var(--df-border-strong);
+  box-shadow: var(--df-card-shadow);
   padding: 20px 22px;
   display: flex;
   flex-direction: column;
@@ -1225,7 +1327,7 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 }
 
 .df-modal-card.is-wide {
-  max-width: 860px;
+  max-width: 880px;
 }
 
 .df-modal-head {
@@ -1238,8 +1340,8 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 
 .df-modal-head h2 {
   margin: 0;
-  font: 700 17px/1.2 "Fraunces", Georgia, serif;
-  color: #f8fafc;
+  font: 700 18px/1.2 "Fraunces", Georgia, serif;
+  color: var(--df-text);
 }
 
 .df-modal-body {
@@ -1254,35 +1356,34 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 .df-modal-tabs {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   flex-wrap: wrap;
   padding: 4px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: var(--df-panel-bg);
+  border: 1.5px solid var(--df-border-strong);
 }
 
 .df-mtab {
   appearance: none;
   border: 0;
-  border-radius: 8px;
+  border-radius: 7px;
   padding: 7px 12px;
   min-height: 32px;
   background: transparent;
   color: var(--df-muted);
-  font: 600 12.5px/1 "Plus Jakarta Sans", system-ui, sans-serif;
+  font: 700 12.5px/1 "Plus Jakarta Sans", system-ui, sans-serif;
   cursor: pointer;
   white-space: nowrap;
 }
 
 .df-mtab:hover {
-  color: #f8fafc;
+  color: var(--df-text);
 }
 
 .df-mtab.is-active {
-  background: var(--df-accent-soft);
-  color: var(--df-accent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--df-accent) 42%, transparent);
+  background: var(--df-accent);
+  color: var(--df-accent-fg);
 }
 
 .df-modal-sec {
@@ -1294,7 +1395,7 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   margin: 0;
   font-size: 12.5px;
   font-weight: 700;
-  color: #e2e8f0;
+  color: var(--df-text);
 }
 
 .df-sec-head {
@@ -1322,21 +1423,40 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   gap: 10px;
 }
 
+.df-catalog-preview-panel {
+  padding: 14px;
+  border-radius: 14px;
+  border: 2px solid var(--df-border-strong);
+  background: var(--df-card-bg);
+  box-shadow: 2px 3px 0 rgba(35, 28, 22, 0.14);
+}
+
+.df-cat-thumb-wrap {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+}
+
+.df-cat-thumb-wrap .sprk-shop-thumb {
+  width: 56px;
+  height: 56px;
+}
+
 .df-item-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
   padding: 11px 13px;
-  border-radius: 13px;
-  background: rgba(255, 255, 255, 0.035);
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 12px;
+  background: var(--df-card-bg);
+  border: 1.5px solid var(--df-border);
   font-size: 12.5px;
 }
 
 .df-item-card.is-active {
-  border-color: color-mix(in srgb, var(--df-accent) 55%, transparent);
-  background: rgba(56, 189, 248, 0.08);
+  border-color: var(--df-accent);
+  background: var(--df-accent-soft);
 }
 
 .df-item-card-info {
@@ -1351,7 +1471,7 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   display: block;
   font-size: 13px;
   line-height: 1.3;
-  color: #f8fafc;
+  color: var(--df-text);
 }
 
 .df-item-card-acts {
@@ -1359,6 +1479,7 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 .df-item-card-acts .df-btn-accent,
@@ -1371,8 +1492,8 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 .df-empty-box {
   padding: 20px 16px;
   border-radius: 13px;
-  border: 1px dashed rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.02);
+  border: 1.5px dashed var(--df-border);
+  background: var(--df-card-bg);
   color: var(--df-muted);
   font-size: 13px;
   text-align: center;
@@ -1391,17 +1512,17 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   align-items: center;
   gap: 16px;
   padding: 14px 16px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.035);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  background: var(--df-card-bg);
+  border: 1.5px solid var(--df-border-strong);
 }
 
 .df-platter {
   width: 72px;
   height: 72px;
   border-radius: 50%;
-  background: #080d18;
-  border: 2px solid rgba(255, 255, 255, 0.14);
+  background: #141923;
+  border: 2px solid var(--df-border-strong);
   display: grid;
   place-items: center;
   flex-shrink: 0;
@@ -1412,7 +1533,7 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   height: 58px;
   border-radius: 50%;
   background:
-    repeating-radial-gradient(circle, #182235 0 3px, #0d1424 3px 6px);
+    repeating-radial-gradient(circle, #222938 0 3px, #121722 3px 6px);
   display: grid;
   place-items: center;
 }
@@ -1431,7 +1552,7 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.7);
+  border: 2px solid rgba(255, 255, 255, 0.78);
 }
 
 .df-turntable-main {
@@ -1452,7 +1573,7 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 .df-turntable-title {
   font-size: 14px;
   font-weight: 700;
-  color: #f8fafc;
+  color: var(--df-text);
 }
 
 .df-vol-wrap {
@@ -1494,23 +1615,24 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   gap: 9px;
   min-height: 44px;
   padding: 9px 12px;
-  border-radius: 11px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.04);
-  color: #e2e8f0;
+  border-radius: 10px;
+  border: 1.5px solid var(--df-border);
+  background: var(--df-card-bg);
+  color: var(--df-text);
   font: 600 12.5px/1.25 "Plus Jakarta Sans", system-ui, sans-serif;
   cursor: pointer;
   text-align: left;
 }
 
 .df-disc-card:hover {
-  background: rgba(255, 255, 255, 0.09);
+  border-color: var(--df-border-strong);
 }
 
 .df-disc-card.is-active {
   background: var(--df-accent-soft);
-  border-color: color-mix(in srgb, var(--df-accent) 55%, transparent);
-  color: #ffffff;
+  border-color: var(--df-accent);
+  color: var(--df-text);
+  font-weight: 700;
 }
 
 .df-disc-dot {
@@ -1518,7 +1640,7 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   height: 12px;
   border-radius: 50%;
   flex-shrink: 0;
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  border: 1px solid var(--df-border-strong);
 }
 
 /* Draggable Kanban Board (Plan Modal) */
@@ -1530,9 +1652,9 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 }
 
 .df-kcol {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 14px;
+  background: var(--df-panel-bg);
+  border: 1.5px solid var(--df-border);
+  border-radius: 12px;
   padding: 12px 10px;
   min-height: 250px;
   display: grid;
@@ -1543,7 +1665,7 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 
 .df-kcol.is-drop-target {
   border-color: var(--df-accent);
-  background: color-mix(in srgb, var(--df-accent) 10%, rgba(15, 23, 38, 0.8));
+  background: var(--df-accent-soft);
 }
 
 .df-kcol-head {
@@ -1552,7 +1674,7 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   justify-content: space-between;
   font-size: 12px;
   font-weight: 700;
-  color: #e2e8f0;
+  color: var(--df-text);
   padding: 0 2px;
 }
 
@@ -1568,14 +1690,14 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   text-align: center;
   font-size: 12px;
   color: var(--df-muted);
-  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border: 1.5px dashed var(--df-border);
   border-radius: 10px;
 }
 
 .df-kcard {
-  background: rgba(15, 23, 38, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.11);
-  border-radius: 11px;
+  background: var(--df-card-bg);
+  border: 1.5px solid var(--df-border);
+  border-radius: 10px;
   padding: 10px;
   display: grid;
   gap: 7px;
@@ -1584,7 +1706,7 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 }
 
 .df-kcard:hover {
-  border-color: rgba(255, 255, 255, 0.24);
+  border-color: var(--df-border-strong);
 }
 
 .df-kcard.is-dragging {
@@ -1594,7 +1716,7 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 
 .df-kcard.is-selected {
   border-color: var(--df-accent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--df-accent) 35%, transparent);
+  box-shadow: inset 0 0 0 1px var(--df-accent);
 }
 
 .df-kcard-top {
@@ -1616,7 +1738,7 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   font-size: 12.5px;
   font-weight: 600;
   line-height: 1.35;
-  color: #f8fafc;
+  color: var(--df-text);
   word-break: break-word;
 }
 
@@ -1632,7 +1754,7 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 }
 
 .df-card-x:hover {
-  color: #f87171;
+  color: #dc2626;
 }
 
 .df-kcard-foot {
@@ -1644,13 +1766,13 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 
 .df-pin-act {
   appearance: none;
-  border: 1px solid color-mix(in srgb, var(--df-accent) 48%, transparent);
+  border: 1.5px solid var(--df-accent);
   background: var(--df-accent-soft);
-  color: var(--df-accent);
+  color: var(--df-text);
   border-radius: 6px;
   padding: 3px 8px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
 }
 
@@ -1658,9 +1780,9 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 .df-md-box {
   padding: 12px 14px;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(9, 14, 25, 0.65);
-  color: #e2e8f0;
+  border: 1.5px solid var(--df-border);
+  background: var(--df-card-bg);
+  color: var(--df-text);
   font-size: 13px;
   line-height: 1.55;
 }
@@ -1669,21 +1791,21 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   margin-top: 6px;
   font-size: 12.5px;
   line-height: 1.5;
-  color: #cbd5e1;
+  color: var(--df-muted);
 }
 
 .df-md-box h1, .df-md-box h2, .df-md-box h3,
 .df-md-inline h1, .df-md-inline h2, .df-md-inline h3 {
   margin: 6px 0 4px;
   font-size: 14px;
-  color: #f8fafc;
+  color: var(--df-text);
 }
 
 .df-md-box code,
 .df-md-inline code {
   padding: 1px 5px;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--df-panel-bg);
   font-family: "JetBrains Mono", monospace;
   font-size: 11.5px;
 }
@@ -1691,23 +1813,23 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 .df-flashcard-box {
   padding: 18px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
+  border: 2px solid var(--df-border-strong);
+  background: var(--df-card-bg);
   display: grid;
   gap: 12px;
 }
 
 .df-fc-front {
   font: 700 18px/1.35 "Fraunces", Georgia, serif;
-  color: #ffffff;
+  color: var(--df-text);
 }
 
 .df-fc-back {
   padding-top: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1.5px solid var(--df-border);
   font-size: 13.5px;
   line-height: 1.55;
-  color: #cbd5e1;
+  color: var(--df-muted);
 }
 
 /* Insights: KPIs, Heatmap, Calendar & Bars */
@@ -1718,8 +1840,8 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 }
 
 .df-kpi-box {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--df-card-bg);
+  border: 1.5px solid var(--df-border);
   border-radius: 12px;
   padding: 12px 10px;
   text-align: center;
@@ -1729,7 +1851,7 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 
 .df-kpi-label {
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--df-muted);
 }
 
@@ -1740,12 +1862,12 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 }
 
 .df-kpi-val.is-amber {
-  color: #fbbf24;
+  color: #d97706;
 }
 
 .df-analytics-panel {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--df-card-bg);
+  border: 1.5px solid var(--df-border);
   border-radius: 12px;
   padding: 12px 14px;
 }
@@ -1767,13 +1889,13 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 .df-heat-cell {
   height: 20px;
   border-radius: 5px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--df-panel-bg);
+  border: 1px solid var(--df-border);
 }
 
-.df-heat-cell.level-1 { background: color-mix(in srgb, var(--df-accent) 26%, #0f172a); }
-.df-heat-cell.level-2 { background: color-mix(in srgb, var(--df-accent) 50%, #0f172a); }
-.df-heat-cell.level-3 { background: color-mix(in srgb, var(--df-accent) 75%, #0f172a); }
+.df-heat-cell.level-1 { background: color-mix(in srgb, var(--df-accent) 26%, var(--df-card-bg)); }
+.df-heat-cell.level-2 { background: color-mix(in srgb, var(--df-accent) 50%, var(--df-card-bg)); }
+.df-heat-cell.level-3 { background: color-mix(in srgb, var(--df-accent) 75%, var(--df-card-bg)); }
 .df-heat-cell.level-4 { background: var(--df-accent); }
 
 .df-cal-grid {
@@ -1786,13 +1908,13 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   min-height: 36px;
   padding: 3px 4px;
   border-radius: 7px;
-  background: rgba(255, 255, 255, 0.035);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--df-panel-bg);
+  border: 1px solid var(--df-border);
   font-size: 10.5px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  color: #cbd5e1;
+  color: var(--df-text);
 }
 
 .df-cal-cell.is-pad {
@@ -1801,13 +1923,13 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 }
 
 .df-cal-cell.has-study {
-  background: color-mix(in srgb, var(--df-accent) 22%, #0f172a);
-  border-color: color-mix(in srgb, var(--df-accent) 45%, transparent);
-  color: #ffffff;
+  background: var(--df-accent-soft);
+  border-color: var(--df-accent);
+  color: var(--df-text);
 }
 
 .df-cal-cell.is-today {
-  box-shadow: inset 0 0 0 1px var(--df-accent);
+  box-shadow: inset 0 0 0 1.5px var(--df-accent);
 }
 
 .df-cal-mins {
@@ -1818,7 +1940,7 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 
 .df-cal-exam {
   font-size: 9px;
-  color: #fbbf24;
+  color: #d97706;
   font-weight: 700;
 }
 
@@ -1837,7 +1959,7 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 .df-subj-track {
   height: 6px;
   border-radius: 99px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--df-border);
   overflow: hidden;
 }
 
@@ -1846,66 +1968,37 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   background: var(--df-accent);
 }
 
-/* Command Palette Dark Frosted Styling on DeepFocus Page */
+/* Command Palette Theme Harmonization on DeepFocus Page */
 html[data-page="deepfocus"] .sprk-cmd-dialog {
-  background: #0f172a;
-  color: #f1f5f9;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.65);
-  --wall: #0f172a;
-  --ink: #f1f5f9;
-  --muted: #94a3b8;
-  --accent: #38bdf8;
+  background: var(--wall-light, #fff8e9);
+  color: var(--ink, #342c25);
+  border: 2px solid var(--ink, #342c25);
+  box-shadow: 3px 4px 0 rgba(35, 28, 22, 0.28), 0 24px 64px rgba(0, 0, 0, 0.42);
 }
 
 html[data-page="deepfocus"] .sprk-cmd-dialog::backdrop {
-  background: rgba(6, 10, 18, 0.72);
+  background: rgba(16, 13, 10, 0.56);
   backdrop-filter: blur(8px);
 }
 
-html[data-page="deepfocus"] .sprk-cmd-search-row {
-  background: #131f36;
-  color: #f1f5f9;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+html[data-page="deepfocus"][data-theme="space"] .sprk-cmd-dialog,
+html[data-page="deepfocus"][data-theme="midnight"] .sprk-cmd-dialog,
+html[data-page="deepfocus"][data-theme="alchemy"] .sprk-cmd-dialog,
+html[data-page="deepfocus"][data-theme="noir"] .sprk-cmd-dialog {
+  background: var(--wall);
+  color: var(--wall-light);
+  border-color: color-mix(in srgb, var(--wall-light) 30%, var(--wall-shadow));
+  --wall-light: var(--wall);
+  --ink: #f8fafc;
+  --muted: #cbd5e1;
 }
 
-html[data-page="deepfocus"] .sprk-cmd-search-row .sprk-input {
-  background: rgba(10, 15, 28, 0.9);
-  color: #f1f5f9;
-  border-color: rgba(255, 255, 255, 0.18);
-}
-
-html[data-page="deepfocus"] .sprk-cmd-search-row .sprk-input::placeholder {
-  color: #94a3b8;
-}
-
-html[data-page="deepfocus"] .sprk-cmd-search-row .sprk-btn {
-  background: #17233a;
-  color: #f1f5f9;
-  border-color: rgba(255, 255, 255, 0.18);
-}
-
-html[data-page="deepfocus"] .sprk-cmd-search-row .sprk-btn:hover {
-  background: rgba(56, 189, 248, 0.18);
-  border-color: rgba(56, 189, 248, 0.55);
-}
-
-html[data-page="deepfocus"] .sprk-cmd-item {
-  background: #17233a;
-  color: #f1f5f9;
-  border-color: rgba(255, 255, 255, 0.14);
-}
-
-html[data-page="deepfocus"] .sprk-cmd-item:hover,
-html[data-page="deepfocus"] .sprk-cmd-item.is-selected {
-  background: rgba(56, 189, 248, 0.16);
-  border-color: rgba(56, 189, 248, 0.6);
-}
-
-html[data-page="deepfocus"] .sprk-cmd-kbd {
-  background: #0b1322;
-  color: #94a3b8;
-  border-color: rgba(255, 255, 255, 0.16);
+html[data-page="deepfocus"][data-theme="space"] .sprk-cmd-item,
+html[data-page="deepfocus"][data-theme="midnight"] .sprk-cmd-item,
+html[data-page="deepfocus"][data-theme="alchemy"] .sprk-cmd-item,
+html[data-page="deepfocus"][data-theme="noir"] .sprk-cmd-item {
+  background: rgba(255, 255, 255, 0.06);
+  color: #f8fafc;
 }
 
 /* Responsive DeepFocus Layout */
@@ -1934,10 +2027,11 @@ html[data-page="deepfocus"] .sprk-cmd-kbd {
 
 @media (max-width: 640px) {
   html[data-page="cozy"] .sprk-mode-switcher {
-    top: auto;
-    bottom: 58px;
-    left: 50%;
-    transform: translateX(-50%);
+    top: 12px;
+    right: 12px;
+    bottom: auto;
+    left: auto;
+    transform: none;
   }
   html[data-page="deepfocus"] .sprk-mode-switcher {
     top: 14px;
@@ -1972,7 +2066,6 @@ html[data-page="deepfocus"] .sprk-cmd-kbd {
   .df-friends-popover {
     width: calc(100vw - 24px);
   }
-  .df-task-bind-row,
   .df-kpi-grid {
     grid-template-columns: 1fr;
   }

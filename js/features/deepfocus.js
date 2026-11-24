@@ -20,7 +20,7 @@ import { createDeepFocusModalController } from "./deepfocus-modals.js";
 import { finishActiveFocusSession } from "./focus.js";
 import { presenceService } from "../services/presence-service.js";
 import { supabase } from "../services/supabase.js";
-import { visitFriendRoom } from "../services/database-service.js";
+import { visitFriendRoom, updateFocusSessionSubject } from "../services/database-service.js";
 import {
   DEEPFOCUS_SCENES,
   DEEPFOCUS_PARTICLES,
@@ -33,6 +33,7 @@ import {
 } from "../utils/deepfocus-config.js";
 import { isThemeAccessibleInMode } from "../utils/room-settings.js";
 import { SHOP_CATALOG } from "../utils/shop-catalog.js";
+import { renderMiniThumbnail } from "../utils/shop-preview.js";
 import { BUILTIN_WORKSPACE_PROFILES } from "../utils/study-tools.js";
 import { sanitizeAvatarUrl } from "../utils/profile-helpers.js";
 import {
@@ -242,8 +243,8 @@ export function initDeepFocusWorkspace() {
       ownedItemIds: state.ownedItemIds || []
     });
 
-    shellEl.style.setProperty("--df-accent", appearance.accent);
-    shellEl.style.setProperty("--df-accent-soft", appearance.accentSoft);
+    shellEl.style.removeProperty("--df-accent");
+    shellEl.style.removeProperty("--df-accent-soft");
     shellEl.style.setProperty("--df-bg-filter", appearance.filterCss);
 
     const imgEl = shellEl.querySelector("#df-backdrop-img");
@@ -266,6 +267,78 @@ export function initDeepFocusWorkspace() {
     return appearance;
   };
 
+  const renderFriendsPopoverBodyHtml = ({ entries, onlineFriends, signedIn }) => {
+    if (!signedIn) {
+      return `
+        <div class="df-fpop-empty">
+          <span>Sign in to see classmates online, what they are studying, and visit their study rooms.</span>
+          <button type="button" class="df-btn-accent" id="df-friends-signin">Sign In</button>
+        </div>
+      `;
+    }
+    if (entries.length === 0) {
+      return `
+        <div class="df-fpop-empty">
+          <span>No friends connected yet. Add classmates to study side by side.</span>
+          <button type="button" class="df-btn-subtle" id="df-friends-find">Find Friends</button>
+        </div>
+      `;
+    }
+    if (onlineFriends.length === 0) {
+      return `
+        <div class="df-fpop-empty">
+          <span>${entries.length} friend${entries.length === 1 ? "" : "s"} connected · None online right now</span>
+          <button type="button" class="df-btn-subtle" id="df-friends-find">View All</button>
+        </div>
+      `;
+    }
+    return `
+      <div class="df-friends-list">
+        ${onlineFriends.map((friend) => {
+          const safeAvatar = sanitizeAvatarUrl(friend.avatarUrl || "");
+          const isStudying = friend.status === "studying";
+          const statusLabel = isStudying
+            ? (friend.isStudyingWithUser ? "Studying with you" : "Studying")
+            : "Online";
+          return `
+            <article class="df-friend-row is-${escapeHtml(friend.status)}">
+              <div class="df-friend-top">
+                <div class="df-friend-avatar">
+                  ${safeAvatar
+                    ? `<img src="${escapeHtml(safeAvatar)}" alt="" referrerpolicy="no-referrer" />`
+                    : `<span>${escapeHtml(friend.avatarPreset || friend.displayName.slice(0, 1).toUpperCase())}</span>`}
+                </div>
+                <div class="df-friend-meta">
+                  <div class="df-friend-name-row">
+                    <span class="df-live-indicator ${isStudying ? "is-live" : "is-online"}" aria-hidden="true"></span>
+                    <span class="df-friend-name">${escapeHtml(friend.displayName)}</span>
+                  </div>
+                  <div class="df-friend-sub">
+                    <span>${escapeHtml(statusLabel)}</span>
+                    ${isStudying && friend.elapsedLabel
+                      ? `<span aria-hidden="true">·</span><span class="df-friend-dur tabular-nums">${escapeHtml(friend.elapsedLabel)}</span>`
+                      : ""}
+                  </div>
+                </div>
+                ${friend.roomVisibility === "private"
+                  ? `<button type="button" class="df-btn-subtle" disabled title="Room is set to Private" style="opacity:0.55;cursor:not-allowed;">Private</button>`
+                  : `<button type="button" class="df-btn-subtle" data-df-visit="${escapeHtml(friend.id)}">Visit</button>`}
+              </div>
+              ${isStudying ? `
+                <div class="df-friend-subject">${escapeHtml(friend.subject || "General Study")}</div>
+                ${friend.progressPct > 0 ? `
+                  <div class="df-friend-progress-track" aria-hidden="true">
+                    <div class="df-friend-progress-fill" style="width:${friend.progressPct}%;"></div>
+                  </div>
+                ` : ""}
+              ` : ""}
+            </article>
+          `;
+        }).join("")}
+      </div>
+    `;
+  };
+
   const renderBottomFriendsDockHtml = () => {
     const { entries, summary, signedIn } = presenceService.getSnapshot(Date.now());
     const onlineFriends = entries.filter((e) => e.status === "studying" || e.status === "online");
@@ -279,63 +352,17 @@ export function initDeepFocusWorkspace() {
           <div class="df-friends-popover" id="df-friends-popover" role="dialog" aria-label="Friends online studying">
             <header class="df-fpop-head">
               <div class="df-friends-title">
-                <span class="df-live-indicator ${hasOnline ? "is-live" : ""}" aria-hidden="true"></span>
-                <span>Friends Online</span>
-                <span class="df-muted tabular-nums">
+                <span class="df-live-indicator ${hasOnline ? "is-live" : ""}" id="df-fpop-live-dot" aria-hidden="true"></span>
+                <span>Currently Online</span>
+                <span class="df-muted tabular-nums" id="df-fpop-status-summary">
                   ${signedIn ? `${onlineCount} online${studyingCount > 0 ? ` · ${studyingCount} focusing` : ""}` : "Offline"}
                 </span>
               </div>
               <button type="button" class="df-hub-inline-link" id="df-friends-manage">Manage →</button>
             </header>
 
-            <div class="df-fpop-body">
-              ${!signedIn ? `
-                <div class="df-fpop-empty">
-                  <span>Sign in to see classmates online, what they are studying, and visit their study rooms.</span>
-                  <button type="button" class="df-btn-accent" id="df-friends-signin">Sign In</button>
-                </div>
-              ` : entries.length === 0 ? `
-                <div class="df-fpop-empty">
-                  <span>No friends connected yet. Add classmates to study side by side.</span>
-                  <button type="button" class="df-btn-subtle" id="df-friends-find">Find Friends</button>
-                </div>
-              ` : onlineFriends.length === 0 ? `
-                <div class="df-fpop-empty">
-                  <span>${entries.length} friend${entries.length === 1 ? "" : "s"} connected · None online right now</span>
-                  <button type="button" class="df-btn-subtle" id="df-friends-find">View All</button>
-                </div>
-              ` : `
-                <div class="df-friends-list">
-                  ${onlineFriends.map((friend) => {
-                    const safeAvatar = sanitizeAvatarUrl(friend.avatarUrl || "");
-                    const isStudying = friend.status === "studying";
-                    const studyTopic = isStudying
-                      ? (friend.subject || "Deep Focus")
-                      : "Online · Lounge";
-                    return `
-                      <div class="df-friend-row ${isStudying ? "is-studying" : ""}">
-                        <div class="df-friend-avatar">
-                          ${safeAvatar
-                            ? `<img src="${escapeHtml(safeAvatar)}" alt="" referrerpolicy="no-referrer" />`
-                            : `<span>${escapeHtml(friend.avatarPreset || friend.displayName.slice(0, 1).toUpperCase())}</span>`}
-                        </div>
-                        <div class="df-friend-meta">
-                          <div class="df-friend-name">${escapeHtml(friend.displayName)}</div>
-                          <div class="df-friend-sub">
-                            <span>${escapeHtml(studyTopic)}</span>
-                            ${isStudying && friend.elapsedLabel
-                              ? ` <span aria-hidden="true">·</span> <span class="df-friend-dur tabular-nums">${escapeHtml(friend.elapsedLabel)}</span>`
-                              : ""}
-                          </div>
-                        </div>
-                        ${friend.roomVisibility === "private"
-                          ? `<button type="button" class="df-btn-subtle" disabled title="Room is set to Private" style="opacity:0.55;cursor:not-allowed;">Private</button>`
-                          : `<button type="button" class="df-btn-subtle" data-df-visit="${escapeHtml(friend.id)}">Visit</button>`}
-                      </div>
-                    `;
-                  }).join("")}
-                </div>
-              `}
+            <div class="df-fpop-body" id="df-fpop-body">
+              ${renderFriendsPopoverBodyHtml({ entries, onlineFriends, signedIn })}
             </div>
           </div>
         ` : ""}
@@ -347,12 +374,10 @@ export function initDeepFocusWorkspace() {
           aria-expanded="${friendsPopoverOpen}"
           aria-controls="df-friends-popover"
           title="Friends online studying">
-          <span class="df-live-indicator ${hasOnline ? "is-live" : ""}" aria-hidden="true"></span>
+          <span class="df-live-indicator ${hasOnline ? "is-live" : ""}" id="df-pill-live-dot" aria-hidden="true"></span>
           <span class="df-friends-ico" aria-hidden="true">${RADIAL_ICONS.friends}</span>
-          <span class="df-friends-pill-text tabular-nums">
-            ${signedIn
-              ? `<strong>${onlineCount}</strong> online${studyingCount > 0 ? ` · ${studyingCount} focusing` : ""}`
-              : "<strong>0</strong> online"}
+          <span class="df-friends-pill-text tabular-nums" id="df-pill-count-text">
+            ${signedIn ? `<strong>${onlineCount}</strong> online` : "<strong>0</strong> online"}
           </span>
           <span class="df-friends-caret ${friendsPopoverOpen ? "is-open" : ""}" aria-hidden="true">${RADIAL_ICONS.caretUp}</span>
         </button>
@@ -360,20 +385,7 @@ export function initDeepFocusWorkspace() {
     `;
   };
 
-  const bindBottomFriendsDockEvents = () => {
-    shellEl.querySelector("#df-friends-pill")?.addEventListener("click", (e) => {
-      e.stopPropagation();
-      friendsPopoverOpen = !friendsPopoverOpen;
-      if (friendsPopoverOpen) hubExpanded = false;
-      renderShell();
-    });
-    shellEl.querySelector("#df-friends-popover")?.addEventListener("click", (e) => {
-      e.stopPropagation();
-    });
-    shellEl.querySelector("#df-friends-manage")?.addEventListener("click", () => {
-      friendsPopoverOpen = false;
-      modals.open("community", "friends");
-    });
+  const bindPopoverBodyActionEvents = () => {
     shellEl.querySelector("#df-friends-find")?.addEventListener("click", () => {
       friendsPopoverOpen = false;
       modals.open("community", "friends");
@@ -394,16 +406,58 @@ export function initDeepFocusWorkspace() {
     });
   };
 
+  const bindBottomFriendsDockEvents = () => {
+    shellEl.querySelector("#df-friends-pill")?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      friendsPopoverOpen = !friendsPopoverOpen;
+      if (friendsPopoverOpen) hubExpanded = false;
+      renderShell();
+    });
+    shellEl.querySelector("#df-friends-popover")?.addEventListener("click", (e) => {
+      e.stopPropagation();
+    });
+    shellEl.querySelector("#df-friends-manage")?.addEventListener("click", () => {
+      friendsPopoverOpen = false;
+      modals.open("community", "friends");
+    });
+    bindPopoverBodyActionEvents();
+  };
+
   const refreshBottomFriendsDock = () => {
     if (!isDeepFocusActive()) return;
     const dock = shellEl.querySelector("#df-friends-dock");
     if (!dock) return;
-    const tmp = document.createElement("div");
-    tmp.innerHTML = renderBottomFriendsDockHtml();
-    const fresh = tmp.firstElementChild;
-    if (fresh) {
-      dock.replaceWith(fresh);
-      bindBottomFriendsDockEvents();
+
+    const { entries, summary, signedIn } = presenceService.getSnapshot(Date.now());
+    const onlineFriends = entries.filter((e) => e.status === "studying" || e.status === "online");
+    const onlineCount = onlineFriends.length;
+    const studyingCount = summary.studyingCount || 0;
+    const hasOnline = onlineCount > 0;
+
+    const pillDot = dock.querySelector("#df-pill-live-dot");
+    if (pillDot) pillDot.classList.toggle("is-live", hasOnline);
+
+    const pillText = dock.querySelector("#df-pill-count-text");
+    if (pillText) {
+      pillText.innerHTML = signedIn ? `<strong>${onlineCount}</strong> online` : "<strong>0</strong> online";
+    }
+
+    if (friendsPopoverOpen) {
+      const popDot = dock.querySelector("#df-fpop-live-dot");
+      if (popDot) popDot.classList.toggle("is-live", hasOnline);
+
+      const popSummary = dock.querySelector("#df-fpop-status-summary");
+      if (popSummary) {
+        popSummary.textContent = signedIn
+          ? `${onlineCount} online${studyingCount > 0 ? ` · ${studyingCount} focusing` : ""}`
+          : "Offline";
+      }
+
+      const popBody = dock.querySelector("#df-fpop-body");
+      if (popBody) {
+        popBody.innerHTML = renderFriendsPopoverBodyHtml({ entries, onlineFriends, signedIn });
+        bindPopoverBodyActionEvents();
+      }
     }
   };
 
@@ -491,6 +545,8 @@ export function initDeepFocusWorkspace() {
     const unownedParticles = DEEPFOCUS_PARTICLES.filter((p) => p.shopItemId && !isParticleOwned(p.id, ownedIds));
     const profiles = [...BUILTIN_WORKSPACE_PROFILES, ...(state.localWorkspaceProfiles || [])];
 
+    const currentThemeItem = SHOP_CATALOG.find((i) => i.category === "theme" && i.themeId === currentTheme);
+
     return `
       <aside class="df-drawer df-drawer-settings" aria-label="Workspace settings">
         <header class="df-drawer-head">
@@ -521,8 +577,18 @@ export function initDeepFocusWorkspace() {
           <section class="df-settings-group">
             <div class="df-settings-label-row">
               <h3>Theme &amp; Ambient Scene</h3>
-              <button type="button" class="df-link-btn" id="df-open-themes-shop">Catalog</button>
+              <button type="button" class="df-link-btn" id="df-open-themes-shop">Preview Themes →</button>
             </div>
+            ${currentThemeItem ? `
+              <div class="df-settings-preview-row">
+                ${renderMiniThumbnail(currentThemeItem, currentTheme)}
+                <div style="min-width:0;flex:1;">
+                  <strong style="font-size:12.5px;display:block;">${escapeHtml(currentThemeItem.name)}</strong>
+                  <span class="df-muted">${escapeHtml(appearance.sceneName)}</span>
+                </div>
+                <button type="button" class="df-btn-subtle" id="df-open-cosmetics-shop">Cosmetics</button>
+              </div>
+            ` : ""}
             <label class="df-field">
               <span>Color &amp; Theme Preset</span>
               <select id="df-theme-select" class="df-select" ${locked ? "disabled" : ""}>
@@ -743,20 +809,23 @@ export function initDeepFocusWorkspace() {
               <div id="df-phase-status" class="df-phase-status">${escapeHtml(getTimerPhaseStatusLabel())}</div>
             </div>
 
-            ${!sess ? `
-              <div class="df-task-bind-row">
-                <select id="df-task-select" class="df-select-inline" aria-label="Active focus task">
-                  <option value="">No task linked</option>
-                  ${openTasks.map((t) => `<option value="${escapeHtml(t.id)}" ${selectedTaskId === t.id ? "selected" : ""}>${escapeHtml(t.title)}</option>`).join("")}
-                </select>
-                <input id="df-subject-input" class="df-input-inline" type="text" maxlength="36" value="${escapeHtml(selectedSubject)}" placeholder="Subject..." aria-label="Study subject" />
-              </div>
-            ` : `
-              <div class="df-active-session-line">
-                <span>Studying: <strong>${escapeHtml(sess.subject)}</strong></span>
-                ${prefs.strictFocusLock && sess.mode === "focus" ? `<span class="tabular-nums">· Strict Lock (${sess.interruptions || 0} switches)</span>` : ""}
-              </div>
-            `}
+            ${(() => {
+              const pinnedTask = selectedTaskId ? (state.localTasks || []).find((t) => t.id === selectedTaskId && !t.completed) : null;
+              if (!sess) {
+                return pinnedTask ? `
+                  <div class="df-active-session-line">
+                    <span>Pinned task: <strong>${escapeHtml(pinnedTask.title)}</strong></span>
+                    <button type="button" class="df-hub-inline-link" id="df-unpin-task">Clear</button>
+                  </div>
+                ` : "";
+              }
+              return `
+                <div class="df-active-session-line">
+                  <span>Studying: <strong>${escapeHtml(sess.subject)}</strong></span>
+                  ${prefs.strictFocusLock && sess.mode === "focus" ? `<span class="tabular-nums">· Strict Lock (${sess.interruptions || 0} switches)</span>` : ""}
+                </div>
+              `;
+            })()}
 
             <div class="df-controls-row">
               ${!sess ? `
@@ -777,15 +846,16 @@ export function initDeepFocusWorkspace() {
             ${pendingCheckIn ? `
               <div class="df-checkin-bar">
                 <div class="df-checkin-head">
-                  <span>Session Check-In · ${escapeHtml(pendingCheckIn.subject)}</span>
+                  <span>Name &amp; Log Completed Session</span>
                   <div class="df-seg-mini">
                     ${[1, 2, 3, 4, 5].map((q) => `
                       <button type="button" class="df-mini-act ${selectedCheckInQuality === q ? "is-accent" : ""}" data-df-q="${q}">${q}</button>
                     `).join("")}
                   </div>
                 </div>
+                <input id="df-checkin-subject" class="df-input" type="text" maxlength="48" value="${escapeHtml(pendingCheckIn.subject || "General Study")}" placeholder="Session name (e.g. General Study)" aria-label="Session name" />
                 <div class="df-custom-bg-row">
-                  <input id="df-checkin-note" class="df-input" type="text" maxlength="140" placeholder="Quick reflection..." />
+                  <input id="df-checkin-note" class="df-input" type="text" maxlength="140" placeholder="Quick reflection (optional)..." />
                   <button type="button" class="df-btn-accent" id="df-checkin-save">Save</button>
                   <button type="button" class="df-btn-subtle" id="df-checkin-skip">Skip</button>
                 </div>
@@ -920,18 +990,10 @@ export function initDeepFocusWorkspace() {
       updateClockDomOnly();
     });
 
-    shellEl.querySelector("#df-task-select")?.addEventListener("change", (e) => {
-      selectedTaskId = e.target.value;
-      const t = (state.localTasks || []).find((x) => x.id === selectedTaskId);
-      if (t?.subject && t.subject !== "General") {
-        selectedSubject = t.subject;
-        const subInput = shellEl.querySelector("#df-subject-input");
-        if (subInput) subInput.value = selectedSubject;
-      }
-    });
-
-    shellEl.querySelector("#df-subject-input")?.addEventListener("input", (e) => {
-      selectedSubject = e.target.value;
+    shellEl.querySelector("#df-unpin-task")?.addEventListener("click", () => {
+      selectedTaskId = "";
+      selectedSubject = "General Study";
+      renderShell();
     });
 
     shellEl.querySelector("#df-start-btn")?.addEventListener("click", startDeepFocusSession);
@@ -948,11 +1010,15 @@ export function initDeepFocusWorkspace() {
     shellEl.querySelector("#df-finish-btn")?.addEventListener("click", async () => {
       playTransitionChime();
       await finishActiveFocusSession({ autoCompleted: false });
+      selectedTaskId = "";
+      selectedSubject = "General Study";
       renderShell();
     });
 
     shellEl.querySelector("#df-reset-btn")?.addEventListener("click", () => {
       persistLocalCollection("activeSession", null);
+      selectedTaskId = "";
+      selectedSubject = "General Study";
       renderShell();
     });
 
@@ -963,13 +1029,15 @@ export function initDeepFocusWorkspace() {
         renderShell();
       });
     });
-    shellEl.querySelector("#df-checkin-save")?.addEventListener("click", () => {
+    shellEl.querySelector("#df-checkin-save")?.addEventListener("click", async () => {
       const recId = state.pendingCheckInRecordId;
+      const sessionName = shellEl.querySelector("#df-checkin-subject")?.value.trim() || "General Study";
       const note = shellEl.querySelector("#df-checkin-note")?.value.trim() || "";
       const next = (state.localStudyRecords || []).map((r) =>
-        r.id === recId ? { ...r, focusQuality: selectedCheckInQuality, reflection: note } : r
+        r.id === recId ? { ...r, subject: sessionName, focusQuality: selectedCheckInQuality, reflection: note } : r
       );
       persistLocalCollection("localStudyRecords", next);
+      await updateFocusSessionSubject(recId, sessionName);
       state.pendingCheckInRecordId = null;
       renderShell();
     });
@@ -1022,6 +1090,10 @@ export function initDeepFocusWorkspace() {
     shellEl.querySelector("#df-open-themes-shop")?.addEventListener("click", () => {
       activeDrawer = null;
       modals.open("catalog", "theme");
+    });
+    shellEl.querySelector("#df-open-cosmetics-shop")?.addEventListener("click", () => {
+      activeDrawer = null;
+      modals.open("catalog", "cosmetics");
     });
     shellEl.querySelector("#df-open-particles-shop")?.addEventListener("click", () => {
       activeDrawer = null;
@@ -1285,14 +1357,18 @@ export function initDeepFocusWorkspace() {
   }
 
   bus.on("studyCircle:changed", () => refreshBottomFriendsDock());
+  bus.on("friends:changed", () => refreshBottomFriendsDock());
 
   window.setInterval(() => {
     if (!isDeepFocusActive()) return;
     if (state.activeSession?.status === "running") {
       updateClockDomOnly();
     }
-    if (friendsPopoverOpen) {
+  }, 1000);
+
+  window.setInterval(() => {
+    if (isDeepFocusActive() && friendsPopoverOpen) {
       refreshBottomFriendsDock();
     }
-  }, 1000);
+  }, 15_000);
 }

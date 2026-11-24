@@ -140,6 +140,7 @@ export function applyRoomSettingsToDocument() {
   root.dataset.page = currentPage;
   root.dataset.appMode = appMode;
   root.dataset.seriousMode = String(seriousMode);
+  root.dataset.spectating = String(Boolean(state.spectatingRoom));
   delete root.dataset.deepFocus;
   root.dataset.studyCircle = String(Boolean(prefs.studyTogetherVisualMode));
   root.dataset.hideGamification = String(Boolean(prefs.hideGamification));

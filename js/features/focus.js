@@ -17,6 +17,7 @@ import {
 } from "../utils/timer-math.js";
 import { escapeHtml, formatDuration, todayIsoDate, generateId } from "../utils/dom.js";
 import { completeServerFocusSession } from "../services/economy-service.js";
+import { updateFocusSessionSubject } from "../services/database-service.js";
 import { supabase } from "../services/supabase.js";
 
 let finishingSessionId = null;
@@ -224,9 +225,13 @@ export const focusFeature = {
           ${pendingRecord ? `
             <div class="sprk-card" style="margin-bottom:12px;border-color:var(--accent);" id="focus-checkin-card">
               <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
-                <strong style="font-size:13.5px;">Post-Session Check-In · ${escapeHtml(pendingRecord.subject)}</strong>
+                <strong style="font-size:13.5px;">Post-Session Check-In</strong>
                 <span class="sprk-meta tabular-nums">${formatDuration(pendingRecord.durationSeconds || 0)}${pendingRecord.interruptions ? ` · ${pendingRecord.interruptions} switches` : ""}</span>
               </div>
+              <label class="sprk-field" style="margin-bottom:8px;">
+                <span class="sprk-label">Session Name</span>
+                <input id="checkin-session-name" class="sprk-input" type="text" maxlength="48" value="${escapeHtml(pendingRecord.subject || "General Study")}" placeholder="e.g. General Study" />
+              </label>
               <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
                 <span class="sprk-label" style="margin-right:4px;">Focus Quality:</span>
                 ${[1, 2, 3, 4, 5].map((q) => `
@@ -372,13 +377,15 @@ export const focusFeature = {
         });
       });
 
-      container.querySelector("#checkin-save-btn")?.addEventListener("click", () => {
+      container.querySelector("#checkin-save-btn")?.addEventListener("click", async () => {
+        const sessionName = container.querySelector("#checkin-session-name")?.value.trim() || "General Study";
         const note = container.querySelector("#checkin-reflection")?.value.trim() || "";
         const targetId = state.pendingCheckInRecordId;
         const nextRecords = state.localStudyRecords.map((r) =>
-          r.id === targetId ? { ...r, focusQuality: selectedQuality, reflection: note } : r
+          r.id === targetId ? { ...r, subject: sessionName, focusQuality: selectedQuality, reflection: note } : r
         );
         persistLocalCollection("localStudyRecords", nextRecords);
+        await updateFocusSessionSubject(targetId, sessionName);
         state.pendingCheckInRecordId = null;
         renderView();
       });

@@ -13,8 +13,11 @@ import {
   cancelFriendRequest,
   respondFriendRequest,
   unfriendUser,
-  visitFriendRoom
+  visitFriendRoom,
+  exitSpectatorRoom
 } from "../services/database-service.js";
+import { computeStudyStreaks, summarizeFocusMinutes } from "../utils/timer-math.js";
+import { formatMinutesLabel, todayIsoDate } from "../utils/dom.js";
 import {
   AVATAR_PRESETS,
   sanitizeAvatarUrl,
@@ -105,6 +108,110 @@ export const profileFeature = {
     };
 
     const renderView = () => {
+      if (state.spectatingRoom) {
+        const sp = state.spectatingRoom;
+        const owner = sp.profile || {};
+        const favSubs = Array.isArray(owner.favoriteSubjects) ? owner.favoriteSubjects : [];
+        const focusRecs = (sp.studyRecords || []).filter((r) => (r.mode || "focus") === "focus");
+        const totalMins = summarizeFocusMinutes(focusRecs).totalMinutes;
+        const streaks = computeStudyStreaks(focusRecs, todayIsoDate());
+        const safeBanner = sanitizeAvatarUrl(owner.bannerUrl || "");
+        const relControls = owner.id && state.user?.id && owner.id !== state.user.id
+          ? renderRelControls(owner.id, { roomVisibility: owner.roomVisibility })
+          : "";
+
+        container.innerHTML = `
+          ${statusMsg ? `<div class="sprk-notice" role="status" style="margin-bottom:12px;">${escapeHtml(statusMsg)}</div>` : ""}
+          <div class="sprk-card" style="overflow:hidden;padding:0;">
+            ${safeBanner
+              ? `<div style="height:108px;background:url('${escapeHtml(safeBanner)}') center/cover no-repeat;border-bottom:1.5px solid rgba(52,44,37,0.16);"></div>`
+              : `<div style="height:68px;background:linear-gradient(125deg, var(--wall-shadow, #e5d6bd), var(--wall, #f4e9d6));border-bottom:1.5px solid rgba(52,44,37,0.14);"></div>`}
+            <div style="padding:16px 18px;">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+                <div style="display:flex;align-items:flex-start;gap:12px;min-width:0;flex:1;">
+                  ${renderAvatarVisual(owner.avatar, owner.avatarUrl, 64)}
+                  <div style="min-width:0;flex:1;">
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                      <strong style="font-size:18px;">${escapeHtml(owner.displayName || "Student")}</strong>
+                      ${owner.username ? `<span class="sprk-meta">@${escapeHtml(owner.username)}</span>` : ""}
+                      <span class="sprk-meta tabular-nums">${escapeHtml(owner.publicId || "")}</span>
+                    </div>
+                    <div class="sprk-meta" style="margin-top:4px;">
+                      ${owner.courseClass ? `<span>${escapeHtml(owner.courseClass)}</span>` : ""}
+                      ${owner.courseClass && owner.examAim ? `<span>·</span>` : ""}
+                      ${owner.examAim ? `<span>Aim: ${escapeHtml(owner.examAim)}</span>` : ""}
+                      <span>·</span>
+                      <span>Room: ${owner.roomVisibility === "public" ? "Public" : owner.roomVisibility === "private" ? "Private" : "Friends Only"}</span>
+                    </div>
+                  </div>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                  ${relControls}
+                  <button type="button" class="sprk-btn" id="spec-exit-room" style="min-height:32px;padding:4px 12px;">Return to My Room</button>
+                </div>
+              </div>
+
+              ${owner.bio ? `<p style="margin:12px 0 0;font-size:13.5px;line-height:1.5;color:var(--ink);">${escapeHtml(owner.bio)}</p>` : ""}
+
+              <div class="sprk-grid-3" style="margin-top:14px;">
+                <div class="sprk-card" style="padding:10px 12px;">
+                  <div class="sprk-label">Focus Logged</div>
+                  <div class="tabular-nums" style="font-size:18px;font-weight:700;margin-top:2px;">${formatMinutesLabel(totalMins)}</div>
+                </div>
+                <div class="sprk-card" style="padding:10px 12px;">
+                  <div class="sprk-label">Current / Best Streak</div>
+                  <div class="tabular-nums" style="font-size:18px;font-weight:700;margin-top:2px;">${streaks.currentStreak}d / ${streaks.longestStreak}d</div>
+                </div>
+                <div class="sprk-card" style="padding:10px 12px;">
+                  <div class="sprk-label">Study Friends</div>
+                  <div class="tabular-nums" style="font-size:18px;font-weight:700;margin-top:2px;">${sp.friendsCount || 0}</div>
+                </div>
+              </div>
+
+              ${favSubs.length > 0 ? `
+                <div class="sprk-meta" style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(52,44,37,0.12);">
+                  <strong>Favorite Subjects:</strong> ${escapeHtml(favSubs.join(" · "))}
+                </div>
+              ` : ""}
+            </div>
+          </div>
+        `;
+
+        container.querySelector("#spec-exit-room")?.addEventListener("click", () => {
+          close();
+          exitSpectatorRoom();
+        });
+        container.querySelectorAll("[data-add-friend]").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const { error } = await sendFriendRequest(btn.dataset.addFriend);
+            statusMsg = error ? error.message : "Friend request sent!";
+            renderView();
+          });
+        });
+        container.querySelectorAll("[data-cancel-req]").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const { error } = await cancelFriendRequest(btn.dataset.cancelReq);
+            statusMsg = error ? error.message : "Request cancelled.";
+            renderView();
+          });
+        });
+        container.querySelectorAll("[data-req-accept]").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const { error } = await respondFriendRequest(btn.dataset.reqAccept, true);
+            statusMsg = error ? error.message : "Friend request accepted!";
+            renderView();
+          });
+        });
+        container.querySelectorAll("[data-unfriend]").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const { error } = await unfriendUser(btn.dataset.unfriend);
+            statusMsg = error ? error.message : "Friend removed.";
+            renderView();
+          });
+        });
+        return;
+      }
+
       const user = state.user;
       const prof = getActiveProfile();
       const privacy = normalizePrivacySettings(prof.privacy);

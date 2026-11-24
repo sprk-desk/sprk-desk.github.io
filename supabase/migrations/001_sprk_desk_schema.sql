@@ -957,9 +957,20 @@ DROP POLICY IF EXISTS saved_resources_own ON public.saved_resources;
 CREATE POLICY saved_resources_own ON public.saved_resources
   FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS saved_resources_room_scope ON public.saved_resources;
+CREATE POLICY saved_resources_room_scope ON public.saved_resources
+  FOR SELECT USING (public.can_view_user_room(user_id, auth.uid()));
+
 DROP POLICY IF EXISTS focus_sessions_own ON public.focus_sessions;
 CREATE POLICY focus_sessions_own ON public.focus_sessions
   FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS focus_sessions_room_scope ON public.focus_sessions;
+CREATE POLICY focus_sessions_room_scope ON public.focus_sessions
+  FOR SELECT USING (
+    status = 'completed'
+    AND public.can_view_user_room(user_id, auth.uid())
+  );
 
 DROP POLICY IF EXISTS focus_sessions_friend_live ON public.focus_sessions;
 CREATE POLICY focus_sessions_friend_live ON public.focus_sessions
@@ -992,6 +1003,10 @@ CREATE POLICY achievements_select_all ON public.achievements
 DROP POLICY IF EXISTS user_achievements_own ON public.user_achievements;
 CREATE POLICY user_achievements_own ON public.user_achievements
   FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS user_achievements_room_scope ON public.user_achievements;
+CREATE POLICY user_achievements_room_scope ON public.user_achievements
+  FOR SELECT USING (public.can_view_user_room(user_id, auth.uid()));
 
 DROP POLICY IF EXISTS library_select_audience ON public.library_resources;
 CREATE POLICY library_select_audience ON public.library_resources

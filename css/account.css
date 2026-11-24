@@ -51,41 +51,34 @@ html[data-page="account"] #deepfocus-shell {
   gap: 10px;
   font-family: "Fraunces", Georgia, serif;
   font-weight: 700;
-  font-size: 19px;
+  font-size: 20px;
   color: #241e19;
   background: transparent;
   border: 0;
+  padding: 0;
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
-.acc-nav {
-  display: flex;
+.acc-brand-mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  background: #241e19;
+  color: #f5ecda;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.acc-topbar-actions {
+  display: inline-flex;
   align-items: center;
-  gap: 24px;
-}
-
-.acc-nav-btn {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  padding: 6px 2px;
-  font: 600 13.5px/1 "Plus Jakarta Sans", system-ui, sans-serif;
-  color: #5c5045;
-  cursor: pointer;
-  white-space: nowrap;
+  gap: 10px;
   flex-shrink: 0;
-}
-
-.acc-nav-btn:hover,
-.acc-nav-btn.is-active {
-  color: #241e19;
-}
-
-.acc-nav-btn.is-active {
-  text-decoration: underline;
-  text-underline-offset: 6px;
 }
 
 .acc-main {
@@ -143,6 +136,47 @@ html[data-page="account"] #deepfocus-shell {
   background: #fffaf0;
   color: #241e19;
   box-shadow: 0 2px 6px rgba(36, 30, 25, 0.08);
+}
+
+.acc-overview-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.acc-overview-cell {
+  background: #fffaf0;
+  border: 1px solid rgba(36, 30, 25, 0.13);
+  border-radius: 12px;
+  padding: 12px 15px;
+  display: grid;
+  gap: 3px;
+}
+
+.acc-feature-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.acc-feature-preview-box {
+  border-radius: 10px;
+  border: 1px solid rgba(36, 30, 25, 0.11);
+  background: #ffffff;
+  padding: 12px 14px;
+  display: grid;
+  gap: 4px;
+}
+
+.acc-feature-preview-box strong {
+  font-size: 13.5px;
+  color: #241e19;
+}
+
+.acc-feature-preview-box span {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: #5c5045;
 }
 
 .acc-notice {
@@ -565,21 +599,12 @@ html[data-page="account"] #deepfocus-shell {
   .acc-grid-2,
   .acc-grid-feed,
   .acc-form-grid,
-  .acc-privacy-segment {
+  .acc-privacy-segment,
+  .acc-feature-preview-grid {
     grid-template-columns: 1fr;
   }
-  .acc-topbar {
-    flex-wrap: wrap;
-    gap: 10px 14px;
-  }
-  .acc-nav {
-    order: 3;
-    width: 100%;
-    justify-content: flex-start;
-    gap: 10px 18px;
-    flex-wrap: wrap;
-    padding-top: 8px;
-    border-top: 1px solid rgba(36, 30, 25, 0.1);
+  .acc-overview-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -593,5 +618,8 @@ html[data-page="account"] #deepfocus-shell {
   .acc-friend-row {
     flex-direction: column;
     align-items: flex-start;
+  }
+  .acc-overview-strip {
+    grid-template-columns: 1fr;
   }
 }

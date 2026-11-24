@@ -53,7 +53,7 @@ export const customizationFeature = {
               const shopItem = SHOP_CATALOG.find((i) => i.category === "theme" && i.themeId === t.id);
               const thumb = shopItem ? renderMiniThumbnail(shopItem, currentTheme) : "";
               const isSeriousPreset = isSeriousTheme(t.id);
-              const unlockedForUse = !isSeriousPreset || isThemeAccessibleInMode(t.id, {
+              const unlockedForUse = isThemeAccessibleInMode(t.id, {
                 ownedItemIds: state.ownedItemIds,
                 seriousMode
               });
@@ -202,12 +202,12 @@ export const customizationFeature = {
           if (isStrictFocusLockActive()) return;
           const themeId = btn.dataset.themeId;
           const isSeriousMode = Boolean(state.preferences?.seriousMode);
-          if (isSeriousTheme(themeId) && !isThemeAccessibleInMode(themeId, {
+          if (!isThemeAccessibleInMode(themeId, {
             ownedItemIds: state.ownedItemIds,
             seriousMode: isSeriousMode
           })) {
             const item = SHOP_CATALOG.find((i) => i.category === "theme" && i.themeId === themeId);
-            statusMessage = `${item?.name || themeId} costs ${item?.price || 30} SC in Regular Mode. Turn on Serious Mode in Control Panel for free access, or buy in Shop.`;
+            statusMessage = `${item?.name || themeId} is locked (${item?.price || 30} SC in Shop).`;
             renderView();
             return;
           }

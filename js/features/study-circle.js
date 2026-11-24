@@ -37,13 +37,10 @@ export function initStudyCircle() {
     const selfSess = state.activeSession;
     const selfStudying = Boolean(selfSess && selfSess.status === "running");
 
-    const toggleCountLabel = signedIn
-      ? summary.studyingCount > 0
-        ? `${summary.studyingCount} studying`
-        : summary.onlineCount > 0
-          ? `${summary.onlineCount} online`
-          : `${summary.totalFriends} friends`
-      : "Circle";
+    const onlineCount = signedIn
+      ? entries.filter((e) => e.status === "studying" || e.status === "online").length
+      : 0;
+    const hasOnline = onlineCount > 0;
 
     root.innerHTML = `
       ${isExpanded ? `
@@ -118,12 +115,24 @@ export function initStudyCircle() {
 
       <button type="button"
         id="sprk-study-circle-toggle"
-        class="sprk-study-circle-toggle ${isExpanded ? "is-open" : ""} ${summary.studyingCount > 0 ? "has-active" : ""}"
+        class="sprk-study-circle-toggle ${isExpanded ? "is-open" : ""} ${hasOnline ? "has-active" : ""}"
         aria-expanded="${isExpanded}"
-        aria-label="Toggle Live Study Circle visual mode">
-        <span class="sprk-study-dot ${summary.studyingCount > 0 ? "is-studying" : summary.onlineCount > 0 ? "is-online" : "is-offline"}" aria-hidden="true"></span>
-        <span>${seriousMode ? "Study Circle" : "👥 Study Circle"}</span>
-        <span class="sprk-study-toggle-count tabular-nums">${escapeHtml(toggleCountLabel)}</span>
+        aria-label="Toggle online friends studying">
+        <span class="sprk-study-dot ${hasOnline ? "is-studying" : "is-offline"}" aria-hidden="true"></span>
+        <span class="sprk-study-toggle-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="3.5"/>
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a3.5 3.5 0 0 1 0 6.74"/>
+          </svg>
+        </span>
+        <span class="sprk-study-online-text tabular-nums"><strong>${onlineCount}</strong> online</span>
+        <span class="sprk-study-caret ${isExpanded ? "is-open" : ""}" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"/>
+          </svg>
+        </span>
       </button>
     `;
 

@@ -1711,7 +1711,7 @@ button.sprk-skin-tile:hover {
   box-shadow: 2px 3px 0 rgba(35, 28, 22, 0.24);
   font-family: inherit;
   font-size: 12.5px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   transition: transform 0.14s ease, background-color 0.14s ease;
 }
@@ -1721,6 +1721,26 @@ button.sprk-skin-tile:hover {
 .sprk-study-circle-toggle.is-open {
   background: var(--ink);
   color: var(--wall-light);
+}
+
+.sprk-study-toggle-ico {
+  display: inline-flex;
+  align-items: center;
+  opacity: 0.85;
+}
+
+.sprk-study-online-text {
+  white-space: nowrap;
+}
+
+.sprk-study-caret {
+  display: inline-flex;
+  align-items: center;
+  opacity: 0.78;
+  transition: transform 180ms ease;
+}
+.sprk-study-caret.is-open {
+  transform: rotate(180deg);
 }
 
 .sprk-study-toggle-count {
@@ -1854,5 +1874,38 @@ button.sprk-skin-tile:hover {
 }
 .sprk-study-dot.is-offline {
   background: #b8b3aa;
+}
+
+/* --- Disabled Plant Object & Spectator Room Interaction Whitelist --- */
+.desk-plant {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+html[data-spectating="true"] .desk-clock,
+html[data-spectating="true"] .desk-hourglass,
+html[data-spectating="true"] .pinboard,
+html[data-spectating="true"] .desk-notebook,
+html[data-spectating="true"] .desk-headphones,
+html[data-spectating="true"] .merchant-bird,
+html[data-spectating="true"] .window-frame-btn,
+html[data-spectating="true"] .desk-phone,
+html[data-spectating="true"] .desk-computer,
+html[data-spectating="true"] .mascot,
+html[data-spectating="true"] .cabinet-drawer,
+html[data-spectating="true"] .coffee-mug,
+html[data-spectating="true"] .custom-prop,
+html[data-spectating="true"] .settings-panel,
+html[data-spectating="true"] .desk-lamp {
+  pointer-events: none !important;
+  cursor: default !important;
+}
+
+html[data-spectating="true"] .photo-frame,
+html[data-spectating="true"] .trophy,
+html[data-spectating="true"] .wall-calendar,
+html[data-spectating="true"] .bookshelf {
+  pointer-events: auto !important;
+  cursor: pointer !important;
 }
 

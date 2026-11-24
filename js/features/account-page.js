@@ -47,8 +47,8 @@ import {
   canPerformGroupAction,
   ROOM_VISIBILITY
 } from "../utils/privacy-scope.js";
-import { summarizeFocusMinutes } from "../utils/timer-math.js";
-import { escapeHtml, formatMinutesLabel } from "../utils/dom.js";
+import { summarizeFocusMinutes, computeStudyStreaks } from "../utils/timer-math.js";
+import { escapeHtml, formatMinutesLabel, todayIsoDate } from "../utils/dom.js";
 
 function formatShortTime(iso) {
   if (!iso) return "";
@@ -267,6 +267,8 @@ export function initAccountPage() {
     const friendEntries = presenceSnap.entries || [];
     const preferredMode = state.preferences?.appMode === "deepfocus" ? "deepfocus" : "cozy";
     const totalFocusMins = summarizeFocusMinutes(state.localStudyRecords).totalMinutes;
+    const streakInfo = computeStudyStreaks(state.localStudyRecords, todayIsoDate());
+    const onlineFriendsCount = friendEntries.filter((e) => e.presence?.status === "studying" || e.presence?.status === "online").length;
     const myPrivacy = normalizePrivacySettings(prof.privacy);
 
     // Filter feed if needed when using client scope
@@ -282,19 +284,16 @@ export function initAccountPage() {
     shellEl.innerHTML = `
       <header class="acc-topbar">
         <button type="button" class="acc-brand" data-acc-nav="home">
+          <span class="acc-brand-mark" aria-hidden="true">S</span>
           <span>SPRK Desk</span>
         </button>
 
-        <nav class="acc-nav" aria-label="Site navigation">
-          <button type="button" class="acc-nav-btn" data-acc-nav="home">Home</button>
-          <button type="button" class="acc-nav-btn" data-acc-nav="cozy">Cozy Study</button>
-          <button type="button" class="acc-nav-btn" data-acc-nav="deepfocus">Deep Focus</button>
-          <button type="button" class="acc-nav-btn is-active" data-acc-nav="account">Social &amp; Account</button>
-        </nav>
-
-        <button type="button" class="acc-btn-primary" id="acc-return-study">
-          ${preferredMode === "deepfocus" ? "Back to Deep Focus →" : "Back to Cozy Study →"}
-        </button>
+        <div class="acc-topbar-actions">
+          <button type="button" class="acc-btn" data-acc-nav="home">← Home</button>
+          <button type="button" class="acc-btn-primary" id="acc-return-study">
+            ${preferredMode === "deepfocus" ? "Open Deep Focus →" : "Open Cozy Study →"}
+          </button>
+        </div>
       </header>
 
       <main class="acc-main">
@@ -305,14 +304,14 @@ export function initAccountPage() {
                 ? escapeHtml(inspectedProfile.profile.displayName)
                 : user
                   ? escapeHtml(prof.displayName)
-                  : "SPRK Study Network"}
+                  : "SPRK Social &amp; Account"}
             </h1>
             <p class="acc-sub">
               ${inspectedProfile && activeTab === "profile"
                 ? `${inspectedProfile.profile.username ? `@${escapeHtml(inspectedProfile.profile.username)} · ` : ""}${escapeHtml(inspectedProfile.profile.publicId)} · ${escapeHtml(roomVisibilityLabel(inspectedProfile.roomAccess.visibility))}`
                 : user
                   ? `Connected · ${escapeHtml(user.publicId)} · ${escapeHtml(roomVisibilityLabel(myPrivacy.roomVisibility))}`
-                  : "Sign in to share study updates, connect with friends, join groups, and explore profiles."}
+                  : "Sign in to share study updates, connect with friends, join subject groups, and manage room privacy."}
             </p>
           </div>
 
@@ -333,19 +332,85 @@ export function initAccountPage() {
           </div>
         </div>
 
+        ${!(inspectedProfile && activeTab === "profile") ? `
+          <div class="acc-overview-strip" aria-label="Study network summary">
+            <div class="acc-overview-cell">
+              <span class="acc-stat-label">Focus Logged</span>
+              <strong class="acc-stat-val tabular-nums">${formatMinutesLabel(totalFocusMins)}</strong>
+            </div>
+            <div class="acc-overview-cell">
+              <span class="acc-stat-label">Study Streak</span>
+              <strong class="acc-stat-val tabular-nums">${streakInfo.currentStreak}d</strong>
+            </div>
+            <div class="acc-overview-cell">
+              <span class="acc-stat-label">Friends Online</span>
+              <strong class="acc-stat-val tabular-nums">${onlineFriendsCount} / ${friendEntries.length}</strong>
+            </div>
+            <div class="acc-overview-cell">
+              <span class="acc-stat-label">Room Privacy</span>
+              <strong class="acc-stat-val">${escapeHtml(roomVisibilityLabel(myPrivacy.roomVisibility).replace(" Room", ""))}</strong>
+            </div>
+          </div>
+        ` : ""}
+
         ${statusMsg ? `<div class="acc-notice" role="status">${escapeHtml(statusMsg)}</div>` : ""}
 
         ${activeTab === "feed" ? `
           ${!user ? `
-            <div class="acc-card" style="max-width:640px;">
-              <h2>Join the SPRK Study Community</h2>
-              <p class="acc-sub" style="margin:0;">
-                Sign in to post study updates, follow classmates, view student profiles, send friend requests, and join study groups. Your study room always stays private or friends-only unless you choose Public.
-              </p>
-              <div style="display:flex;gap:10px;flex-wrap:wrap;">
-                <button type="button" class="acc-btn-primary" data-acc-tab="auth">Sign In / Create Account</button>
-                <button type="button" class="acc-btn" data-acc-tab="profile">Edit Local Card</button>
+            <div class="acc-grid-feed">
+              <div class="acc-card">
+                <h2>Join the SPRK Study Community</h2>
+                <p class="acc-sub" style="margin:0;">
+                  Sign in to post study milestones, follow classmates, view student profiles, send friend requests by SPRK- ID, and join subject study groups.
+                  Your Cozy Study desk stays protected under your chosen privacy level.
+                </p>
+                <div class="acc-feature-preview-grid">
+                  <div class="acc-feature-preview-box">
+                    <strong>Study Feed</strong>
+                    <span>Share progress updates, questions, and resource notes publicly or with friends only.</span>
+                  </div>
+                  <div class="acc-feature-preview-box">
+                    <strong>Public Student Cards</strong>
+                    <span>Look up peers by @username or SPRK- ID and see streaks, bio, and study status.</span>
+                  </div>
+                  <div class="acc-feature-preview-box">
+                    <strong>Study Groups</strong>
+                    <span>Create or join topic rooms via 6-character invite codes with pinned notices and group chat.</span>
+                  </div>
+                  <div class="acc-feature-preview-box">
+                    <strong>Granular Room Privacy</strong>
+                    <span>Switch between Public, Friends Only, or Private room access while keeping your profile viewable.</span>
+                  </div>
+                </div>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                  <button type="button" class="acc-btn-primary" data-acc-tab="auth">Sign In / Create Account</button>
+                  <button type="button" class="acc-btn" data-acc-tab="profile">Edit Local Card</button>
+                </div>
               </div>
+              <aside class="acc-card">
+                <h3>Local Workspace Snapshot</h3>
+                <div class="acc-profile-hero">
+                  ${renderAvatar(prof.avatarPreset, prof.avatarUrl, 52)}
+                  <div style="min-width:0;">
+                    <strong>${escapeHtml(prof.displayName)}</strong>
+                    <div class="acc-meta-line"><span>Local Mode · Not synced to cloud</span></div>
+                  </div>
+                </div>
+                <div class="acc-stat-strip">
+                  <div class="acc-stat-item">
+                    <span class="acc-stat-label">Focus</span>
+                    <span class="acc-stat-val tabular-nums">${formatMinutesLabel(totalFocusMins)}</span>
+                  </div>
+                  <div class="acc-stat-item">
+                    <span class="acc-stat-label">Streak</span>
+                    <span class="acc-stat-val tabular-nums">${streakInfo.currentStreak}d</span>
+                  </div>
+                  <div class="acc-stat-item">
+                    <span class="acc-stat-label">Active Days</span>
+                    <span class="acc-stat-val tabular-nums">${streakInfo.activeDaysCount}</span>
+                  </div>
+                </div>
+              </aside>
             </div>
           ` : `
             <div class="acc-grid-feed">
@@ -1591,5 +1656,20 @@ export function initAccountPage() {
   });
   bus.on("studyCircle:changed", () => {
     if (isAccountActive() && activeTab === "people") render();
+  });
+  bus.on("account:openTab", async ({ tab } = {}) => {
+    const allowed = new Set(["feed", "people", "groups", "profile", "auth"]);
+    if (tab && allowed.has(tab)) {
+      activeTab = tab;
+      if (tab === "profile") inspectedProfile = null;
+      statusMsg = "";
+      render();
+      if (state.user) {
+        if (tab === "feed") await loadSocialFeed(feedScope);
+        else if (tab === "people") await Promise.all([loadFriendsAndRequests(), fetchSuggestedStudents(12)]);
+        else if (tab === "groups") await loadStudyGroups();
+        render();
+      }
+    }
   });
 }

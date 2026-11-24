@@ -566,6 +566,16 @@ export async function syncManualStudyRecord(rec) {
   }, "id");
 }
 
+export async function updateFocusSessionSubject(sessionId, subject) {
+  if (!supabase.configured || !state.user?.id || !sessionId) return { error: null };
+  const cleanSubject = String(subject || "General Study").trim().slice(0, 64) || "General Study";
+  return supabase.update(
+    "focus_sessions",
+    `id=eq.${encodeURIComponent(sessionId)}&user_id=eq.${state.user.id}`,
+    { subject: cleanSubject }
+  );
+}
+
 export async function syncSavedResourceUpsert(resItem) {
   if (!supabase.configured || !state.user?.id) return;
   return supabase.upsert("saved_resources", {
@@ -857,9 +867,22 @@ export async function fetchSpectatorRoom(targetIdentifier) {
     return { error: { message: access.reason } };
   }
 
-  const [settingsRes, layoutRes] = await Promise.all([
+  const [
+    settingsRes,
+    layoutRes,
+    sessionsRes,
+    userAchRes,
+    libRes,
+    savedRes,
+    shipsRes
+  ] = await Promise.all([
     supabase.select("user_settings", `user_id=eq.${targetUserId}&limit=1`),
-    supabase.select("room_layouts", `user_id=eq.${targetUserId}&order=is_default.desc,updated_at.desc&limit=1`)
+    supabase.select("room_layouts", `user_id=eq.${targetUserId}&order=is_default.desc,updated_at.desc&limit=1`),
+    supabase.select("focus_sessions", `user_id=eq.${targetUserId}&status=eq.completed&order=started_at.desc&limit=500`),
+    supabase.select("user_achievements", `user_id=eq.${targetUserId}`),
+    supabase.select("library_resources", `author_id=eq.${targetUserId}&order=created_at.desc&limit=40`),
+    supabase.select("saved_resources", `user_id=eq.${targetUserId}&order=created_at.desc&limit=40`),
+    supabase.select("friendships", `or=(user_a.eq.${targetUserId},user_b.eq.${targetUserId})`)
   ]);
 
   if (settingsRes.error) {
@@ -873,6 +896,32 @@ export async function fetchSpectatorRoom(targetIdentifier) {
 
   const safeSettings = settings || {};
   const layout = sanitizeRoomLayoutMap(layoutRes.data?.[0]?.layout_json || {});
+  const studyRecords = Array.isArray(sessionsRes.data)
+    ? sessionsRes.data.map((s) => ({
+        id: s.id,
+        date: (s.started_at || "").slice(0, 10),
+        mode: s.mode || "focus",
+        subject: s.subject || "General Study",
+        durationSeconds: s.verified_seconds || 0,
+        creditsAwarded: s.credits_awarded || 0,
+        isManual: Boolean(s.is_manual),
+        startedAt: s.started_at
+      }))
+    : [];
+  const unlockedAchievementIds = Array.isArray(userAchRes.data)
+    ? userAchRes.data.map((a) => a.achievement_id)
+    : [];
+  const libraryResources = Array.isArray(libRes.data) ? libRes.data : [];
+  const savedResources = Array.isArray(savedRes.data)
+    ? savedRes.data.map((s) => ({
+        id: s.id,
+        title: s.title,
+        category: s.category || "Saved",
+        summary: s.summary || "",
+        author: s.author || ""
+      }))
+    : [];
+  const friendsCount = Array.isArray(shipsRes.data) ? shipsRes.data.length : 0;
 
   return {
     data: buildSpectatorSafeRoomView({
@@ -887,6 +936,7 @@ export async function fetchSpectatorRoom(targetIdentifier) {
       courseClass: profile.course_class,
       examAim: profile.exam_aim,
       favoriteSubjects: profile.favorite_subjects,
+      isVerified: Boolean(profile.is_verified),
       privacy: profile.privacy,
       theme: safeSettings.theme,
       timeOfDay: safeSettings.time_of_day,
@@ -895,7 +945,12 @@ export async function fetchSpectatorRoom(targetIdentifier) {
       skins: safeSettings.skins,
       decorations: safeSettings.decorations,
       customProp: safeSettings.custom_prop,
-      layout
+      layout,
+      friendsCount,
+      studyRecords,
+      unlockedAchievementIds,
+      libraryResources,
+      savedResources
     }),
     error: null
   };

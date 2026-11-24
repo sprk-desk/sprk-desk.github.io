@@ -32,6 +32,9 @@ import {
 import { canUserVisitRoom, getRelationshipStatus } from "../utils/privacy-scope.js";
 import { equipShopItem, isShopItemEquipped } from "./shop.js";
 import { SHOP_CATALOG } from "../utils/shop-catalog.js";
+import { renderMiniThumbnail, renderPreviewStage } from "../utils/shop-preview.js";
+import { themeManager } from "../core/theme-manager.js";
+import { lightingManager } from "../core/lighting-manager.js";
 import { computeVisualizerBars } from "../utils/dialog-objects.js";
 import { partitionMusicDiscs } from "../utils/audio-loops.js";
 import {
@@ -98,7 +101,9 @@ export function createDeepFocusModalController({
   let openGroupId = null;
 
   // Catalog state
-  let catalogCat = "all"; // all | particles | music | theme | ambience
+  let catalogCat = "all"; // all | theme | particles | ambience | music | cosmetics
+  let previewingCatalogItemId = null;
+  let themeBeforePreview = null;
 
   const clearTimers = () => {
     if (visInterval) {
@@ -127,9 +132,19 @@ export function createDeepFocusModalController({
     previewingDiscId = null;
   };
 
+  const restoreCatalogPreview = () => {
+    if (themeBeforePreview) {
+      themeManager.apply(themeBeforePreview, { persist: false });
+      lightingManager.apply();
+      themeBeforePreview = null;
+    }
+    previewingCatalogItemId = null;
+  };
+
   const close = () => {
     clearTimers();
     restoreAudioPreview();
+    restoreCatalogPreview();
     activeModal = null;
     statusMsg = "";
     onWorkspaceMutated?.();
@@ -138,6 +153,7 @@ export function createDeepFocusModalController({
   const open = (modalName, preferredTab = "") => {
     clearTimers();
     restoreAudioPreview();
+    restoreCatalogPreview();
     activeModal = modalName;
     statusMsg = "";
     const defaults = {
@@ -150,6 +166,9 @@ export function createDeepFocusModalController({
       break: "rest"
     };
     subTab = preferredTab || defaults[modalName] || "";
+    if (modalName === "catalog" && preferredTab) {
+      catalogCat = preferredTab;
+    }
     if (modalName === "knowledge" && preferredTab === "diary") {
       subTab = "notes";
       diaryFolder = "diary";
@@ -1128,22 +1147,31 @@ export function createDeepFocusModalController({
   };
 
   const renderCatalogModalBody = () => {
-    const allowedCats = new Set(["particles", "music", "theme", "ambience"]);
+    const allowedCats = new Set(["particles", "music", "theme", "ambience", "skin", "deco"]);
     const dfItems = SHOP_CATALOG.filter((i) => allowedCats.has(i.category));
-    const filtered = catalogCat === "all" ? dfItems : dfItems.filter((i) => i.category === catalogCat);
+    const filtered = catalogCat === "all"
+      ? dfItems
+      : catalogCat === "cosmetics"
+        ? dfItems.filter((i) => i.category === "skin" || i.category === "deco")
+        : dfItems.filter((i) => i.category === catalogCat);
     const locked = isStrictFocusLockActive();
     const seriousMode = Boolean(state.preferences?.seriousMode);
     const signedIn = Boolean(state.user?.id);
+    const activeThemeId = state.preferences?.theme || "comic";
+    const previewItem = previewingCatalogItemId
+      ? dfItems.find((i) => i.id === previewingCatalogItemId) || null
+      : null;
 
     return `
       <div class="df-sec-head">
         <nav class="df-modal-tabs" role="tablist">
           ${[
             ["all", `All (${dfItems.length})`],
-            ["particles", "Particles"],
-            ["music", "Music Discs"],
             ["theme", "Themes"],
-            ["ambience", "Ambience"]
+            ["particles", "Particles"],
+            ["ambience", "Ambience"],
+            ["music", "Music Discs"],
+            ["cosmetics", "Cosmetics"]
           ].map(([id, label]) => `
             <button type="button" class="df-mtab ${catalogCat === id ? "is-active" : ""}" data-dfm-cat="${id}">${label}</button>
           `).join("")}
@@ -1152,6 +1180,38 @@ export function createDeepFocusModalController({
       </div>
 
       ${locked ? `<div class="df-notice">Strict Focus Lock is active while the focus timer runs. Pause or finish to equip or buy items.</div>` : ""}
+
+      ${previewItem ? (() => {
+        const actuallyOwned = (state.ownedItemIds || []).includes(previewItem.id);
+        const freeViaSerious = Boolean(
+          seriousMode && previewItem.category === "theme" && isThemeFreeInMode(previewItem.themeId, seriousMode) && !actuallyOwned && previewItem.price > 0
+        );
+        const owned = previewItem.category === "theme"
+          ? isThemeAccessibleInMode(previewItem.themeId, { ownedItemIds: state.ownedItemIds, seriousMode })
+          : actuallyOwned;
+        const equipped = isShopItemEquipped(previewItem);
+        const isAudioSample = previewItem.category === "music" && previewingDiscId === previewItem.id && audioManager.isPlaying;
+        return `
+          <section class="df-catalog-preview-panel" aria-label="Item preview stage">
+            <div class="df-sec-head" style="margin-bottom:8px;">
+              <div>
+                <strong style="font-size:14px;">Preview · ${escapeHtml(previewItem.name)}</strong>
+                <div class="df-muted">${escapeHtml(previewItem.description || previewItem.category)}</div>
+              </div>
+              <button type="button" class="df-btn-subtle" id="dfm-stop-catalog-preview">Stop Preview</button>
+            </div>
+            ${renderPreviewStage(previewItem, { currentThemeId: activeThemeId, isPlayingSample: isAudioSample })}
+            <div class="df-sec-head" style="margin-top:8px;">
+              <span class="df-muted tabular-nums">
+                ${previewItem.category === "theme" ? "Live workspace colors previewed across DeepFocus" : freeViaSerious ? "Unlocked in Serious Mode" : previewItem.price === 0 ? "Included Starter" : `${previewItem.price} SC`}
+              </span>
+              ${owned
+                ? `<button type="button" class="${equipped ? "df-btn-subtle" : "df-btn-accent"}" data-dfm-equip="${escapeHtml(previewItem.id)}" ${equipped || locked ? "disabled" : ""}>${equipped ? "Equipped" : "Equip Now"}</button>`
+                : `<button type="button" class="df-btn-accent" data-dfm-buy-item="${escapeHtml(previewItem.id)}" ${!signedIn || locked ? "disabled" : ""}>Unlock · ${previewItem.price} SC</button>`}
+            </div>
+          </section>
+        `;
+      })() : ""}
 
       <div class="df-list-grid-2">
         ${filtered.map((item) => {
@@ -1163,16 +1223,20 @@ export function createDeepFocusModalController({
             ? isThemeAccessibleInMode(item.themeId, { ownedItemIds: state.ownedItemIds, seriousMode })
             : actuallyOwned;
           const equipped = isShopItemEquipped(item);
+          const isPreviewing = previewingCatalogItemId === item.id;
           return `
-            <article class="df-item-card">
+            <article class="df-item-card ${equipped ? "is-active" : ""}">
               <div class="df-item-card-info">
-                <span class="df-disc-dot" style="background:${escapeHtml(item.swatch)};"></span>
+                <div class="df-cat-thumb-wrap" aria-hidden="true">
+                  ${renderMiniThumbnail(item, activeThemeId)}
+                </div>
                 <div style="min-width:0;">
                   <strong>${escapeHtml(item.name)}</strong>
                   <div class="df-muted tabular-nums">${escapeHtml(item.category)} · ${freeViaSerious ? "Free" : item.price === 0 ? "Starter" : `${item.price} SC`}</div>
                 </div>
               </div>
               <div class="df-item-card-acts">
+                <button type="button" class="df-btn-subtle ${isPreviewing ? "is-accent" : ""}" data-dfm-preview-item="${escapeHtml(item.id)}">${isPreviewing ? "Active" : "Preview"}</button>
                 ${owned
                   ? `<button type="button" class="${equipped ? "df-btn-subtle" : "df-btn-accent"}" data-dfm-equip="${escapeHtml(item.id)}" ${equipped || locked ? "disabled" : ""}>${equipped ? "Equipped" : "Equip"}</button>`
                   : `<button type="button" class="df-btn-accent" data-dfm-buy-item="${escapeHtml(item.id)}" ${!signedIn || locked ? "disabled" : ""}>Buy · ${item.price} SC</button>`}
@@ -2107,11 +2171,74 @@ export function createDeepFocusModalController({
         });
       });
 
+      backdrop.querySelector("#dfm-stop-catalog-preview")?.addEventListener("click", () => {
+        restoreAudioPreview();
+        restoreCatalogPreview();
+        onWorkspaceMutated?.();
+      });
+
+      backdrop.querySelector("#sprk-preview-audio-btn")?.addEventListener("click", async () => {
+        const item = SHOP_CATALOG.find((i) => i.id === previewingCatalogItemId);
+        if (!item || item.category !== "music" || !item.audioMix) return;
+        if (previewingDiscId === item.id && audioManager.isPlaying) {
+          restoreAudioPreview();
+          onWorkspaceMutated?.();
+          return;
+        }
+        if (!previewSnapshot) {
+          previewSnapshot = { wasPlaying: audioManager.isPlaying, levels: { ...audioManager.levels } };
+        }
+        for (const ch of AUDIO_CHANNELS) {
+          audioManager.setChannelLevel(ch.id, Number(item.audioMix[ch.id] || 0));
+        }
+        previewingDiscId = item.id;
+        await audioManager.togglePlay(true).catch(() => {});
+        onWorkspaceMutated?.();
+      });
+
+      backdrop.querySelectorAll("[data-dfm-preview-item]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const id = btn.dataset.dfmPreviewItem;
+          const item = SHOP_CATALOG.find((i) => i.id === id);
+          if (!item) return;
+
+          if (previewingCatalogItemId === id) {
+            restoreAudioPreview();
+            restoreCatalogPreview();
+            onWorkspaceMutated?.();
+            return;
+          }
+
+          restoreAudioPreview();
+          restoreCatalogPreview();
+          previewingCatalogItemId = id;
+
+          if (item.category === "theme" && item.themeId) {
+            themeBeforePreview = state.preferences?.theme || "comic";
+            themeManager.apply(item.themeId, { persist: false });
+          } else if (item.category === "music" && item.audioMix) {
+            previewSnapshot = { wasPlaying: audioManager.isPlaying, levels: { ...audioManager.levels } };
+            for (const ch of AUDIO_CHANNELS) {
+              audioManager.setChannelLevel(ch.id, Number(item.audioMix[ch.id] || 0));
+            }
+            previewingDiscId = item.id;
+            await audioManager.togglePlay(true).catch(() => {});
+          }
+          onWorkspaceMutated?.();
+        });
+      });
+
       backdrop.querySelectorAll("[data-dfm-equip]").forEach((btn) => {
         btn.addEventListener("click", () => {
           if (isStrictFocusLockActive()) return;
           const item = SHOP_CATALOG.find((i) => i.id === btn.dataset.dfmEquip);
-          if (item && equipShopItem(item)) {
+          if (!item) return;
+          if (item.category === "theme") {
+            themeBeforePreview = null;
+          } else {
+            restoreCatalogPreview();
+          }
+          if (equipShopItem(item)) {
             statusMsg = `Equipped "${item.name}".`;
             onWorkspaceMutated?.();
           }
@@ -2125,6 +2252,9 @@ export function createDeepFocusModalController({
           const res = await purchaseShopItem(id);
           if (res.ok) {
             const item = SHOP_CATALOG.find((i) => i.id === id);
+            if (item?.category === "theme") {
+              themeBeforePreview = null;
+            }
             if (item) equipShopItem(item);
             statusMsg = `Unlocked "${item?.name || "item"}".`;
           } else {

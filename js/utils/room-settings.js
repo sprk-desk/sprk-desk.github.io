@@ -3,6 +3,23 @@
 export const SERIOUS_THEME_IDS = Object.freeze(["editorial", "noir"]);
 export const DARK_THEME_IDS = new Set(["space", "alchemy", "midnight", "noir"]);
 
+export const DISABLED_FEATURES = Object.freeze(["customization"]);
+
+export const SPECTATOR_ALLOWED_FEATURES = Object.freeze([
+  "profile",
+  "achievements",
+  "calendar",
+  "library"
+]);
+
+export function isFeatureDisabled(feature) {
+  return DISABLED_FEATURES.includes(String(feature || ""));
+}
+
+export function isFeatureAllowedForSpectator(feature) {
+  return SPECTATOR_ALLOWED_FEATURES.includes(String(feature || ""));
+}
+
 export const SELECTOR_FEATURE_PAIRS = Object.freeze([
   [".desk-clock", "focus"],
   [".desk-hourglass", "register"],
@@ -11,7 +28,6 @@ export const SELECTOR_FEATURE_PAIRS = Object.freeze([
   [".desk-notebook", "diary"],
   [".desk-headphones", "audio"],
   [".merchant-bird", "shop"],
-  [".desk-plant", "customization"],
   [".window-frame-btn", "environment"],
   [".photo-frame", "profile"],
   [".desk-phone", "friends"],

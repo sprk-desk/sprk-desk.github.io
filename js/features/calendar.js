@@ -13,13 +13,16 @@ export const calendarFeature = {
     let tab = "overview"; // overview | budgets | exams
 
     const renderView = () => {
+      const sp = state.spectatingRoom;
       const now = new Date();
       const year = now.getFullYear();
       const month = now.getMonth();
       const today = todayIsoDate(now);
-      const records = (state.localStudyRecords || []).filter((r) => (r.mode || "focus") === "focus");
-      const exams = state.localExams || [];
-      const budgets = state.localSubjectBudgets || [];
+      const rawRecords = sp ? (sp.studyRecords || []) : (state.localStudyRecords || []);
+      const records = rawRecords.filter((r) => (r.mode || "focus") === "focus");
+      const exams = sp ? [] : (state.localExams || []);
+      const budgets = sp ? [] : (state.localSubjectBudgets || []);
+      if (sp && tab !== "overview") tab = "overview";
 
       const streaks = computeStudyStreaks(records, today);
       const totalMinutes = summarizeFocusMinutes(records).totalMinutes;
@@ -67,11 +70,18 @@ export const calendarFeature = {
       const budgetProgress = computeSubjectBudgetsProgress(budgets, records, now);
 
       container.innerHTML = `
-        <nav class="sprk-tabs" role="tablist" aria-label="Calendar sections">
-          <button type="button" class="sprk-tab ${tab === "overview" ? "is-active" : ""}" data-caltab="overview">Monthly Overview</button>
-          <button type="button" class="sprk-tab ${tab === "budgets" ? "is-active" : ""}" data-caltab="budgets">Subject Budgets (${budgets.length})</button>
-          <button type="button" class="sprk-tab ${tab === "exams" ? "is-active" : ""}" data-caltab="exams">Exam Countdowns (${exams.length})</button>
-        </nav>
+        ${sp ? `
+          <div class="sprk-card" style="margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+            <strong>${escapeHtml(sp.profile?.displayName || "Student")}'s Streaks &amp; Study Calendar</strong>
+            <span class="sprk-meta">Read-only view</span>
+          </div>
+        ` : `
+          <nav class="sprk-tabs" role="tablist" aria-label="Calendar sections">
+            <button type="button" class="sprk-tab ${tab === "overview" ? "is-active" : ""}" data-caltab="overview">Monthly Overview</button>
+            <button type="button" class="sprk-tab ${tab === "budgets" ? "is-active" : ""}" data-caltab="budgets">Subject Budgets (${budgets.length})</button>
+            <button type="button" class="sprk-tab ${tab === "exams" ? "is-active" : ""}" data-caltab="exams">Exam Countdowns (${exams.length})</button>
+          </nav>
+        `}
 
         ${tab === "overview" ? `
           <div class="sprk-grid-3" style="margin-bottom:16px;">

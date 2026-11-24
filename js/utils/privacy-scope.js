@@ -70,6 +70,43 @@ export function buildSpectatorSafeRoomView(roomOwnerData = {}) {
   const lighting = roomOwnerData.lighting && typeof roomOwnerData.lighting === "object"
     ? { ...roomOwnerData.lighting }
     : {};
+  const studyRecords = Array.isArray(roomOwnerData.studyRecords)
+    ? roomOwnerData.studyRecords.map((r) => ({
+        id: String(r?.id || ""),
+        date: String(r?.date || "").slice(0, 10),
+        mode: r?.mode === "break" ? "break" : "focus",
+        subject: String(r?.subject || "General Study").slice(0, 64),
+        durationSeconds: Math.max(0, Number(r?.durationSeconds || 0)),
+        creditsAwarded: Math.max(0, Number(r?.creditsAwarded || 0)),
+        isManual: Boolean(r?.isManual),
+        startedAt: r?.startedAt || ""
+      }))
+    : [];
+  const unlockedAchievementIds = Array.isArray(roomOwnerData.unlockedAchievementIds)
+    ? roomOwnerData.unlockedAchievementIds.map((id) => String(id)).filter(Boolean)
+    : [];
+  const libraryResources = Array.isArray(roomOwnerData.libraryResources)
+    ? roomOwnerData.libraryResources
+        .filter((res) => res && res.audience !== "private")
+        .map((res) => ({
+          id: String(res.id || ""),
+          title: String(res.title || "Study Guide"),
+          category: String(res.category || "Study Guide"),
+          summary: String(res.summary || ""),
+          author: String(res.author || roomOwnerData.displayName || "Student"),
+          audience: res.audience === "friends" ? "friends" : "public"
+        }))
+    : [];
+  const savedResources = Array.isArray(roomOwnerData.savedResources)
+    ? roomOwnerData.savedResources.map((res) => ({
+        id: String(res?.id || ""),
+        title: String(res?.title || "Saved Book"),
+        category: String(res?.category || "Saved"),
+        summary: String(res?.summary || ""),
+        author: String(res?.author || "")
+      }))
+    : [];
+
   return {
     profile: {
       id: roomOwnerData.id || "",
@@ -83,6 +120,7 @@ export function buildSpectatorSafeRoomView(roomOwnerData = {}) {
       courseClass: roomOwnerData.courseClass || "",
       examAim: roomOwnerData.examAim || "",
       favoriteSubjects: Array.isArray(roomOwnerData.favoriteSubjects) ? [...roomOwnerData.favoriteSubjects] : [],
+      isVerified: Boolean(roomOwnerData.isVerified),
       roomVisibility: normalizeRoomVisibility(privacy),
       onlineStatus: privacy.showOnlineStatus === false ? "hidden" : (roomOwnerData.onlineStatus || "online"),
       currentActivity: privacy.showStudyActivity === false ? null : (roomOwnerData.currentActivity || null)
@@ -99,6 +137,11 @@ export function buildSpectatorSafeRoomView(roomOwnerData = {}) {
       ? { ...roomOwnerData.customProp }
       : null,
     layout: { ...(roomOwnerData.layout || {}) },
+    friendsCount: Math.max(0, Number(roomOwnerData.friendsCount || 0)),
+    studyRecords,
+    unlockedAchievementIds,
+    libraryResources,
+    savedResources,
     // Explicitly strip private content for spectators
     diaryEntries: [],
     privateNotes: [],
