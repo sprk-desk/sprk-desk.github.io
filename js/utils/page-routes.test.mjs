@@ -35,3 +35,36 @@ test("getPagePath and getAppModeForPage map page routes cleanly", () => {
   assert.equal(getAppModeForPage(PAGE_ROUTES.COZY, "deepfocus"), "cozy");
   assert.equal(getAppModeForPage(PAGE_ROUTES.ACCOUNT, "deepfocus"), "deepfocus");
 });
+
+import {
+  parseWorkspaceVisits,
+  incrementWorkspaceVisit,
+  resolveMostVisitedWorkspace,
+  shouldAutoRedirectHomeToWorkspace
+} from "./page-routes.js";
+
+test("incrementWorkspaceVisit and resolveMostVisitedWorkspace pick frequently visited mode", () => {
+  let stats = parseWorkspaceVisits(null);
+  assert.equal(resolveMostVisitedWorkspace(stats, "cozy"), "cozy");
+
+  stats = incrementWorkspaceVisit(stats, "deepfocus");
+  stats = incrementWorkspaceVisit(stats, "deepfocus");
+  stats = incrementWorkspaceVisit(stats, "cozy");
+  assert.equal(stats.cozy, 1);
+  assert.equal(stats.deepfocus, 2);
+  assert.equal(resolveMostVisitedWorkspace(stats, "cozy"), "deepfocus");
+
+  stats = incrementWorkspaceVisit(stats, "cozy");
+  assert.equal(stats.cozy, 2);
+  assert.equal(stats.deepfocus, 2);
+  assert.equal(resolveMostVisitedWorkspace(stats, "deepfocus"), "cozy");
+});
+
+test("shouldAutoRedirectHomeToWorkspace redirects only logged-in users opening root / without explicit home stay", () => {
+  assert.equal(shouldAutoRedirectHomeToWorkspace({ isLoggedIn: false, currentPage: PAGE_ROUTES.HOME }), false);
+  assert.equal(shouldAutoRedirectHomeToWorkspace({ isLoggedIn: true, currentPage: PAGE_ROUTES.ACCOUNT }), false);
+  assert.equal(shouldAutoRedirectHomeToWorkspace({ isLoggedIn: true, currentPage: PAGE_ROUTES.HOME, explicitHomeStay: true }), false);
+  assert.equal(shouldAutoRedirectHomeToWorkspace({ isLoggedIn: true, currentPage: PAGE_ROUTES.HOME, search: "?stay=1" }), false);
+  assert.equal(shouldAutoRedirectHomeToWorkspace({ isLoggedIn: true, currentPage: PAGE_ROUTES.HOME, search: "?page=home" }), false);
+  assert.equal(shouldAutoRedirectHomeToWorkspace({ isLoggedIn: true, currentPage: PAGE_ROUTES.HOME, search: "" }), true);
+});

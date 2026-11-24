@@ -2,7 +2,7 @@
 import { state } from "../state.js";
 import { bus } from "../core/event-bus.js";
 import { setAppMode } from "../core/settings-manager.js";
-import { navigateToPage, parseCurrentPage, PAGE_ROUTES } from "../router.js";
+import { navigateToPage, parseCurrentPage, getMostVisitedWorkspace, PAGE_ROUTES } from "../router.js";
 import { escapeHtml } from "../utils/dom.js";
 
 export function initLandingPage() {
@@ -16,7 +16,7 @@ export function initLandingPage() {
     shellEl.hidden = !active;
     if (!active) return;
 
-    const preferredMode = state.preferences?.appMode === "deepfocus" ? "deepfocus" : "cozy";
+    const preferredMode = getMostVisitedWorkspace(state.preferences?.appMode === "deepfocus" ? "deepfocus" : "cozy");
     const accountLabel = state.user ? (state.user.displayName || "Account") : "Account / Sign In";
 
     shellEl.innerHTML = `

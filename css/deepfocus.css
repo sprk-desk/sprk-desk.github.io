@@ -2,9 +2,16 @@
 
 .sprk-mode-switcher {
   position: fixed;
-  top: 12px;
-  left: 16px;
+  top: 18px;
+  left: 20px;
   z-index: 45;
+  transition: opacity 160ms ease;
+}
+
+html.df-overlay-active .sprk-mode-switcher {
+  opacity: 0.22;
+  pointer-events: none;
+  z-index: 39;
 }
 
 .sprk-mode-switch {
@@ -67,8 +74,7 @@ html[data-page="deepfocus"] .sprk-mode-switch-btn.is-active {
   color: #09111e;
 }
 
-/* Hide Cozy Study Room elements and top-left switcher when on DeepFocus page */
-html[data-page="deepfocus"] #sprk-mode-switcher,
+/* Hide Cozy Study Room elements cleanly when on DeepFocus page */
 html[data-page="deepfocus"] .room-screen,
 html[data-page="deepfocus"] #room-active-whisper,
 html[data-page="deepfocus"] #sprk-study-circle-root {
@@ -163,51 +169,109 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   height: 100%;
 }
 
-/* Expandable Top-Right Studio Hub */
-.df-hub {
+/* Top-Right Circular Game-Style Symmetrical Radial Menu */
+.df-radial-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 46;
+  background: radial-gradient(circle at calc(100% - 48px) 46px, rgba(6, 11, 22, 0.8) 0%, rgba(6, 11, 22, 0.46) 38%, rgba(6, 11, 22, 0.22) 100%);
+  animation: dfFadeIn 180ms ease;
+}
+
+@keyframes dfFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.df-radial-menu {
+  --df-ring-scale: 1;
   position: fixed;
   top: 18px;
   right: 20px;
-  z-index: 35;
+  width: 56px;
+  height: 56px;
+  z-index: 38;
+}
+
+.df-radial-menu.is-open {
+  z-index: 48;
+}
+
+.df-radial-trigger {
+  position: relative;
+  z-index: 4;
+  appearance: none;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.22);
+  background: rgba(12, 19, 34, 0.8);
+  backdrop-filter: blur(20px);
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  color: #f8fafc;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  gap: 10px;
-}
-
-.df-hub-trigger {
-  appearance: none;
-  display: inline-flex;
   align-items: center;
-  gap: 9px;
-  min-height: 38px;
-  padding: 0 13px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(13, 20, 35, 0.72);
-  backdrop-filter: blur(20px);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.32);
-  color: #f1f5f9;
-  font: 600 13px/1 "Plus Jakarta Sans", system-ui, sans-serif;
+  justify-content: center;
+  gap: 3px;
   cursor: pointer;
-  white-space: nowrap;
-  transition: opacity 180ms ease, background-color 150ms ease, border-color 150ms ease, transform 120ms ease;
+  transition: opacity 180ms ease, transform 180ms cubic-bezier(0.22, 1.24, 0.36, 1), border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
 }
 
-.df-hub-trigger:hover,
-.df-hub-trigger.is-open {
-  background: rgba(15, 24, 42, 0.92);
-  border-color: color-mix(in srgb, var(--df-accent) 48%, rgba(255, 255, 255, 0.25));
-  color: #ffffff;
+.df-radial-trigger:hover {
+  transform: scale(1.06);
+  background: rgba(15, 24, 42, 0.94);
+  border-color: color-mix(in srgb, var(--df-accent) 60%, rgba(255, 255, 255, 0.3));
 }
 
-.df-hub.is-pure-zen:not(.is-open) .df-hub-trigger {
+.df-radial-trigger.is-open {
+  background: var(--df-accent);
+  border-color: rgba(255, 255, 255, 0.45);
+  color: #08111f;
+  box-shadow: 0 0 28px color-mix(in srgb, var(--df-accent) 42%, transparent);
+}
+
+.df-radial-trigger.is-audio-live:not(.is-open) {
+  border-color: color-mix(in srgb, var(--df-accent) 65%, transparent);
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.42),
+    0 0 18px color-mix(in srgb, var(--df-accent) 26%, transparent);
+}
+
+.df-radial-menu.is-pure-zen:not(.is-open) .df-radial-trigger {
   opacity: 0.28;
 }
 
-.df-hub.is-pure-zen:not(.is-open) .df-hub-trigger:hover,
-.df-hub.is-pure-zen:not(.is-open) .df-hub-trigger:focus-visible {
+.df-radial-menu.is-pure-zen:not(.is-open) .df-radial-trigger:hover,
+.df-radial-menu.is-pure-zen:not(.is-open) .df-radial-trigger:focus-visible {
   opacity: 1;
+}
+
+.df-trigger-text {
+  font: 700 9.5px/1 "Plus Jakarta Sans", system-ui, sans-serif;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: rgba(226, 232, 240, 0.9);
+}
+
+.df-trigger-close {
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1;
+  animation: dfSpinIn 220ms cubic-bezier(0.22, 1.24, 0.36, 1);
+}
+
+@keyframes dfSpinIn {
+  from {
+    opacity: 0;
+    transform: rotate(-90deg) scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+  }
 }
 
 .df-hub-glyph {
@@ -220,169 +284,128 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 .df-hub-glyph span {
   width: 4px;
   height: 4px;
-  border-radius: 1.5px;
-  background: rgba(226, 232, 240, 0.78);
+  border-radius: 50%;
+  background: rgba(226, 232, 240, 0.85);
   transition: background-color 150ms ease, box-shadow 150ms ease;
 }
 
 .df-hub-glyph.is-active span {
   background: var(--df-accent);
-  box-shadow: 0 0 6px color-mix(in srgb, var(--df-accent) 65%, transparent);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--df-accent) 75%, transparent);
 }
 
-.df-hub-chev {
-  font-size: 12px;
-  line-height: 1;
-  color: var(--df-muted);
-}
-
-.df-hub-panel {
-  width: 372px;
-  max-width: calc(100vw - 24px);
-  max-height: calc(100vh - 82px);
-  overflow-y: auto;
-  scrollbar-width: none;
-  padding: 14px;
-  border-radius: 18px;
-  background: rgba(12, 19, 34, 0.94);
-  backdrop-filter: blur(26px);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.58);
-  display: grid;
-  gap: 11px;
+.df-radial-arcs {
+  position: absolute;
+  top: 28px;
+  right: 28px;
+  pointer-events: none;
+  z-index: 1;
   transform-origin: top right;
-  animation: dfHubIn 170ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transform: scale(var(--df-ring-scale, 1));
+  animation: dfFadeIn 220ms ease;
 }
 
-@keyframes dfHubIn {
+.df-orbit-arc {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.14);
+  stroke-width: 1;
+  stroke-dasharray: 4 5;
+}
+
+.df-orbit-arc.is-outer {
+  stroke: rgba(255, 255, 255, 0.1);
+}
+
+.df-radial-stage {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.df-radial-node {
+  position: absolute;
+  top: 28px;
+  right: 28px;
+  width: 68px;
+  margin-top: -21px;
+  margin-right: -34px;
+  appearance: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+  pointer-events: auto;
+  animation: dfOrbPop 290ms cubic-bezier(0.22, 1.24, 0.36, 1) var(--delay, 0ms) both;
+}
+
+@keyframes dfOrbPop {
   from {
     opacity: 0;
-    transform: translateY(-6px) scale(0.97);
+    transform: translate(0px, 0px) scale(0.32);
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translate(calc(var(--rx) * var(--df-ring-scale, 1)), calc(var(--ry) * var(--df-ring-scale, 1))) scale(1);
   }
 }
 
-.df-hub-top-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+.df-radial-orb {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.22);
+  background: rgba(13, 21, 37, 0.94);
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  display: grid;
+  place-items: center;
+  color: #e2e8f0;
+  transition: transform 150ms cubic-bezier(0.22, 1.24, 0.36, 1), border-color 150ms ease, background-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
 }
 
-.df-hub-pages {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  padding: 3px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.045);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  min-width: 0;
-}
-
-.df-hub-page-btn {
-  appearance: none;
-  border: 0;
-  border-radius: 7px;
-  padding: 6px 10px;
-  min-height: 28px;
-  max-width: 112px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  background: transparent;
-  color: #cbd5e1;
-  font: 600 11.5px/1 "Plus Jakarta Sans", system-ui, sans-serif;
-  cursor: pointer;
-  text-align: center;
-  transition: background-color 140ms ease, color 140ms ease;
-}
-
-.df-hub-page-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+.df-radial-node:hover .df-radial-orb,
+.df-radial-node:focus-visible .df-radial-orb {
+  transform: scale(1.13);
+  border-color: var(--df-accent);
+  background: rgba(19, 32, 56, 0.96);
   color: #ffffff;
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.55),
+    0 0 18px color-mix(in srgb, var(--df-accent) 34%, transparent);
 }
 
-.df-hub-utils {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  flex-shrink: 0;
+.df-radial-node.is-active .df-radial-orb {
+  background: var(--df-accent);
+  border-color: rgba(255, 255, 255, 0.5);
+  color: #08111f;
+  box-shadow: 0 0 22px color-mix(in srgb, var(--df-accent) 45%, transparent);
 }
 
-.df-hub-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 7px;
-}
-
-.df-hub-tile {
-  appearance: none;
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 12px;
-  padding: 10px 11px;
-  background: rgba(255, 255, 255, 0.035);
-  color: #f8fafc;
-  display: grid;
-  gap: 3px;
-  text-align: left;
-  cursor: pointer;
-  transition: background-color 140ms ease, border-color 140ms ease;
-}
-
-.df-hub-tile strong {
-  font-size: 12.5px;
-  font-weight: 700;
-  line-height: 1.25;
-}
-
-.df-hub-tile span {
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--df-muted);
-  line-height: 1.25;
+.df-radial-label {
+  padding: 1px 5px;
+  border-radius: 6px;
+  background: rgba(8, 13, 24, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font: 600 10px/1.2 "Plus Jakarta Sans", system-ui, sans-serif;
+  color: #e2e8f0;
   white-space: nowrap;
+  max-width: 72px;
   overflow: hidden;
   text-overflow: ellipsis;
+  pointer-events: none;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45);
 }
 
-.df-hub-tile:hover {
-  background: rgba(255, 255, 255, 0.085);
-  border-color: rgba(255, 255, 255, 0.22);
-}
-
-.df-hub-tile.is-active {
-  background: var(--df-accent-soft);
-  border-color: color-mix(in srgb, var(--df-accent) 55%, transparent);
-}
-
-.df-hub-tile.is-active strong {
+.df-radial-node.is-active .df-radial-label {
   color: var(--df-accent);
-}
-
-.df-hub-card {
-  padding: 11px 12px;
-  border-radius: 13px;
-  background: rgba(255, 255, 255, 0.035);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  display: grid;
-  gap: 9px;
-}
-
-.df-hub-card-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.df-hub-card-title {
-  font-size: 12px;
-  font-weight: 700;
-  color: #f1f5f9;
+  border-color: color-mix(in srgb, var(--df-accent) 45%, transparent);
 }
 
 .df-hub-inline-link {
@@ -398,50 +421,6 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 
 .df-hub-inline-link:hover {
   text-decoration: underline;
-}
-
-.df-hub-audio-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.df-hub-audio-row .df-dock-disc-select {
-  flex: 1;
-  min-width: 0;
-  max-width: none;
-}
-
-.df-hub-vol-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 11.5px;
-}
-
-.df-hub-vol-row input[type="range"] {
-  flex: 1;
-  min-width: 0;
-  accent-color: var(--df-accent);
-}
-
-.df-hub-friends-empty {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  font-size: 11.5px;
-  line-height: 1.4;
-  color: var(--df-muted);
-}
-
-.df-hub-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding-top: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 /* Center Stage & Hero Timer Card (Zen-first full viewport) */
@@ -680,7 +659,137 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   font-weight: 600;
 }
 
-/* Studying Together Rows (inside Hub Panel) */
+/* Bottom-Right Clever Friends Online Dock & Popover Dialog */
+.df-friends-dock {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 34;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.df-friends-pill {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 40px;
+  padding: 0 13px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(12, 19, 34, 0.78);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.36);
+  color: #f1f5f9;
+  font: 500 12.5px/1 "Plus Jakarta Sans", system-ui, sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 180ms ease, background-color 150ms ease, border-color 150ms ease;
+}
+
+.df-friends-pill:hover,
+.df-friends-dock.is-open .df-friends-pill {
+  background: rgba(15, 24, 42, 0.94);
+  border-color: color-mix(in srgb, var(--df-accent) 45%, rgba(255, 255, 255, 0.24));
+  color: #ffffff;
+}
+
+.df-friends-dock.is-pure-zen:not(.is-open) .df-friends-pill {
+  opacity: 0.28;
+}
+
+.df-friends-dock.is-pure-zen:not(.is-open) .df-friends-pill:hover,
+.df-friends-dock.is-pure-zen:not(.is-open) .df-friends-pill:focus-visible {
+  opacity: 1;
+}
+
+.df-friends-ico {
+  display: inline-flex;
+  color: #cbd5e1;
+}
+
+.df-friends-pill-text strong {
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.df-friends-caret {
+  display: inline-flex;
+  color: var(--df-muted);
+  transition: transform 180ms ease, color 150ms ease;
+}
+
+.df-friends-caret.is-open {
+  transform: rotate(180deg);
+  color: var(--df-accent);
+}
+
+.df-friends-popover {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  right: 0;
+  width: 326px;
+  max-width: calc(100vw - 24px);
+  border-radius: 16px;
+  background: rgba(12, 19, 34, 0.95);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 22px 54px rgba(0, 0, 0, 0.56);
+  transform-origin: bottom right;
+  animation: dfPopoverUp 180ms cubic-bezier(0.22, 1.2, 0.36, 1);
+}
+
+.df-friends-popover::after {
+  content: "";
+  position: absolute;
+  bottom: -6px;
+  right: 18px;
+  width: 11px;
+  height: 11px;
+  background: rgba(12, 19, 34, 0.95);
+  border-right: 1px solid rgba(255, 255, 255, 0.14);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  transform: rotate(45deg);
+}
+
+@keyframes dfPopoverUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.df-fpop-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.df-fpop-body {
+  padding: 10px 14px 14px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.df-fpop-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--df-muted);
+}
+
 .df-friends-title {
   display: flex;
   align-items: center;
@@ -702,12 +811,12 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 
 .df-live-indicator.is-live {
   background: #22c55e;
-  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.22);
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.24);
 }
 
 .df-friends-list {
   display: grid;
-  gap: 8px;
+  gap: 9px;
 }
 
 .df-friend-row {
@@ -717,8 +826,8 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 }
 
 .df-friend-avatar {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: 9px;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.14);
@@ -744,6 +853,7 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 .df-friend-name {
   font-size: 12.5px;
   font-weight: 700;
+  color: #f8fafc;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -755,6 +865,11 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.df-friend-dur {
+  color: var(--df-accent);
+  font-weight: 600;
 }
 
 .df-dock-disc-select {
@@ -1781,21 +1896,37 @@ html[data-page="deepfocus"] .sprk-cmd-kbd {
 
 @media (max-width: 640px) {
   .sprk-mode-switcher {
-    top: 10px;
-    left: 10px;
+    top: 14px;
+    left: 12px;
   }
   .sprk-mode-switch-btn {
     padding: 5px 8px;
     font-size: 11.5px;
   }
-  .df-hub {
-    top: 12px;
+  .df-radial-menu {
+    --df-ring-scale: 0.78;
+    top: 14px;
     right: 12px;
   }
-  .df-hub-panel {
+  .df-radial-orb {
+    width: 30px;
+    height: 30px;
+  }
+  .df-radial-node {
+    margin-top: -15px;
+    gap: 1px;
+  }
+  .df-radial-label {
+    font-size: 8.5px;
+    padding: 1px 3px;
+    line-height: 1.15;
+  }
+  .df-friends-dock {
+    right: 12px;
+    bottom: 14px;
+  }
+  .df-friends-popover {
     width: calc(100vw - 24px);
-    max-height: calc(100vh - 70px);
-    padding: 12px;
   }
   .df-task-bind-row,
   .df-kpi-grid {
@@ -1804,5 +1935,14 @@ html[data-page="deepfocus"] .sprk-cmd-kbd {
   .df-turntable {
     flex-direction: column;
     align-items: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .df-radial-node,
+  .df-trigger-close,
+  .df-friends-popover,
+  .df-radial-backdrop {
+    animation: none !important;
   }
 }

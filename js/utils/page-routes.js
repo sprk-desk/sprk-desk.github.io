@@ -77,3 +77,64 @@ export function getAppModeForPage(page, fallbackMode = "cozy") {
   if (page === PAGE_ROUTES.COZY) return "cozy";
   return fallbackMode === "deepfocus" ? "deepfocus" : "cozy";
 }
+
+export const WORKSPACE_VISIT_STORAGE_KEY = "sprk_workspace_visits_v1";
+
+export function parseWorkspaceVisits(raw = null) {
+  let obj = raw;
+  if (typeof raw === "string") {
+    try {
+      obj = JSON.parse(raw);
+    } catch {
+      obj = null;
+    }
+  }
+  const cozy = Math.max(0, Math.floor(Number(obj?.cozy) || 0));
+  const deepfocus = Math.max(0, Math.floor(Number(obj?.deepfocus) || 0));
+  const lastVisited = obj?.lastVisited === "deepfocus" || obj?.lastVisited === "cozy"
+    ? obj.lastVisited
+    : null;
+  return { cozy, deepfocus, lastVisited };
+}
+
+export function incrementWorkspaceVisit(rawStats, mode) {
+  const stats = parseWorkspaceVisits(rawStats);
+  if (mode !== "cozy" && mode !== "deepfocus") return stats;
+  return {
+    cozy: stats.cozy + (mode === "cozy" ? 1 : 0),
+    deepfocus: stats.deepfocus + (mode === "deepfocus" ? 1 : 0),
+    lastVisited: mode
+  };
+}
+
+export function resolveMostVisitedWorkspace(rawStats, fallbackMode = "cozy") {
+  const stats = parseWorkspaceVisits(rawStats);
+  if (stats.deepfocus > stats.cozy) return "deepfocus";
+  if (stats.cozy > stats.deepfocus) return "cozy";
+  if (stats.lastVisited === "deepfocus" || stats.lastVisited === "cozy") {
+    return stats.lastVisited;
+  }
+  return fallbackMode === "deepfocus" ? "deepfocus" : "cozy";
+}
+
+export function shouldAutoRedirectHomeToWorkspace({
+  isLoggedIn = false,
+  currentPage = PAGE_ROUTES.HOME,
+  search = "",
+  explicitHomeStay = false
+} = {}) {
+  if (!isLoggedIn) return false;
+  if (currentPage !== PAGE_ROUTES.HOME) return false;
+  if (explicitHomeStay) return false;
+  try {
+    const params = new URLSearchParams(String(search || ""));
+    const paramPage = (params.get("page") || params.get("mode") || "").toLowerCase();
+    const stay = (params.get("stay") || params.get("landing") || "").toLowerCase();
+    if (paramPage === "home" || stay === "1" || stay === "true" || stay === "home") {
+      return false;
+    }
+  } catch {
+    // ignore malformed search string
+  }
+  return true;
+}

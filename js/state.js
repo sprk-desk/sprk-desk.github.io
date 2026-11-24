@@ -3,6 +3,11 @@ import { APP_CONFIG, isSupabaseConfigured } from "../config.js";
 import { bus } from "./core/event-bus.js";
 import { DEFAULT_DECORATIONS, normalizeDecorationsMap } from "./utils/decorations.js";
 import { DEFAULT_DEEPFOCUS_PREFS, sanitizeDeepFocusSettings } from "./utils/deepfocus-config.js";
+import {
+  normalizeModeVisitStats,
+  recordModeVisitStats,
+  resolveFrequentWorkspaceMode
+} from "./utils/page-routes.js";
 
 const STORAGE_PREFIX = "sprk_desk_v1:";
 
@@ -139,6 +144,7 @@ export const state = {
   localExams: readStorage("exams", []),
   localSubjectBudgets: readStorage("subject_budgets", []),
   localWorkspaceProfiles: readStorage("workspace_profiles", []),
+  modeVisits: normalizeModeVisitStats(readStorage("mode_visits", null)),
   bodyDoublingRoom: readStorage("body_doubling_room", null),
   pendingCheckInRecordId: null,
 
@@ -222,6 +228,21 @@ export function persistLocalCollection(key, value) {
   };
   if (map[key]) writeStorage(map[key], value);
   bus.emit(`state:${key}`, value);
+}
+
+export function recordWorkspaceVisit(mode) {
+  if (mode !== "cozy" && mode !== "deepfocus") return state.modeVisits;
+  state.modeVisits = recordModeVisitStats(state.modeVisits, mode);
+  writeStorage("mode_visits", state.modeVisits);
+  bus.emit("modeVisits:changed", state.modeVisits);
+  return state.modeVisits;
+}
+
+export function getFrequentWorkspaceMode() {
+  return resolveFrequentWorkspaceMode(
+    state.modeVisits,
+    state.preferences?.appMode === "deepfocus" ? "deepfocus" : "cozy"
+  );
 }
 
 export function isSpectatorMode() {

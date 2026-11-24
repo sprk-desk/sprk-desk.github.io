@@ -1,9 +1,9 @@
-// DeepFocus Studio — Serene Zen-First Focus Stage with Expandable Top-Right Studio Hub
+// DeepFocus Studio — Pure-Zen Stage, Top-Left Switcher, Radial Game-Style Menu & Bottom-Right Friends Popover
 import { APP_CONFIG } from "../../config.js";
 import { state, savePreferences, persistLocalCollection } from "../state.js";
 import { bus } from "../core/event-bus.js";
 import { themeManager, ROOM_THEMES } from "../core/theme-manager.js";
-import { audioManager, AUDIO_CHANNELS } from "../core/audio-manager.js";
+import { audioManager } from "../core/audio-manager.js";
 import { deepFocusParticles } from "../core/deepfocus-particles.js";
 import {
   setAppMode,
@@ -28,11 +28,11 @@ import {
   DEFAULT_DEEPFOCUS_PREFS,
   resolveDeepFocusAppearance,
   isParticleOwned,
-  sanitizeBackdropUrl
+  sanitizeBackdropUrl,
+  computeRadialOrbPositions
 } from "../utils/deepfocus-config.js";
 import { isThemeAccessibleInMode } from "../utils/room-settings.js";
 import { SHOP_CATALOG } from "../utils/shop-catalog.js";
-import { partitionMusicDiscs } from "../utils/audio-loops.js";
 import { BUILTIN_WORKSPACE_PROFILES } from "../utils/study-tools.js";
 import { sanitizeAvatarUrl } from "../utils/profile-helpers.js";
 import {
@@ -44,11 +44,21 @@ import {
 } from "../utils/timer-math.js";
 import { escapeHtml, formatDuration, todayIsoDate, generateId } from "../utils/dom.js";
 
-const BUILTIN_DISCS = [
-  { id: "disc_rainy", name: "Rainy Study", mix: { rain: 0.65, wind: 0.25, lofi: 0.35 } },
-  { id: "disc_hearth", name: "Cozy Hearth", mix: { fireplace: 0.7, rain: 0.25 } },
-  { id: "disc_keys", name: "Lo-Fi Keys", mix: { lofi: 0.6, whiteNoise: 0.2 } }
-];
+const RADIAL_ICONS = {
+  music: `<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>`,
+  settings: `<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.08a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.08a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
+  account: `<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
+  home: `<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>`,
+  plan: `<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="10" y="4" width="5" height="11" rx="1.5"/><rect x="17" y="4" width="4" height="14" rx="1.5"/></svg>`,
+  knowledge: `<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>`,
+  insights: `<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>`,
+  community: `<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+  catalog: `<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>`,
+  break: `<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>`,
+  search: `<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`,
+  friends: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="3.5"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a3.5 3.5 0 0 1 0 6.74"/></svg>`,
+  caretUp: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>`
+};
 
 export function initDeepFocusWorkspace() {
   const modeSwitcherEl = document.getElementById("sprk-mode-switcher");
@@ -56,6 +66,7 @@ export function initDeepFocusWorkspace() {
   if (!modeSwitcherEl || !shellEl) return;
 
   let hubExpanded = false;
+  let friendsPopoverOpen = false;
   let activeDrawer = null; // null | "settings"
   let timerTab = state.preferences?.deepFocus?.timerTab || "pomodoro";
   let pomodoroPhase = "focus"; // focus | short_break | long_break
@@ -88,25 +99,32 @@ export function initDeepFocusWorkspace() {
     const page = parseCurrentPage().page;
     const isSpectating = Boolean(state.spectatingRoom);
 
-    // Only float the top-left switcher on Cozy Study; DeepFocus keeps a pure Zen top edge
-    if (page !== PAGE_ROUTES.COZY || isSpectating) {
+    if (page !== PAGE_ROUTES.DEEPFOCUS) {
+      document.documentElement.classList.remove("df-overlay-active");
+    }
+
+    if ((page !== PAGE_ROUTES.COZY && page !== PAGE_ROUTES.DEEPFOCUS) || isSpectating) {
       modeSwitcherEl.hidden = true;
       return;
     }
 
+    const isDf = page === PAGE_ROUTES.DEEPFOCUS;
     modeSwitcherEl.hidden = false;
     modeSwitcherEl.innerHTML = `
       <div class="sprk-mode-switch" role="group" aria-label="Workspace mode">
-        <button type="button" class="sprk-mode-switch-btn is-active" data-switch-mode="cozy">Cozy Study</button>
-        <button type="button" class="sprk-mode-switch-btn" data-switch-mode="deepfocus">DeepFocus</button>
+        <button type="button" class="sprk-mode-switch-btn ${!isDf ? "is-active" : ""}" data-switch-mode="cozy">Cozy Study</button>
+        <button type="button" class="sprk-mode-switch-btn ${isDf ? "is-active" : ""}" data-switch-mode="deepfocus">DeepFocus</button>
       </div>
     `;
     modeSwitcherEl.querySelectorAll("[data-switch-mode]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const nextMode = btn.dataset.switchMode;
-        if (nextMode === "deepfocus") {
+        if (nextMode === "deepfocus" && page !== PAGE_ROUTES.DEEPFOCUS) {
           setAppMode("deepfocus", { syncUrl: false });
           navigateToPage(PAGE_ROUTES.DEEPFOCUS);
+        } else if (nextMode === "cozy" && page !== PAGE_ROUTES.COZY) {
+          setAppMode("cozy", { syncUrl: false });
+          navigateToPage(PAGE_ROUTES.COZY);
         }
       });
     });
@@ -245,83 +263,125 @@ export function initDeepFocusWorkspace() {
     return appearance;
   };
 
-  const renderHubFriendsSectionHtml = () => {
+  const renderBottomFriendsDockHtml = () => {
     const { entries, summary, signedIn } = presenceService.getSnapshot(Date.now());
-    const activeFriends = entries.filter((e) => e.status === "studying" || e.status === "online");
-    const studyingList = entries.filter((e) => e.status === "studying");
+    const onlineFriends = entries.filter((e) => e.status === "studying" || e.status === "online");
+    const onlineCount = onlineFriends.length;
+    const studyingCount = summary.studyingCount || 0;
+    const hasOnline = onlineCount > 0;
 
     return `
-      <section class="df-hub-card df-hub-friends" aria-label="Studying together">
-        <div class="df-hub-card-head">
-          <div class="df-friends-title">
-            <span class="df-live-indicator ${summary.studyingCount > 0 ? "is-live" : ""}" aria-hidden="true"></span>
-            <span>Studying Together</span>
-            <span class="df-muted tabular-nums">${signedIn ? `${summary.studyingCount} live` : "Offline"}</span>
-          </div>
-          <button type="button" class="df-hub-inline-link" id="df-friends-manage">Rooms &amp; Friends →</button>
-        </div>
+      <aside class="df-friends-dock ${friendsPopoverOpen ? "is-open" : ""} ${zenMode ? "is-pure-zen" : ""}" id="df-friends-dock" aria-label="Friends online">
+        ${friendsPopoverOpen ? `
+          <div class="df-friends-popover" id="df-friends-popover" role="dialog" aria-label="Friends online studying">
+            <header class="df-fpop-head">
+              <div class="df-friends-title">
+                <span class="df-live-indicator ${hasOnline ? "is-live" : ""}" aria-hidden="true"></span>
+                <span>Friends Online</span>
+                <span class="df-muted tabular-nums">
+                  ${signedIn ? `${onlineCount} online${studyingCount > 0 ? ` · ${studyingCount} focusing` : ""}` : "Offline"}
+                </span>
+              </div>
+              <button type="button" class="df-hub-inline-link" id="df-friends-manage">Manage →</button>
+            </header>
 
-        ${!signedIn ? `
-          <div class="df-hub-friends-empty">
-            <span>Sign in to study live with classmates and visit rooms.</span>
-            <button type="button" class="df-btn-subtle" id="df-friends-signin">Sign In</button>
-          </div>
-        ` : entries.length === 0 ? `
-          <div class="df-hub-friends-empty">
-            <span>No friends connected yet.</span>
-            <button type="button" class="df-btn-subtle" id="df-friends-find">Find Friends</button>
-          </div>
-        ` : activeFriends.length === 0 ? `
-          <div class="df-hub-friends-empty">
-            <span>${entries.length} friend${entries.length === 1 ? "" : "s"} added · None online now</span>
-            <button type="button" class="df-btn-subtle" id="df-friends-find">View All</button>
-          </div>
-        ` : `
-          <div class="df-friends-list">
-            ${(studyingList.length > 0 ? studyingList : activeFriends).slice(0, 3).map((friend) => {
-              const safeAvatar = sanitizeAvatarUrl(friend.avatarUrl || "");
-              return `
-                <div class="df-friend-row">
-                  <div class="df-friend-avatar">
-                    ${safeAvatar
-                      ? `<img src="${escapeHtml(safeAvatar)}" alt="" referrerpolicy="no-referrer" />`
-                      : `<span>${escapeHtml(friend.avatarPreset || friend.displayName.slice(0, 1).toUpperCase())}</span>`}
-                  </div>
-                  <div class="df-friend-meta">
-                    <div class="df-friend-name">${escapeHtml(friend.displayName)}</div>
-                    <div class="df-friend-sub">
-                      <span>${friend.status === "studying" ? escapeHtml(friend.subject || "Focusing") : "Online"}</span>
-                      ${friend.elapsedLabel ? ` · <span class="tabular-nums">${escapeHtml(friend.elapsedLabel)}</span>` : ""}
-                    </div>
-                  </div>
-                  <button type="button" class="df-btn-subtle" data-df-visit="${escapeHtml(friend.id)}">Visit</button>
+            <div class="df-fpop-body">
+              ${!signedIn ? `
+                <div class="df-fpop-empty">
+                  <span>Sign in to see classmates online, what they are studying, and visit their study rooms.</span>
+                  <button type="button" class="df-btn-accent" id="df-friends-signin">Sign In</button>
                 </div>
-              `;
-            }).join("")}
+              ` : entries.length === 0 ? `
+                <div class="df-fpop-empty">
+                  <span>No friends connected yet. Add classmates to study side by side.</span>
+                  <button type="button" class="df-btn-subtle" id="df-friends-find">Find Friends</button>
+                </div>
+              ` : onlineFriends.length === 0 ? `
+                <div class="df-fpop-empty">
+                  <span>${entries.length} friend${entries.length === 1 ? "" : "s"} connected · None online right now</span>
+                  <button type="button" class="df-btn-subtle" id="df-friends-find">View All</button>
+                </div>
+              ` : `
+                <div class="df-friends-list">
+                  ${onlineFriends.map((friend) => {
+                    const safeAvatar = sanitizeAvatarUrl(friend.avatarUrl || "");
+                    const isStudying = friend.status === "studying";
+                    const studyTopic = isStudying
+                      ? (friend.subject || "Deep Focus")
+                      : "Online · Lounge";
+                    return `
+                      <div class="df-friend-row ${isStudying ? "is-studying" : ""}">
+                        <div class="df-friend-avatar">
+                          ${safeAvatar
+                            ? `<img src="${escapeHtml(safeAvatar)}" alt="" referrerpolicy="no-referrer" />`
+                            : `<span>${escapeHtml(friend.avatarPreset || friend.displayName.slice(0, 1).toUpperCase())}</span>`}
+                        </div>
+                        <div class="df-friend-meta">
+                          <div class="df-friend-name">${escapeHtml(friend.displayName)}</div>
+                          <div class="df-friend-sub">
+                            <span>${escapeHtml(studyTopic)}</span>
+                            ${isStudying && friend.elapsedLabel
+                              ? ` <span aria-hidden="true">·</span> <span class="df-friend-dur tabular-nums">${escapeHtml(friend.elapsedLabel)}</span>`
+                              : ""}
+                          </div>
+                        </div>
+                        <button type="button" class="df-btn-subtle" data-df-visit="${escapeHtml(friend.id)}">Visit</button>
+                      </div>
+                    `;
+                  }).join("")}
+                </div>
+              `}
+            </div>
           </div>
-        `}
-      </section>
+        ` : ""}
+
+        <button
+          type="button"
+          class="df-friends-pill"
+          id="df-friends-pill"
+          aria-expanded="${friendsPopoverOpen}"
+          aria-controls="df-friends-popover"
+          title="Friends online studying">
+          <span class="df-live-indicator ${hasOnline ? "is-live" : ""}" aria-hidden="true"></span>
+          <span class="df-friends-ico" aria-hidden="true">${RADIAL_ICONS.friends}</span>
+          <span class="df-friends-pill-text tabular-nums">
+            ${signedIn
+              ? `<strong>${onlineCount}</strong> online${studyingCount > 0 ? ` · ${studyingCount} focusing` : ""}`
+              : "<strong>0</strong> online"}
+          </span>
+          <span class="df-friends-caret ${friendsPopoverOpen ? "is-open" : ""}" aria-hidden="true">${RADIAL_ICONS.caretUp}</span>
+        </button>
+      </aside>
     `;
   };
 
-  const bindHubFriendsEvents = () => {
+  const bindBottomFriendsDockEvents = () => {
+    shellEl.querySelector("#df-friends-pill")?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      friendsPopoverOpen = !friendsPopoverOpen;
+      if (friendsPopoverOpen) hubExpanded = false;
+      renderShell();
+    });
+    shellEl.querySelector("#df-friends-popover")?.addEventListener("click", (e) => {
+      e.stopPropagation();
+    });
     shellEl.querySelector("#df-friends-manage")?.addEventListener("click", () => {
-      hubExpanded = false;
+      friendsPopoverOpen = false;
       modals.open("community", "friends");
     });
     shellEl.querySelector("#df-friends-find")?.addEventListener("click", () => {
-      hubExpanded = false;
+      friendsPopoverOpen = false;
       modals.open("community", "friends");
     });
     shellEl.querySelector("#df-friends-signin")?.addEventListener("click", () => {
-      hubExpanded = false;
+      friendsPopoverOpen = false;
       navigateToPage(PAGE_ROUTES.ACCOUNT);
     });
     shellEl.querySelectorAll("[data-df-visit]").forEach((btn) => {
       btn.addEventListener("click", async () => {
         const { error } = await visitFriendRoom(btn.dataset.dfVisit);
         if (!error) {
-          hubExpanded = false;
+          friendsPopoverOpen = false;
           setAppMode("cozy", { syncUrl: false });
           navigateToPage(PAGE_ROUTES.COZY);
         }
@@ -329,103 +389,90 @@ export function initDeepFocusWorkspace() {
     });
   };
 
-  const renderExpandableStudioHubHtml = ({ openTasks, ownedDiscs, activeDiscId, appearance }) => {
+  const refreshBottomFriendsDock = () => {
+    if (!isDeepFocusActive()) return;
+    const dock = shellEl.querySelector("#df-friends-dock");
+    if (!dock) return;
+    const tmp = document.createElement("div");
+    tmp.innerHTML = renderBottomFriendsDockHtml();
+    const fresh = tmp.firstElementChild;
+    if (fresh) {
+      dock.replaceWith(fresh);
+      bindBottomFriendsDockEvents();
+    }
+  };
+
+  const renderRadialMenuHtml = ({ openTasks }) => {
     const activeModal = modals.getActiveModal();
-    const { summary } = presenceService.getSnapshot(Date.now());
-    const hasActivityCue = audioManager.isPlaying || summary.studyingCount > 0;
-    const userLabel = state.user ? (state.user.displayName || "Account") : "Account";
-    const volPct = Math.round((audioManager.masterVolume || 0.7) * 100);
+    const audioPlaying = Boolean(audioManager.isPlaying);
+    const userShort = state.user ? (state.user.displayName || "Account").split(" ")[0] : "Account";
+
+    const innerItems = [
+      { id: "music", label: audioPlaying ? "Playing" : "Music", icon: RADIAL_ICONS.music, action: "music", active: activeModal === "music" || audioPlaying, title: "Music & 8-Channel Mixer" },
+      { id: "settings", label: "Settings", icon: RADIAL_ICONS.settings, action: "settings", active: activeDrawer === "settings", title: "Workspace Settings & Scenes" },
+      { id: "account", label: userShort, icon: RADIAL_ICONS.account, action: "account", active: false, title: "Account, Profile & Friends" },
+      { id: "home", label: "Home", icon: RADIAL_ICONS.home, action: "home", active: false, title: "Main SPRK Desk Website" }
+    ];
+
+    const outerItems = [
+      { id: "plan", label: "Plan", icon: RADIAL_ICONS.plan, modal: "plan", active: activeModal === "plan", title: `Plan & Kanban (${openTasks.length} open)` },
+      { id: "knowledge", label: "Notes", icon: RADIAL_ICONS.knowledge, modal: "knowledge", active: activeModal === "knowledge", title: "Diary, Notes & Flashcards" },
+      { id: "insights", label: "Insights", icon: RADIAL_ICONS.insights, modal: "insights", active: activeModal === "insights", title: "Stats, Heatmap, Register & Backup" },
+      { id: "community", label: "Halls", icon: RADIAL_ICONS.community, modal: "community", active: activeModal === "community", title: "Silent Halls & Friends" },
+      { id: "catalog", label: "Catalog", icon: RADIAL_ICONS.catalog, modal: "catalog", active: activeModal === "catalog", title: "Scenes, Particles, Discs & Themes" },
+      { id: "break", label: "Rest", icon: RADIAL_ICONS.break, modal: "break", active: activeModal === "break", title: "20-20-20 Eye Rest" },
+      { id: "palette", label: "Search", icon: RADIAL_ICONS.search, action: "palette", active: false, title: "Command Palette (Ctrl/Cmd+K)" }
+    ];
+
+    const innerCoords = computeRadialOrbPositions({ count: innerItems.length, radiusPx: 162, startDeg: 4, endDeg: 86 });
+    const outerCoords = computeRadialOrbPositions({ count: outerItems.length, radiusPx: 308, startDeg: 2, endDeg: 88 });
+
+    const renderOrb = (item, pos, delayMs) => `
+      <button
+        type="button"
+        class="df-radial-node ${item.active ? "is-active" : ""}"
+        style="--rx:${pos.rx}px;--ry:${pos.ry}px;--delay:${delayMs}ms;"
+        ${item.modal ? `data-df-modal="${escapeHtml(item.modal)}"` : `data-df-action="${escapeHtml(item.action)}"`}
+        aria-label="${escapeHtml(item.title)}"
+        title="${escapeHtml(item.title)}">
+        <span class="df-radial-orb">${item.icon}</span>
+        <span class="df-radial-label">${escapeHtml(item.label)}</span>
+      </button>
+    `;
 
     return `
-      <div class="df-hub ${hubExpanded ? "is-open" : ""} ${zenMode ? "is-pure-zen" : ""}">
+      ${hubExpanded ? `<div class="df-radial-backdrop" id="df-radial-backdrop" aria-hidden="true"></div>` : ""}
+
+      <div class="df-radial-menu ${hubExpanded ? "is-open" : ""} ${zenMode ? "is-pure-zen" : ""}" id="df-radial-menu">
+        ${hubExpanded ? `
+          <svg class="df-radial-arcs" viewBox="0 0 360 360" width="360" height="360" aria-hidden="true">
+            <path class="df-orbit-arc is-inner" d="M 198 0 A 162 162 0 0 0 360 162" />
+            <path class="df-orbit-arc is-outer" d="M 52 0 A 308 308 0 0 0 360 308" />
+          </svg>
+
+          <nav class="df-radial-stage" id="df-hub-panel" aria-label="Studio radial menu">
+            ${innerItems.map((item, idx) => renderOrb(item, innerCoords[idx], idx * 26)).join("")}
+            ${outerItems.map((item, idx) => renderOrb(item, outerCoords[idx], 50 + idx * 24)).join("")}
+          </nav>
+        ` : ""}
+
         <button
           type="button"
-          class="df-hub-trigger ${hubExpanded ? "is-open" : ""}"
+          class="df-radial-trigger ${hubExpanded ? "is-open" : ""} ${audioPlaying ? "is-audio-live" : ""}"
           id="df-hub-toggle"
           aria-expanded="${hubExpanded}"
           aria-controls="df-hub-panel"
-          title="Open DeepFocus Studio Hub (M)">
-          <span class="df-hub-glyph ${hasActivityCue ? "is-active" : ""}" aria-hidden="true">
-            <span></span><span></span><span></span><span></span>
-          </span>
-          <span class="df-hub-label">Studio</span>
-          <span class="df-hub-chev" aria-hidden="true">${hubExpanded ? "×" : "▾"}</span>
+          aria-label="${hubExpanded ? "Close Studio Menu" : "Open Studio Menu"}"
+          title="Studio Menu (M)">
+          ${hubExpanded ? `
+            <span class="df-trigger-close" aria-hidden="true">×</span>
+          ` : `
+            <span class="df-hub-glyph ${audioPlaying ? "is-active" : ""}" aria-hidden="true">
+              <span></span><span></span><span></span><span></span>
+            </span>
+            <span class="df-trigger-text">Menu</span>
+          `}
         </button>
-
-        ${hubExpanded ? `
-          <div class="df-hub-panel" id="df-hub-panel" role="region" aria-label="DeepFocus Studio Hub">
-            <div class="df-hub-top-row">
-              <div class="df-hub-pages">
-                <button type="button" class="df-hub-page-btn" id="df-go-cozy" title="Switch to Cozy Study Room">Cozy Study</button>
-                <button type="button" class="df-hub-page-btn" id="df-go-account" title="Profile, Friends & Room Visits">${escapeHtml(userLabel)}</button>
-                <button type="button" class="df-hub-page-btn" id="df-go-home" title="Main SPRK Desk Website">Home</button>
-              </div>
-              <div class="df-hub-utils">
-                <button type="button" class="df-icon-btn" id="df-btn-palette" title="Command Palette (Ctrl/Cmd+K)">⌘K</button>
-                <button type="button" class="df-icon-btn ${activeDrawer === "settings" ? "is-active" : ""}" id="df-btn-settings" aria-label="Workspace Settings" title="Themes, Scenes & Particles">⚙</button>
-              </div>
-            </div>
-
-            <nav class="df-hub-grid" aria-label="Study tools">
-              <button type="button" class="df-hub-tile ${activeModal === "plan" ? "is-active" : ""}" data-df-modal="plan">
-                <strong>Plan</strong>
-                <span class="tabular-nums">${openTasks.length} open · Kanban</span>
-              </button>
-              <button type="button" class="df-hub-tile ${activeModal === "knowledge" ? "is-active" : ""}" data-df-modal="knowledge">
-                <strong>Notes &amp; Cards</strong>
-                <span>Diary · SRS</span>
-              </button>
-              <button type="button" class="df-hub-tile ${activeModal === "insights" ? "is-active" : ""}" data-df-modal="insights">
-                <strong>Insights</strong>
-                <span>Stats · Backup</span>
-              </button>
-              <button type="button" class="df-hub-tile ${activeModal === "community" ? "is-active" : ""}" data-df-modal="community">
-                <strong>Silent Halls</strong>
-                <span>Body-doubling</span>
-              </button>
-              <button type="button" class="df-hub-tile ${activeModal === "catalog" ? "is-active" : ""}" data-df-modal="catalog">
-                <strong>Catalog</strong>
-                <span>Scenes · Discs</span>
-              </button>
-              <button type="button" class="df-hub-tile ${activeModal === "break" ? "is-active" : ""}" data-df-modal="break">
-                <strong>Eye Rest</strong>
-                <span>20-20-20 · Break</span>
-              </button>
-            </nav>
-
-            <section class="df-hub-card" aria-label="Ambient music mixer">
-              <div class="df-hub-card-head">
-                <span class="df-hub-card-title">Music &amp; Mixer</span>
-                <button type="button" class="df-hub-inline-link" id="df-open-audio-modal">Full Studio →</button>
-              </div>
-              <div class="df-hub-audio-row">
-                <button type="button" class="df-dock-play ${audioManager.isPlaying ? "is-playing" : ""}" id="df-dock-master-play" aria-label="${audioManager.isPlaying ? "Pause audio" : "Play audio"}">
-                  ${audioManager.isPlaying ? "⏸" : "▶"}
-                </button>
-                <select id="df-disc-select" class="df-dock-disc-select" aria-label="Owned sound discs">
-                  ${ownedDiscs.map((d) => `
-                    <option value="${escapeHtml(d.id)}" ${d.id === activeDiscId ? "selected" : ""}>${escapeHtml(d.name)}</option>
-                  `).join("")}
-                  <option value="__browse__">+ Browse Music Discs…</option>
-                </select>
-                <span class="df-muted tabular-nums" id="df-hub-vol-pct">${volPct}%</span>
-              </div>
-              <label class="df-hub-vol-row">
-                <span class="df-muted">Master</span>
-                <input id="df-hub-master-vol" type="range" min="0" max="100" value="${volPct}" aria-label="Master audio volume" />
-              </label>
-            </section>
-
-            ${renderHubFriendsSectionHtml()}
-
-            <div class="df-hub-foot">
-              <span class="df-muted">${escapeHtml(appearance.sceneName)}</span>
-              <button type="button" class="df-hub-inline-link" id="df-btn-zen" title="Toggle ultra-subtle corner trigger (F)">
-                ${zenMode ? "Show Studio Pill (F)" : "Quiet Corner (F)"}
-              </button>
-            </div>
-          </div>
-        ` : ""}
       </div>
     `;
   };
@@ -637,12 +684,6 @@ export function initDeepFocusWorkspace() {
     const blocksDone = Number(prefs.pomodoroCyclesCompleted || todayFocusRecords.length || 0);
     const dailyGoalBlocks = appearance.settings.dailyBlockGoal || 8;
     const openTasks = (state.localTasks || []).filter((t) => !t.completed);
-    const activeDiscId = prefs.activeMusicId || "disc_rainy";
-    const { ownedDiscs } = partitionMusicDiscs({
-      builtinDiscs: BUILTIN_DISCS,
-      catalogItems: SHOP_CATALOG,
-      ownedItemIds: state.ownedItemIds || []
-    });
     const pendingCheckIn = state.pendingCheckInRecordId
       ? (state.localStudyRecords || []).find((r) => r.id === state.pendingCheckInRecordId)
       : null;
@@ -655,7 +696,7 @@ export function initDeepFocusWorkspace() {
       </div>
 
       <div class="df-layout is-zen ${activeDrawer ? "has-drawer" : ""}">
-        ${renderExpandableStudioHubHtml({ openTasks, ownedDiscs, activeDiscId, appearance })}
+        ${renderRadialMenuHtml({ openTasks })}
 
         <main class="df-stage" aria-label="DeepFocus Timer Stage">
           <section class="df-timer-card" aria-label="Focus timer">
@@ -751,60 +792,79 @@ export function initDeepFocusWorkspace() {
                 <span aria-hidden="true">·</span>
                 <span>R Reset</span>
                 <span aria-hidden="true">·</span>
-                <span>M Studio</span>
+                <span>M Menu</span>
               </div>
             `}
           </section>
         </main>
 
+        ${renderBottomFriendsDockHtml()}
         ${activeDrawer === "settings" ? renderSettingsDrawerHtml(appearance) : ""}
       </div>
 
       ${modals.renderModalHtml()}
     `;
 
+    document.documentElement.classList.toggle(
+      "df-overlay-active",
+      Boolean(hubExpanded || modals.getActiveModal() || activeDrawer === "settings")
+    );
     syncParticlesAndBackdrop();
-    bindShellEvents(ownedDiscs);
+    bindShellEvents();
     modals.bindModalEvents();
   };
 
-  const bindShellEvents = (ownedDiscs) => {
-    // Expandable Top-Right Studio Hub Toggle
+  const bindShellEvents = () => {
     shellEl.querySelector("#df-hub-toggle")?.addEventListener("click", (e) => {
       e.stopPropagation();
       hubExpanded = !hubExpanded;
-      if (hubExpanded) activeDrawer = null;
+      if (hubExpanded) {
+        activeDrawer = null;
+        friendsPopoverOpen = false;
+      }
+      renderShell();
+    });
+
+    shellEl.querySelector("#df-radial-backdrop")?.addEventListener("click", () => {
+      hubExpanded = false;
       renderShell();
     });
 
     shellEl.querySelector(".df-stage")?.addEventListener("click", () => {
-      if (hubExpanded) {
+      if (hubExpanded || friendsPopoverOpen) {
         hubExpanded = false;
+        friendsPopoverOpen = false;
         renderShell();
       }
     });
 
-    shellEl.querySelector("#df-go-cozy")?.addEventListener("click", () => {
-      hubExpanded = false;
-      modals.close();
-      setAppMode("cozy", { syncUrl: false });
-      navigateToPage(PAGE_ROUTES.COZY);
-    });
-
-    shellEl.querySelector("#df-go-home")?.addEventListener("click", () => {
-      hubExpanded = false;
-      modals.close();
-      navigateToPage(PAGE_ROUTES.HOME);
-    });
-
-    shellEl.querySelector("#df-go-account")?.addEventListener("click", () => {
-      hubExpanded = false;
-      modals.close();
-      navigateToPage(PAGE_ROUTES.ACCOUNT);
+    shellEl.querySelectorAll("[data-df-action]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const action = btn.dataset.dfAction;
+        hubExpanded = false;
+        if (action === "music") {
+          modals.open("music", "discs");
+        } else if (action === "settings") {
+          activeDrawer = activeDrawer === "settings" ? null : "settings";
+          settingsNotice = "";
+          renderShell();
+        } else if (action === "account") {
+          modals.close();
+          navigateToPage(PAGE_ROUTES.ACCOUNT);
+        } else if (action === "home") {
+          modals.close();
+          navigateToPage(PAGE_ROUTES.HOME, { explicitHome: true });
+        } else if (action === "palette") {
+          renderShell();
+          openCommandPalette();
+        }
+      });
     });
 
     shellEl.querySelectorAll("[data-df-modal]").forEach((btn) => {
-      btn.addEventListener("click", () => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
         const name = btn.dataset.dfModal;
         hubExpanded = false;
         if (modals.getActiveModal() === name) {
@@ -815,64 +875,7 @@ export function initDeepFocusWorkspace() {
       });
     });
 
-    shellEl.querySelector("#df-btn-zen")?.addEventListener("click", () => {
-      zenMode = !zenMode;
-      hubExpanded = false;
-      activeDrawer = null;
-      savePreferences({ deepFocus: { zenMode } });
-      renderShell();
-    });
-
-    shellEl.querySelector("#df-btn-palette")?.addEventListener("click", () => {
-      hubExpanded = false;
-      renderShell();
-      openCommandPalette();
-    });
-
-    shellEl.querySelector("#df-btn-settings")?.addEventListener("click", () => {
-      hubExpanded = false;
-      activeDrawer = activeDrawer === "settings" ? null : "settings";
-      settingsNotice = "";
-      renderShell();
-    });
-
-    // Hub Audio Controls
-    shellEl.querySelector("#df-open-audio-modal")?.addEventListener("click", () => {
-      hubExpanded = false;
-      modals.open("music", "discs");
-    });
-
-    shellEl.querySelector("#df-hub-master-vol")?.addEventListener("input", (e) => {
-      const pct = Number(e.target.value);
-      audioManager.setMasterVolume(pct / 100);
-      const lbl = shellEl.querySelector("#df-hub-vol-pct");
-      if (lbl) lbl.textContent = `${pct}%`;
-    });
-
-    shellEl.querySelector("#df-disc-select")?.addEventListener("change", async (e) => {
-      const val = e.target.value;
-      if (val === "__browse__") {
-        hubExpanded = false;
-        modals.open("music", "discs");
-        return;
-      }
-      const disc = ownedDiscs.find((d) => d.id === val);
-      if (!disc) return;
-      for (const ch of AUDIO_CHANNELS) {
-        audioManager.setChannelLevel(ch.id, disc.mix?.[ch.id] || 0);
-      }
-      savePreferences({ activeMusicId: disc.id });
-      if (!audioManager.isPlaying) await audioManager.togglePlay(true).catch(() => {});
-      renderShell();
-    });
-
-    shellEl.querySelector("#df-dock-master-play")?.addEventListener("click", async () => {
-      await audioManager.togglePlay();
-      renderShell();
-    });
-
-    // Hub Friends Controls
-    bindHubFriendsEvents();
+    bindBottomFriendsDockEvents();
 
     // Timer Card Events
     shellEl.querySelectorAll("[data-df-tab]").forEach((btn) => {
@@ -1168,9 +1171,10 @@ export function initDeepFocusWorkspace() {
         modals.close();
         return;
       }
-      if (hubExpanded || activeDrawer || zenMode) {
+      if (hubExpanded || friendsPopoverOpen || activeDrawer || zenMode) {
         event.preventDefault();
         hubExpanded = false;
+        friendsPopoverOpen = false;
         activeDrawer = null;
         zenMode = false;
         savePreferences({ deepFocus: { zenMode: false } });
@@ -1184,7 +1188,10 @@ export function initDeepFocusWorkspace() {
     if (key === "m" && !event.metaKey && !event.ctrlKey) {
       event.preventDefault();
       hubExpanded = !hubExpanded;
-      if (hubExpanded) activeDrawer = null;
+      if (hubExpanded) {
+        activeDrawer = null;
+        friendsPopoverOpen = false;
+      }
       renderShell();
     } else if (event.code === "Space") {
       event.preventDefault();
@@ -1210,6 +1217,7 @@ export function initDeepFocusWorkspace() {
       zenMode = !zenMode;
       if (zenMode) {
         hubExpanded = false;
+        friendsPopoverOpen = false;
         activeDrawer = null;
         modals.close();
       }
@@ -1231,6 +1239,7 @@ export function initDeepFocusWorkspace() {
   bus.on("deepfocus:open", ({ modal, subTab } = {}) => {
     if (!isDeepFocusActive()) return;
     hubExpanded = false;
+    friendsPopoverOpen = false;
     if (modal === "settings") {
       modals.close();
       activeDrawer = "settings";
@@ -1257,24 +1266,15 @@ export function initDeepFocusWorkspace() {
     });
   }
 
-  bus.on("studyCircle:changed", () => {
-    if (!isDeepFocusActive() || !hubExpanded) return;
-    const widget = shellEl.querySelector(".df-hub-friends");
-    if (widget) {
-      const tmp = document.createElement("div");
-      tmp.innerHTML = renderHubFriendsSectionHtml();
-      const fresh = tmp.firstElementChild;
-      if (fresh) {
-        widget.replaceWith(fresh);
-        bindHubFriendsEvents();
-      }
-    }
-  });
+  bus.on("studyCircle:changed", () => refreshBottomFriendsDock());
 
   window.setInterval(() => {
     if (!isDeepFocusActive()) return;
     if (state.activeSession?.status === "running") {
       updateClockDomOnly();
+    }
+    if (friendsPopoverOpen) {
+      refreshBottomFriendsDock();
     }
   }, 1000);
 }

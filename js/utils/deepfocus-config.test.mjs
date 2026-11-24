@@ -134,3 +134,56 @@ test("computeDeepFocusAnalytics produces 28-day matrix, streak, and subject perc
   assert.equal(analytics.subjectAllocation[0].subject, "Physics");
   assert.equal(analytics.subjectAllocation[0].minutes, 60);
 });
+
+import { computeRadialOrbPositions } from "./deepfocus-config.js";
+
+test("computeRadialOrbPositions arranges circular menu orbs symmetrically without overlap", () => {
+  const inner = computeRadialOrbPositions({ count: 4, radiusPx: 162, startDeg: 4, endDeg: 86 });
+  const outer = computeRadialOrbPositions({ count: 7, radiusPx: 308, startDeg: 2, endDeg: 88 });
+
+  assert.equal(inner.length, 4);
+  assert.equal(outer.length, 7);
+
+  // Diagonal symmetry across the 45° axis: |rx[i]| === ry[n-1-i]
+  assert.ok(Math.abs(Math.abs(inner[0].rx) - inner[3].ry) < 0.05);
+  assert.ok(Math.abs(Math.abs(inner[1].rx) - inner[2].ry) < 0.05);
+  assert.ok(Math.abs(Math.abs(outer[0].rx) - outer[6].ry) < 0.05);
+
+  // Pairwise center distance inside each ring stays above 76px
+  for (const ring of [inner, outer]) {
+    for (let i = 1; i < ring.length; i += 1) {
+      const dx = ring[i].rx - ring[i - 1].rx;
+      const dy = ring[i].ry - ring[i - 1].ry;
+      const dist = Math.hypot(dx, dy);
+      assert.ok(dist >= 76, `Expected adjacent orb distance >= 76px, got ${dist}`);
+    }
+  }
+
+  // Verify exact geometry: 42px orb circles (r=21) and 54x16px captions (y: +23..+39) never collide
+  const allNodes = [...inner, ...outer];
+  const circleRadius = 21;
+  const labelHalfW = 27;
+  const circleHitsRect = (cx, cy, r, x0, x1, y0, y1) => {
+    const nearX = Math.max(x0, Math.min(cx, x1));
+    const nearY = Math.max(y0, Math.min(cy, y1));
+    return Math.hypot(cx - nearX, cy - nearY) < r;
+  };
+
+  for (let i = 0; i < allNodes.length; i += 1) {
+    for (let j = i + 1; j < allNodes.length; j += 1) {
+      const a = allNodes[i];
+      const b = allNodes[j];
+      assert.ok(Math.hypot(a.rx - b.rx, a.ry - b.ry) > circleRadius * 2, `Orbs ${i} and ${j} circles overlapped`);
+      assert.equal(
+        circleHitsRect(a.rx, a.ry, circleRadius, b.rx - labelHalfW, b.rx + labelHalfW, b.ry + 23, b.ry + 39),
+        false,
+        `Orb ${i} circle collided with node ${j} label`
+      );
+      assert.equal(
+        circleHitsRect(b.rx, b.ry, circleRadius, a.rx - labelHalfW, a.rx + labelHalfW, a.ry + 23, a.ry + 39),
+        false,
+        `Orb ${j} circle collided with node ${i} label`
+      );
+    }
+  }
+});

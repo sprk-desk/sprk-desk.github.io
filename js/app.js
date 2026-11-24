@@ -10,7 +10,17 @@ import { decorationManager } from "./core/decoration-manager.js";
 import { dialogManager } from "./core/dialog-manager.js";
 import { audioManager } from "./core/audio-manager.js";
 import { applyRoomSettingsToDocument, setAppMode } from "./core/settings-manager.js";
-import { initRouter, parseHashRoute, parseCurrentPage, PAGE_ROUTES } from "./router.js";
+import {
+  initRouter,
+  parseHashRoute,
+  parseCurrentPage,
+  navigateToPage,
+  recordWorkspaceVisit,
+  getMostVisitedWorkspace,
+  isExplicitHomeStay,
+  shouldAutoRedirectHomeToWorkspace,
+  PAGE_ROUTES
+} from "./router.js";
 import { restoreSession } from "./services/auth-service.js";
 import {
   syncAuthenticatedUserData,
@@ -75,12 +85,17 @@ async function bootstrap() {
   themeManager.registerObjects(roomObjects);
   skinManager.registerObjects(roomObjects);
 
-  // Align persisted workspace mode if user navigated directly to /cozy-study or /deep-focus
+  // Align persisted workspace mode and track visit frequency when opening /cozy-study or /deep-focus
   const initialPageInfo = parseCurrentPage();
-  if (initialPageInfo.page === PAGE_ROUTES.COZY && state.preferences.appMode !== "cozy") {
-    savePreferences({ appMode: "cozy" });
-  } else if (initialPageInfo.page === PAGE_ROUTES.DEEPFOCUS && state.preferences.appMode !== "deepfocus") {
-    savePreferences({ appMode: "deepfocus" });
+  let lastRecordedWorkspacePage = null;
+  if (initialPageInfo.page === PAGE_ROUTES.COZY) {
+    if (state.preferences.appMode !== "cozy") savePreferences({ appMode: "cozy" });
+    recordWorkspaceVisit("cozy");
+    lastRecordedWorkspacePage = PAGE_ROUTES.COZY;
+  } else if (initialPageInfo.page === PAGE_ROUTES.DEEPFOCUS) {
+    if (state.preferences.appMode !== "deepfocus") savePreferences({ appMode: "deepfocus" });
+    recordWorkspaceVisit("deepfocus");
+    lastRecordedWorkspacePage = PAGE_ROUTES.DEEPFOCUS;
   }
 
   // Apply saved theme, skins, fixed decorations, custom prop, study modes, and layered lighting
@@ -209,14 +224,40 @@ async function bootstrap() {
     if (page !== PAGE_ROUTES.COZY && dialogManager.dialog?.open) {
       dialogManager.close({ syncHash: false });
     }
-    if (page === PAGE_ROUTES.COZY && state.preferences.appMode !== "cozy") {
-      setAppMode("cozy", { syncUrl: false });
-    } else if (page === PAGE_ROUTES.DEEPFOCUS && state.preferences.appMode !== "deepfocus") {
-      setAppMode("deepfocus", { syncUrl: false });
+    if (page === PAGE_ROUTES.COZY) {
+      if (state.preferences.appMode !== "cozy") setAppMode("cozy", { syncUrl: false });
+      if (lastRecordedWorkspacePage !== PAGE_ROUTES.COZY) {
+        recordWorkspaceVisit("cozy");
+        lastRecordedWorkspacePage = PAGE_ROUTES.COZY;
+      }
+    } else if (page === PAGE_ROUTES.DEEPFOCUS) {
+      if (state.preferences.appMode !== "deepfocus") setAppMode("deepfocus", { syncUrl: false });
+      if (lastRecordedWorkspacePage !== PAGE_ROUTES.DEEPFOCUS) {
+        recordWorkspaceVisit("deepfocus");
+        lastRecordedWorkspacePage = PAGE_ROUTES.DEEPFOCUS;
+      }
+    } else {
+      lastRecordedWorkspacePage = null;
     }
     applyRoomSettingsToDocument();
     lightingManager.apply();
   });
+
+  const maybeRedirectHomeForSignedInUser = () => {
+    const { page } = parseCurrentPage();
+    const ok = shouldAutoRedirectHomeToWorkspace({
+      isLoggedIn: Boolean(state.user?.id),
+      currentPage: page,
+      search: window.location.search,
+      explicitHomeStay: isExplicitHomeStay()
+    });
+    if (!ok) return false;
+    const preferredMode = getMostVisitedWorkspace(state.preferences?.appMode || "cozy");
+    const targetPage = preferredMode === "deepfocus" ? PAGE_ROUTES.DEEPFOCUS : PAGE_ROUTES.COZY;
+    setAppMode(preferredMode, { syncUrl: false });
+    navigateToPage(targetPage, { replace: true });
+    return true;
+  };
 
   // Global keyboard shortcuts: Ctrl/Cmd+K (Command Palette) & Shift+F (Focus View)
   window.addEventListener("keydown", (event) => {
@@ -267,9 +308,18 @@ async function bootstrap() {
 
   initFocusBackgroundLoop();
 
+  bus.on("auth:changed", () => {
+    if (state.user?.id) maybeRedirectHomeForSignedInUser();
+  });
+
   if (state.supabaseConfigured) {
     const user = await restoreSession();
-    if (user) await syncAuthenticatedUserData();
+    if (user) {
+      await syncAuthenticatedUserData();
+      maybeRedirectHomeForSignedInUser();
+    }
+  } else {
+    maybeRedirectHomeForSignedInUser();
   }
 }
 

@@ -345,3 +345,37 @@ export function computeDeepFocusAnalytics(records = [], todayStr = new Date().to
     subjectAllocation
   };
 }
+
+export function computeRadialOrbPositions({
+  count = 1,
+  radiusPx = 120,
+  startDeg = 4,
+  endDeg = 86
+} = {}) {
+  const n = Math.max(0, Math.floor(Number(count) || 0));
+  if (n === 0) return [];
+  if (n === 1) {
+    const midDeg = (startDeg + endDeg) / 2;
+    const rad = (midDeg * Math.PI) / 180;
+    return [{
+      index: 0,
+      angleDeg: Number(midDeg.toFixed(2)),
+      rx: Number((-radiusPx * Math.cos(rad)).toFixed(2)),
+      ry: Number((radiusPx * Math.sin(rad)).toFixed(2))
+    }];
+  }
+
+  const out = [];
+  for (let i = 0; i < n; i += 1) {
+    const t = i / (n - 1);
+    const angleDeg = startDeg + (endDeg - startDeg) * t;
+    const rad = (angleDeg * Math.PI) / 180;
+    out.push({
+      index: i,
+      angleDeg: Number(angleDeg.toFixed(2)),
+      rx: Number((-radiusPx * Math.cos(rad)).toFixed(2)),
+      ry: Number((radiusPx * Math.sin(rad)).toFixed(2))
+    });
+  }
+  return out;
+}

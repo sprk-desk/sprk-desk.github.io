@@ -3,10 +3,44 @@ import { bus } from "./core/event-bus.js";
 import {
   PAGE_ROUTES,
   parsePageRoute,
-  getPagePath
+  getPagePath,
+  WORKSPACE_VISIT_STORAGE_KEY,
+  parseWorkspaceVisits,
+  incrementWorkspaceVisit,
+  resolveMostVisitedWorkspace,
+  shouldAutoRedirectHomeToWorkspace
 } from "./utils/page-routes.js";
 
-export { PAGE_ROUTES, getPagePath };
+export { PAGE_ROUTES, getPagePath, shouldAutoRedirectHomeToWorkspace };
+
+let explicitHomeStay = false;
+
+export function isExplicitHomeStay() {
+  return explicitHomeStay;
+}
+
+export function loadWorkspaceVisits() {
+  try {
+    return parseWorkspaceVisits(window.localStorage.getItem(WORKSPACE_VISIT_STORAGE_KEY));
+  } catch {
+    return parseWorkspaceVisits(null);
+  }
+}
+
+export function recordWorkspaceVisit(mode) {
+  if (mode !== "cozy" && mode !== "deepfocus") return loadWorkspaceVisits();
+  const next = incrementWorkspaceVisit(loadWorkspaceVisits(), mode);
+  try {
+    window.localStorage.setItem(WORKSPACE_VISIT_STORAGE_KEY, JSON.stringify(next));
+  } catch {
+    // ignore storage errors
+  }
+  return next;
+}
+
+export function getMostVisitedWorkspace(fallbackMode = "cozy") {
+  return resolveMostVisitedWorkspace(loadWorkspaceVisits(), fallbackMode);
+}
 
 const VALID_ROUTES = new Set([
   "room",
@@ -33,7 +67,13 @@ export function parseCurrentPage() {
   return parsePageRoute(window.location.pathname, window.location.search);
 }
 
-export function navigateToPage(page, { replace = false, hash = "", emit = true } = {}) {
+export function navigateToPage(page, { replace = false, hash = "", emit = true, explicitHome } = {}) {
+  if (page === PAGE_ROUTES.HOME) {
+    explicitHomeStay = explicitHome !== false;
+  } else {
+    explicitHomeStay = false;
+  }
+
   const targetPath = getPagePath(page);
   const nextUrl = `${targetPath}${hash || ""}`;
   const currentFull = `${window.location.pathname}${window.location.hash || ""}`;
