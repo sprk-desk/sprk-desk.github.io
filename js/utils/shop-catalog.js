@@ -1,6 +1,7 @@
 // Pure Shop Catalog, Category Navigation & Preview Descriptor Rules
 import { hasCustomSpritePack, resolveObjectSpriteSrc } from "./theme-sprites.js";
 import { AMBIENT_LOOP_DISCS } from "./audio-loops.js";
+import { PARTICLE_SHOP_ITEMS } from "./deepfocus-config.js";
 
 export const SHOP_CATEGORIES = [
   {
@@ -44,6 +45,13 @@ export const SHOP_CATEGORIES = [
     shortLabel: "Ambience",
     icon: "🌤️",
     description: "Window weather moods, sky phases, and warm study lamp presets."
+  },
+  {
+    id: "particles",
+    label: "Background Particles",
+    shortLabel: "Particles",
+    icon: "✨",
+    description: "Atmospheric rain, fireflies, snow, leaves, and orbital starfield effects."
   }
 ];
 
@@ -359,7 +367,10 @@ export const SHOP_CATALOG = [
   { id: "deco_charm_washi", category: "deco", targetObject: "deskCharm", decoSlot: "deskCharm", decoStyle: "washiTray", name: "Pastel Washi Stand", description: "Wooden tape rack with pastel rolls on the back desk edge.", price: 20, rarity: "common", premiumOnly: false, swatch: "#f0a8b8" },
   { id: "deco_charm_snowglobe", category: "deco", targetObject: "deskCharm", decoSlot: "deskCharm", decoStyle: "snowglobe", name: "Moonlight Snowglobe", description: "Tiny crescent moon snowglobe anchored on your tabletop.", price: 30, rarity: "artisan", premiumOnly: false, swatch: "#7ea8d8" },
   { id: "deco_lights_warm", category: "deco", targetObject: "stringLights", decoSlot: "stringLights", decoStyle: "warmGarland", name: "Warm Fairy Lights", description: "Soft draped string bulbs along the top of your bookcase.", price: 25, rarity: "rare", premiumOnly: false, swatch: "#ffd578" },
-  { id: "deco_lights_starlight", category: "deco", targetObject: "stringLights", decoSlot: "stringLights", decoStyle: "starGarland", name: "Starlight Garland", description: "Botanical vine lights twinkling across your bookcase crown.", price: 35, rarity: "artisan", premiumOnly: false, swatch: "#9fd6b0" }
+  { id: "deco_lights_starlight", category: "deco", targetObject: "stringLights", decoSlot: "stringLights", decoStyle: "starGarland", name: "Starlight Garland", description: "Botanical vine lights twinkling across your bookcase crown.", price: 35, rarity: "artisan", premiumOnly: false, swatch: "#9fd6b0" },
+
+  // --- Background Particle Effects (5) ---
+  ...PARTICLE_SHOP_ITEMS
 ];
 
 const VALID_CATEGORY_SET = new Set(SHOP_CATEGORIES.map((c) => c.id));
@@ -467,6 +478,16 @@ export function getShopPreviewDescriptor(item, currentThemeId = "comic") {
       decoSlot: item.decoSlot || item.targetObject || "penstand",
       decoStyle: item.decoStyle || "classic",
       swatch: item.swatch || "#e76d50"
+    };
+  }
+
+  if (item.category === "particles") {
+    return {
+      mode: "particles",
+      title: item.name,
+      subtitle: "Atmospheric Particle Effect",
+      particleId: item.particleId || "rain",
+      swatch: item.swatch || "#38bdf8"
     };
   }
 

@@ -105,6 +105,22 @@ function getSkyGradientForPhase(phase, fallbackTop, fallbackBottom) {
 }
 
 function renderWindowWeatherDots(weather) {
+  if (weather === "rain") {
+    return `
+      <span class="sprk-mini-particle is-rain" style="left:22%;top:22%;"></span>
+      <span class="sprk-mini-particle is-rain" style="left:50%;top:42%;"></span>
+      <span class="sprk-mini-particle is-rain" style="left:72%;top:28%;"></span>
+      <span class="sprk-mini-particle is-rain" style="left:36%;top:58%;"></span>
+    `;
+  }
+  if (weather === "starlight") {
+    return `
+      <span class="sprk-mini-particle is-star" style="left:22%;top:30%;"></span>
+      <span class="sprk-mini-particle is-star" style="left:64%;top:26%;"></span>
+      <span class="sprk-mini-particle is-star" style="left:46%;top:62%;"></span>
+      <span class="sprk-mini-particle is-star" style="left:76%;top:66%;"></span>
+    `;
+  }
   if (weather === "fireflies") {
     return `
       <span class="sprk-mini-particle is-firefly" style="left:22%;top:42%;"></span>
@@ -186,6 +202,16 @@ export function renderMiniThumbnail(item, currentThemeId = "comic") {
         <div class="sprk-thumb-cassette" style="border-color:${escapeHtml(desc.swatch)};">
           <div class="sprk-thumb-cassette-stripe" style="background:${escapeHtml(desc.swatch)};"></div>
           <div class="sprk-thumb-reels"><span></span><span></span></div>
+        </div>
+      </div>
+    `;
+  }
+
+  if (desc.mode === "particles") {
+    return `
+      <div class="sprk-shop-thumb is-ambience" style="background:linear-gradient(180deg, #0b1324 0%, #17253b 100%);border-color:rgba(255,255,255,0.2);">
+        <div class="sprk-thumb-ambience-window" style="inset:5px;border-color:rgba(255,255,255,0.25);background:radial-gradient(circle at 50% 45%, ${escapeHtml(desc.swatch)}33 0%, #0b1324 85%);">
+          ${renderWindowWeatherDots(desc.particleId)}
         </div>
       </div>
     `;
@@ -380,6 +406,30 @@ export function renderPreviewStage(item, { currentThemeId = "comic", isPlayingSa
         <div class="sprk-preview-caption">
           <span>${escapeHtml(desc.subtitle)}</span>
           <span>${escapeHtml(channelLabels.join(" · "))}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  if (desc.mode === "particles") {
+    const cls = desc.particleId === "fireflies" ? "firefly"
+      : desc.particleId === "breeze" ? "leaf"
+      : desc.particleId === "starlight" ? "star"
+      : desc.particleId;
+    return `
+      <div class="sprk-preview-stage-wrap">
+        <div class="sprk-object-stage" style="background:radial-gradient(circle at 50% 30%, ${escapeHtml(desc.swatch)}30 0%, #0c1424 85%);min-height:170px;border-radius:12px;">
+          <div style="position:relative;width:100%;height:140px;overflow:hidden;">
+            ${renderWindowWeatherDots(desc.particleId)}
+            <span class="sprk-mini-particle is-${cls}" style="left:16%;top:35%;"></span>
+            <span class="sprk-mini-particle is-${cls}" style="left:78%;top:58%;"></span>
+          </div>
+        </div>
+        <div class="sprk-preview-caption">
+          <span>DeepFocus Backdrop Particles · Adjustable Speed, Opacity &amp; Density</span>
+          <span class="sprk-swatch-row" aria-hidden="true">
+            <span style="background:${escapeHtml(desc.swatch)};"></span>
+          </span>
         </div>
       </div>
     `;

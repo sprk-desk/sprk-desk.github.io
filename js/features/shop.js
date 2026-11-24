@@ -60,6 +60,19 @@ export function equipShopItem(item) {
     decorationManager.setSlotStyle(item.decoSlot, item.decoStyle, { persist: true });
     return true;
   }
+  if (item.category === "particles" && item.particleId) {
+    const cozyWeatherMap = { rain: "rain", fireflies: "fireflies", snow: "snow", breeze: "breeze" };
+    savePreferences({
+      ...(cozyWeatherMap[item.particleId] ? { weather: cozyWeatherMap[item.particleId] } : {}),
+      deepFocus: {
+        ...(state.preferences.deepFocus || {}),
+        followThemeParticle: false,
+        particleId: item.particleId
+      }
+    });
+    lightingManager.apply();
+    return true;
+  }
   return false;
 }
 
@@ -79,6 +92,10 @@ export function isShopItemEquipped(item) {
   }
   if (item.category === "deco" && item.decoSlot && item.decoStyle) {
     return decorationManager.getActiveDecorations()[item.decoSlot] === item.decoStyle;
+  }
+  if (item.category === "particles" && item.particleId) {
+    const df = state.preferences.deepFocus || {};
+    return df.followThemeParticle === false && df.particleId === item.particleId;
   }
   return false;
 }

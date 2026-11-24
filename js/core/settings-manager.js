@@ -149,7 +149,9 @@ export function applyRoomSettingsToDocument() {
   const prefs = state.preferences || {};
   const root = document.documentElement;
   const seriousMode = Boolean(prefs.seriousMode);
+  const appMode = prefs.appMode === "deepfocus" ? "deepfocus" : "cozy";
 
+  root.dataset.appMode = appMode;
   root.dataset.seriousMode = String(seriousMode);
   delete root.dataset.deepFocus;
   root.dataset.studyCircle = String(Boolean(prefs.studyTogetherVisualMode));
@@ -212,6 +214,14 @@ export function setSeriousPresetTheme(themeId) {
   applyRoomSettingsToDocument();
   lightingManager.apply();
   return themeId;
+}
+
+export function setAppMode(nextMode) {
+  const mode = nextMode === "deepfocus" ? "deepfocus" : "cozy";
+  savePreferences({ appMode: mode });
+  applyRoomSettingsToDocument();
+  lightingManager.apply();
+  return mode;
 }
 
 export function toggleStudyTogetherVisualMode(enabled) {

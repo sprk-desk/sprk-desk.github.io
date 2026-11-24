@@ -21,6 +21,7 @@ export const APP_CONFIG = {
   basePath: "",
 
   defaults: {
+    appMode: "cozy", // cozy | deepfocus
     theme: "comic",
     timeOfDay: "auto", // auto | morning | afternoon | sunset | night
     weather: "clear", // clear | rain | snow | fireflies | breeze

@@ -6,6 +6,8 @@ export function createFocusSession({
   targetSeconds = 1500,
   scope = "personal", // personal | friends | group
   subject = "General Study",
+  isStopwatch = false,
+  taskId = null,
   nowMs = Date.now()
 }) {
   return {
@@ -13,6 +15,8 @@ export function createFocusSession({
     mode,
     scope,
     subject,
+    isStopwatch: Boolean(isStopwatch),
+    taskId: taskId || null,
     targetSeconds: Math.max(60, Math.floor(targetSeconds)),
     startedAtMs: nowMs,
     lastResumedAtMs: nowMs,
@@ -73,7 +77,9 @@ export function resumeFocusSession(session, nowMs = Date.now()) {
 export function completeFocusSession(session, nowMs = Date.now()) {
   if (!session) return null;
   const activeSeconds = computeElapsedActiveSeconds(session, nowMs);
-  const clampedActive = Math.min(activeSeconds, session.targetSeconds + 60);
+  const clampedActive = session.isStopwatch
+    ? activeSeconds
+    : Math.min(activeSeconds, session.targetSeconds + 60);
   return {
     ...session,
     accumulatedActiveMs: clampedActive * 1000,

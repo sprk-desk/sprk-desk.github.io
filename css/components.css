@@ -239,7 +239,7 @@
 .sprk-shop-roof-tabs {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 6px;
   padding: 14px 8px 8px;
   margin-bottom: 14px;
@@ -322,6 +322,9 @@
 .sprk-shop-roof-tab[data-cat="ambience"]::before {
   background: repeating-linear-gradient(90deg, #4f82bd 0 11px, #dceeff 11px 22px);
 }
+.sprk-shop-roof-tab[data-cat="particles"]::before {
+  background: repeating-linear-gradient(-45deg, #2b6cb0 0 9px, #d8ecff 9px 18px);
+}
 
 .sprk-shop-roof-tab:hover {
   transform: translateY(-2px);
@@ -338,6 +341,7 @@
 .sprk-shop-roof-tab[data-cat="deco"].is-active { background: #fff2f6; }
 .sprk-shop-roof-tab[data-cat="music"].is-active { background: #eef9fb; }
 .sprk-shop-roof-tab[data-cat="ambience"].is-active { background: #f0f6ff; }
+.sprk-shop-roof-tab[data-cat="particles"].is-active { background: #edf7ff; }
 
 .sprk-roof-tab-icon {
   font-size: 16px;
@@ -1049,6 +1053,19 @@
   border-radius: 4px;
   background: #9cd483;
   transform: rotate(22deg);
+}
+.sprk-mini-particle.is-rain {
+  width: 2px;
+  height: 11px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, rgba(125, 211, 252, 0.25), rgba(186, 230, 253, 0.95));
+  transform: rotate(14deg);
+}
+.sprk-mini-particle.is-star {
+  width: 4px;
+  height: 4px;
+  background: #67e8f9;
+  box-shadow: 0 0 7px #22d3ee, 0 0 12px rgba(34, 211, 238, 0.7);
 }
 
 /* --- Small Preview Dialog Stage --- */

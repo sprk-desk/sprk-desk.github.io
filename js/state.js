@@ -2,6 +2,7 @@
 import { APP_CONFIG, isSupabaseConfigured } from "../config.js";
 import { bus } from "./core/event-bus.js";
 import { DEFAULT_DECORATIONS, normalizeDecorationsMap } from "./utils/decorations.js";
+import { DEFAULT_DEEPFOCUS_PREFS, sanitizeDeepFocusSettings } from "./utils/deepfocus-config.js";
 
 const STORAGE_PREFIX = "sprk_desk_v1:";
 
@@ -40,6 +41,7 @@ export const state = {
     const saved = readStorage("preferences", {});
     const { deepFocusMode: _legacyDeepFocus, ...cleanSaved } = saved || {};
     return {
+      appMode: cleanSaved.appMode === "deepfocus" ? "deepfocus" : APP_CONFIG.defaults.appMode,
       theme: APP_CONFIG.defaults.theme,
       timeOfDay: APP_CONFIG.defaults.timeOfDay,
       weather: APP_CONFIG.defaults.weather,
@@ -61,6 +63,7 @@ export const state = {
       lockedSkins: {},
       activeLayoutName: "Default Desk",
       ...cleanSaved,
+      deepFocus: sanitizeDeepFocusSettings(cleanSaved.deepFocus || DEFAULT_DEEPFOCUS_PREFS),
       lighting: { ...APP_CONFIG.defaults.lighting, ...(cleanSaved.lighting || {}) },
       decorations: normalizeDecorationsMap(cleanSaved.decorations || DEFAULT_DECORATIONS),
       customProp: {
@@ -179,7 +182,10 @@ export function savePreferences(patch, { replaceSkins = false, skipCloudSync = f
       : normalizeDecorationsMap(state.preferences.decorations),
     customProp: patch.customProp
       ? { ...(state.preferences.customProp || {}), ...patch.customProp }
-      : (state.preferences.customProp || { imageUrl: "", label: "Custom Keepsake", size: "md", frameStyle: "sprite" })
+      : (state.preferences.customProp || { imageUrl: "", label: "Custom Keepsake", size: "md", frameStyle: "sprite" }),
+    deepFocus: patch.deepFocus
+      ? sanitizeDeepFocusSettings({ ...(state.preferences.deepFocus || DEFAULT_DEEPFOCUS_PREFS), ...patch.deepFocus })
+      : sanitizeDeepFocusSettings(state.preferences.deepFocus || DEFAULT_DEEPFOCUS_PREFS)
   };
   writeStorage("preferences", state.preferences);
   bus.emit("preferences:changed", { preferences: state.preferences, skipCloudSync });

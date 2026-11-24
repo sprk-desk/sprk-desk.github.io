@@ -43,6 +43,7 @@ import { adminFeature } from "./features/admin.js";
 import { initCommandPalette, openCommandPalette } from "./features/command-palette.js";
 import { presenceService } from "./services/presence-service.js";
 import { initStudyCircle } from "./features/study-circle.js";
+import { initDeepFocusWorkspace } from "./features/deepfocus.js";
 
 const FEATURE_OBJECT_MAP = [
   [".desk-clock", "focus"],
@@ -83,6 +84,7 @@ async function bootstrap() {
   initCommandPalette();
   presenceService.init();
   initStudyCircle();
+  initDeepFocusWorkspace();
 
   // Register all object-launched dialogs
   dialogManager.register("focus", focusFeature);

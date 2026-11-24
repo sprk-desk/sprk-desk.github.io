@@ -20,6 +20,7 @@ An interactive, customizable 2D virtual study room built with semantic HTML5, mo
 - **Control Panel**: Serious Mode (monochrome Swiss Editorial & Obsidian Minimal themes unlocked free, clean UI discipline), Strict Focus Lock, Workspace Profiles, and quick toggles (`Ctrl/Cmd + K` Command Palette).
 - **Desk Plant**: 16 room themes (including Swiss Editorial and Obsidian Minimal), object skins, layout locking, and reduced-motion preferences.
 - **Desk Lamp & Mug**: Direct in-room lamp toggle and cozy break chime.
+- **DeepFocus Mode (Top-Left Mode Switcher)**: Switch cleanly between **Cozy Study** and **DeepFocus** — a distraction-free dark glassmorphic workspace with Pomodoro/Timer/Stopwatch modes, 5 atmospheric scene backdrops (with custom image URL & blur/brightness/contrast/saturation tuning), 16-theme palette adaptation, live speed/opacity/density canvas particle engine (with 5 purchasable Shop particle packs), Kanban tasks drawer, 28-day heatmap analytics, floating Sound Mixer dock, and live friends studying together.
 
 ## Local Testing
 Serve the repository root locally (or run `npm run dev` on port 3000):

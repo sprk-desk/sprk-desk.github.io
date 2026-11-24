@@ -3,6 +3,7 @@ import { state, savePreferences, persistLocalCollection } from "../state.js";
 import { dialogManager } from "../core/dialog-manager.js";
 import { lightingManager } from "../core/lighting-manager.js";
 import {
+  setAppMode,
   setSeriousMode,
   toggleStudyTogetherVisualMode,
   toggleStrictFocusLock,
@@ -37,7 +38,17 @@ function getCommands() {
   const serious = Boolean(prefs.seriousMode);
   const profiles = [...BUILTIN_WORKSPACE_PROFILES, ...(state.localWorkspaceProfiles || [])];
 
+  const isDeepFocus = prefs.appMode === "deepfocus";
+
   const baseCommands = [
+    {
+      id: "cmd_app_mode",
+      group: "Modes",
+      label: isDeepFocus ? "Switch to Cozy Study Room" : "Switch to DeepFocus Mode",
+      hint: isDeepFocus ? "Cozy Room" : "Pro Focus",
+      keywords: "deepfocus deep focus cozy room mode switch pro",
+      run: () => setAppMode(isDeepFocus ? "cozy" : "deepfocus")
+    },
     {
       id: "cmd_focus_view",
       group: "Quick Actions",

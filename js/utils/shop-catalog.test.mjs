@@ -11,9 +11,9 @@ import {
   getShopPreviewDescriptor
 } from "./shop-catalog.js";
 
-test("shop categories include all, theme, skin, deco, music, and ambience", () => {
+test("shop categories include all, theme, skin, deco, music, ambience, and particles", () => {
   const ids = SHOP_CATEGORIES.map((c) => c.id);
-  assert.deepEqual(ids, ["all", "theme", "skin", "deco", "music", "ambience"]);
+  assert.deepEqual(ids, ["all", "theme", "skin", "deco", "music", "ambience", "particles"]);
 });
 
 test("normalizeShopCategory resolves valid categories and falls back to all", () => {
@@ -22,6 +22,7 @@ test("normalizeShopCategory resolves valid categories and falls back to all", ()
   assert.equal(normalizeShopCategory("deco"), "deco");
   assert.equal(normalizeShopCategory("music"), "music");
   assert.equal(normalizeShopCategory("ambience"), "ambience");
+  assert.equal(normalizeShopCategory("particles"), "particles");
   assert.equal(normalizeShopCategory("unknown"), "all");
   assert.equal(normalizeShopCategory(null), "all");
 });
@@ -34,16 +35,17 @@ test("filterShopCatalog and getShopCategoryCounts cover every catalog item", () 
   assert.equal(counts.deco, 14);
   assert.equal(counts.music, 11);
   assert.equal(counts.ambience, 4);
+  assert.equal(counts.particles, 5);
 
-  for (const cat of ["theme", "skin", "deco", "music", "ambience"]) {
+  for (const cat of ["theme", "skin", "deco", "music", "ambience", "particles"]) {
     const filtered = filterShopCatalog(SHOP_CATALOG, cat);
     assert.equal(filtered.length, counts[cat]);
     assert.ok(filtered.every((item) => item.category === cat));
   }
 
   const grouped = groupShopCatalogByCategory(SHOP_CATALOG);
-  assert.equal(grouped.length, 5);
-  assert.deepEqual(grouped.map((g) => g.category.id), ["theme", "skin", "deco", "music", "ambience"]);
+  assert.equal(grouped.length, 6);
+  assert.deepEqual(grouped.map((g) => g.category.id), ["theme", "skin", "deco", "music", "ambience", "particles"]);
 });
 
 test("every theme in SHOP_CATALOG has a valid palette and room preview descriptor", () => {
