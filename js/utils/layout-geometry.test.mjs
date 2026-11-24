@@ -26,14 +26,22 @@ test("spectators and locked rooms cannot modify layout", () => {
   assert.equal(canModifyRoomLayout({ isSpectator: false, isLocked: false }), true);
 });
 
-test("computer is marked immovable and stripped from saved layout positions", () => {
+test("computer is marked immovable while settings and coffee are draggable in saved layout positions", () => {
   assert.equal(isImmovableRoomObject("computer"), true);
+  assert.equal(isImmovableRoomObject("settings"), false);
   assert.equal(isImmovableRoomObject("coffee"), false);
   const sanitized = sanitizeRoomLayoutMap({
     computer: { target: "desk", left: "10%", top: "20%", bottom: "auto" },
+    settings: { target: "desk", left: "84%", top: "6%", bottom: "auto" },
     coffee: { target: "shelf-one", left: "40%", top: "auto", bottom: "10%" }
   });
   assert.equal("computer" in sanitized, false);
+  assert.deepEqual(sanitized.settings, {
+    target: "desk",
+    left: "84%",
+    top: "6%",
+    bottom: "auto"
+  });
   assert.deepEqual(sanitized.coffee, {
     target: "shelf-one",
     left: "40%",

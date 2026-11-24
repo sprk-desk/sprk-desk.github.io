@@ -110,6 +110,8 @@
   html body .desk .desk-pen-cup { left: 66%; top: 12%; width: 32px; min-width: 0; }
   html body .desk .desk-coaster { right: 1.8%; top: 53.5%; width: 54px; min-width: 0; }
 
+  html body .settings-panel:not(.is-placed) { left: auto; right: 2.5%; top: 11%; width: 50px; height: 50px; }
+
   html body .desk-lamp:not(.is-placed) { left: 2%; top: -15%; }
   html body .desk-computer { left: 22%; top: -14%; }
   html body .desk-phone:not(.is-placed) { left: 3%; top: 43%; }

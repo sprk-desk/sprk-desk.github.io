@@ -20,6 +20,7 @@ import { Headphones } from "./headphones.js";
 import { Lamp } from "./lamp.js";
 import { CoffeeMug } from "./coffee.js";
 import { CustomProp } from "./custom-prop.js";
+import { SettingsPanel } from "./settings.js";
 
 export const objectTypes = [
   Room,
@@ -43,7 +44,8 @@ export const objectTypes = [
   Headphones,
   Lamp,
   CoffeeMug,
-  CustomProp
+  CustomProp,
+  SettingsPanel
 ];
 
 export function createRoomObjects() {

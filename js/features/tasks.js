@@ -14,6 +14,7 @@ export const tasksFeature = {
     const renderView = () => {
       const tasks = state.localTasks || [];
       const goals = state.localGoals || [];
+      const seriousMode = Boolean(state.preferences?.seriousMode);
       const openCount = tasks.filter((t) => !t.completed).length;
       const today = todayIsoDate();
       const todayFocusMins = Math.round(
@@ -24,16 +25,16 @@ export const tasksFeature = {
 
       container.innerHTML = `
         <nav class="sprk-tabs sprk-tabs-pinboard" role="tablist" aria-label="Pinboard sections">
-          <button type="button" class="sprk-tab ${tab === "board" ? "is-active" : ""}" data-ttab="board">Board (${openCount})</button>
-          <button type="button" class="sprk-tab ${tab === "add" ? "is-active" : ""}" data-ttab="add">+ Pin Note</button>
-          <button type="button" class="sprk-tab ${tab === "goals" ? "is-active" : ""}" data-ttab="goals">🎯 Goals (${goals.length})</button>
+          <button type="button" class="sprk-tab ${tab === "board" ? "is-active" : ""}" data-ttab="board">${seriousMode ? `Tasks (${openCount})` : `Board (${openCount})`}</button>
+          <button type="button" class="sprk-tab ${tab === "add" ? "is-active" : ""}" data-ttab="add">${seriousMode ? "+ Add Task" : "+ Pin Note"}</button>
+          <button type="button" class="sprk-tab ${tab === "goals" ? "is-active" : ""}" data-ttab="goals">${seriousMode ? `Targets (${goals.length})` : `🎯 Goals (${goals.length})`}</button>
         </nav>
 
         ${tab === "add" ? `
           <form id="task-add-form" class="sprk-card">
             <div class="sprk-grid-2">
               <label class="sprk-field">
-                <span class="sprk-label">Sticky Note</span>
+                <span class="sprk-label">${seriousMode ? "Task" : "Sticky Note"}</span>
                 <input id="task-title" class="sprk-input" type="text" required maxlength="100" placeholder="Problem set 4..." />
               </label>
               <label class="sprk-field">
@@ -55,7 +56,7 @@ export const tasksFeature = {
                 <input id="task-due" class="sprk-input" type="date" />
               </label>
               <label class="sprk-field">
-                <span class="sprk-label">Paper</span>
+                <span class="sprk-label">${seriousMode ? "Tag" : "Paper"}</span>
                 <select id="task-color" class="sprk-select">
                   <option value="butter">Butter Yellow</option>
                   <option value="mint">Sage Mint</option>
@@ -64,7 +65,7 @@ export const tasksFeature = {
                 </select>
               </label>
             </div>
-            <button type="submit" class="sprk-btn sprk-btn-primary">📌 Pin to Board</button>
+            <button type="submit" class="sprk-btn sprk-btn-primary">${seriousMode ? "Save Task" : "📌 Pin to Board"}</button>
           </form>
         ` : tab === "goals" ? `
           <div class="sprk-card">
@@ -73,7 +74,7 @@ export const tasksFeature = {
               return `
                 <div style="margin-bottom:12px;">
                   <div style="display:flex;justify-content:space-between;font-size:13px;">
-                    <strong>🎯 ${escapeHtml(g.title)}</strong>
+                    <strong>${seriousMode ? "" : "🎯 "}${escapeHtml(g.title)}</strong>
                     <span class="tabular-nums">${todayFocusMins} / ${g.targetMinutes}m</span>
                   </div>
                   <div style="height:10px;border-radius:99px;background:rgba(52,44,37,0.12);overflow:hidden;margin-top:5px;">
@@ -85,7 +86,7 @@ export const tasksFeature = {
           </div>
         ` : `
           <div class="sprk-grid-2">
-            ${tasks.length === 0 ? `<div class="sprk-empty" style="grid-column:1/-1;background:rgba(255,255,255,0.78);border-radius:10px;">Pinboard clear</div>` : tasks.map((t) => `
+            ${tasks.length === 0 ? `<div class="sprk-empty" style="grid-column:1/-1;background:rgba(255,255,255,0.78);border-radius:10px;">${seriousMode ? "No open tasks" : "Pinboard clear"}</div>` : tasks.map((t) => `
               <div class="sprk-sticky-note" data-color="${escapeHtml(t.noteColor || "butter")}">
                 <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
                   <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;">
@@ -97,7 +98,7 @@ export const tasksFeature = {
                 <div class="sprk-meta" style="margin-top:8px;">
                   <span>${escapeHtml(t.subject || "General")}</span>
                   <span aria-hidden="true">·</span>
-                  <span>${t.priority === "high" ? "🔴" : t.priority === "low" ? "🟢" : "🟡"} ${escapeHtml(t.priority || "medium")}</span>
+                  <span>${seriousMode ? escapeHtml((t.priority || "medium").toUpperCase()) : `${t.priority === "high" ? "🔴" : t.priority === "low" ? "🟢" : "🟡"} ${escapeHtml(t.priority || "medium")}`}</span>
                   ${t.dueDate ? `<span aria-hidden="true">·</span><span>${escapeHtml(t.dueDate)}</span>` : ""}
                 </div>
               </div>

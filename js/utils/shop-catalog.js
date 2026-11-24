@@ -153,7 +153,8 @@ export const OBJECT_SKIN_META = {
   notebook: { label: "Study Notebook", renderKind: "svg", spriteKey: "notebook" },
   phone: { label: "Desk Phone", renderKind: "svg", spriteKey: "phone" },
   headphones: { label: "Desk Headphones", renderKind: "sprite", spriteKey: "headphones" },
-  mascot: { label: "Study Buddy", renderKind: "sprite", spriteKey: "buddy" }
+  mascot: { label: "Study Buddy", renderKind: "sprite", spriteKey: "buddy" },
+  settings: { label: "Control Panel", renderKind: "sprite", spriteKey: "settings" }
 };
 
 export const SKIN_STYLES = {

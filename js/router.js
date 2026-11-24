@@ -18,6 +18,7 @@ const VALID_ROUTES = new Set([
   "library",
   "cabinet",
   "achievements",
+  "settings",
   "ops"
 ]);
 

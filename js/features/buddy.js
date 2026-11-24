@@ -3,18 +3,19 @@ import { dialogManager } from "../core/dialog-manager.js";
 import { state } from "../state.js";
 
 const GUIDE_SPOTS = [
-  { feature: "focus", icon: "⏰", label: "Focus Clock" },
-  { feature: "tasks", icon: "📌", label: "Pinboard" },
-  { feature: "diary", icon: "📓", label: "Notebook" },
-  { feature: "audio", icon: "🎧", label: "Headphones" },
-  { feature: "shop", icon: "🐦", label: "Bird Shop" },
-  { feature: "customization", icon: "🪴", label: "Themes" },
-  { feature: "environment", icon: "🪟", label: "Window" },
-  { feature: "library", icon: "📚", label: "Bookshelf" },
-  { feature: "cabinet", icon: "🗄️", label: "Drawer" },
-  { feature: "community", icon: "💻", label: "Study Rooms" },
-  { feature: "friends", icon: "📱", label: "Phone" },
-  { feature: "achievements", icon: "🏆", label: "Trophy" }
+  { feature: "focus", icon: "⏰", label: "Focus Clock", seriousLabel: "Focus Timer" },
+  { feature: "tasks", icon: "📌", label: "Pinboard", seriousLabel: "Task Board" },
+  { feature: "diary", icon: "📓", label: "Notebook", seriousLabel: "Study Notes" },
+  { feature: "audio", icon: "🎧", label: "Headphones", seriousLabel: "Audio Mixer" },
+  { feature: "shop", icon: "🐦", label: "Bird Shop", seriousLabel: "Workspace Catalog" },
+  { feature: "customization", icon: "🪴", label: "Themes", seriousLabel: "Workspace Studio" },
+  { feature: "environment", icon: "🪟", label: "Window", seriousLabel: "Environment" },
+  { feature: "library", icon: "📚", label: "Bookshelf", seriousLabel: "Desk Reference" },
+  { feature: "cabinet", icon: "🗄️", label: "Drawer", seriousLabel: "Archive" },
+  { feature: "community", icon: "💻", label: "Study Rooms", seriousLabel: "Study Rooms" },
+  { feature: "friends", icon: "📱", label: "Phone", seriousLabel: "Study Contacts" },
+  { feature: "achievements", icon: "🏆", label: "Trophy", seriousLabel: "Milestones" },
+  { feature: "settings", icon: "🎛", label: "Settings", seriousLabel: "System Settings" }
 ];
 
 export const buddyFeature = {
@@ -25,12 +26,13 @@ export const buddyFeature = {
   render(container) {
     const activeTasks = (state.localTasks || []).filter((t) => !t.completed).length;
     const focusRunning = Boolean(state.activeSession);
+    const seriousMode = Boolean(state.preferences?.seriousMode);
 
     container.innerHTML = `
       <div class="sprk-card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
         <div class="sprk-badge-row">
-          <span class="sprk-badge-chip">${focusRunning ? "🔥 Focus Active" : "✨ Ready to Study"}</span>
-          <span class="sprk-badge-chip">📌 ${activeTasks} Open</span>
+          <span class="sprk-badge-chip">${seriousMode ? (focusRunning ? "Session Running" : "Standby") : (focusRunning ? "🔥 Focus Active" : "✨ Ready to Study")}</span>
+          <span class="sprk-badge-chip">${seriousMode ? `${activeTasks} Open` : `📌 ${activeTasks} Open`}</span>
         </div>
         <button type="button" class="sprk-btn sprk-btn-primary" id="buddy-jump-rooms" style="min-height:34px;padding:4px 12px;">
           Discover Rooms →
@@ -41,8 +43,8 @@ export const buddyFeature = {
         ${GUIDE_SPOTS.map((spot) => `
           <button type="button" class="sprk-card" data-buddy-open="${spot.feature}"
             style="display:flex;align-items:center;gap:10px;cursor:pointer;text-align:left;padding:11px 12px;">
-            <span style="font-size:20px;line-height:1;" aria-hidden="true">${spot.icon}</span>
-            <strong style="font-size:13px;">${spot.label}</strong>
+            ${seriousMode ? "" : `<span style="font-size:20px;line-height:1;" aria-hidden="true">${spot.icon}</span>`}
+            <strong style="font-size:13px;">${seriousMode ? spot.seriousLabel : spot.label}</strong>
           </button>
         `).join("")}
       </div>

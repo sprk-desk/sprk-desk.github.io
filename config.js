@@ -24,11 +24,19 @@ export const APP_CONFIG = {
     theme: "comic",
     timeOfDay: "auto", // auto | morning | afternoon | sunset | night
     weather: "clear", // clear | rain | snow | fireflies | breeze
+    seriousMode: false,
+    deepFocusMode: false,
+    hideGamification: false,
+    muteChimes: false,
+    autoCycleBreaks: true,
+    strictFocusLock: false,
+    autoDuskLamp: false,
     lighting: {
       roomBrightness: 100,
       windowBrightness: 100,
       ambientDarkness: 12,
       lampIntensity: 70,
+      lampKelvin: 3200,
       warmth: 35,
       lampOn: true,
       windowBeamOn: true

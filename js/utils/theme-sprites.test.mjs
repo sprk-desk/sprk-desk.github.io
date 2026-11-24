@@ -26,9 +26,12 @@ test("resolveObjectSpriteSrc maps custom theme PNGs and preserves default fallba
   assert.equal(resolveObjectSpriteSrc("ocean", "bird"), "./assets/sprites/themes/ocean/bird.png");
   assert.equal(resolveObjectSpriteSrc("alchemy", "trophy"), "./assets/sprites/themes/alchemy/trophy.png");
   assert.equal(resolveObjectSpriteSrc("editorial", "computer"), "./assets/sprites/themes/editorial/computer.png");
+  assert.equal(resolveObjectSpriteSrc("editorial", "settings"), "./assets/sprites/themes/editorial/settings.png");
   assert.equal(resolveObjectSpriteSrc("noir", "trophy"), "./assets/sprites/themes/noir/trophy.png");
+  assert.equal(resolveObjectSpriteSrc("noir", "settings"), "./assets/sprites/themes/noir/settings.png");
 
   assert.equal(resolveObjectSpriteSrc("comic", "lamp"), "./assets/sprites/themes/comic/lamp.png");
+  assert.equal(resolveObjectSpriteSrc("comic", "settings"), "./assets/sprites/themes/comic/settings.png");
   assert.equal(resolveObjectSpriteSrc("comic", "trophy"), null);
   assert.equal(resolveObjectSpriteSrc("unknown", "headphones"), "./assets/sprites/themes/comic/headphones.png");
 });
@@ -41,7 +44,7 @@ test("resolveEffectiveThemeForObject lets individual objects override the active
   assert.equal(resolveEffectiveThemeForObject("trophy", "space", { trophy: "theme:comic" }), "comic");
 });
 
-test("resolveThemeSpritePack includes all 8 room sprite slots", () => {
+test("resolveThemeSpritePack includes all 9 room sprite slots", () => {
   const pack = resolveThemeSpritePack("jungle");
   assert.deepEqual(Object.keys(pack), [
     "bird",
@@ -51,6 +54,7 @@ test("resolveThemeSpritePack includes all 8 room sprite slots", () => {
     "computer",
     "headphones",
     "mug",
+    "settings",
     "trophy"
   ]);
   for (const src of Object.values(pack)) {

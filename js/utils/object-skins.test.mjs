@@ -127,3 +127,24 @@ test("toggleObjectSkinLock freezes current room theme skin when locking an unove
   assert.equal(unlocked.isLocked, false);
   assert.equal(unlocked.lockedSkins.computer, false);
 });
+
+test("Serious Mode unlocks editorial and noir object skins for free while Regular Mode keeps them paid", () => {
+  const regularInv = getObjectSkinInventory({
+    objectType: "settings",
+    ownedItemIds: ["theme_comic"],
+    roomThemeId: "comic",
+    seriousMode: false
+  });
+  assert.equal(regularInv.unowned.some((s) => s.skinId === "theme:editorial" && s.price === 30), true);
+  assert.equal(regularInv.unowned.some((s) => s.skinId === "theme:noir" && s.price === 35), true);
+
+  const seriousInv = getObjectSkinInventory({
+    objectType: "settings",
+    ownedItemIds: ["theme_comic"],
+    roomThemeId: "editorial",
+    seriousMode: true
+  });
+  assert.equal(seriousInv.owned.some((s) => s.skinId === "theme:editorial" && s.price === 0), true);
+  assert.equal(seriousInv.owned.some((s) => s.skinId === "theme:noir" && s.price === 0), true);
+  assert.equal(seriousInv.unowned.some((s) => s.skinId === "theme:editorial" || s.skinId === "theme:noir"), false);
+});

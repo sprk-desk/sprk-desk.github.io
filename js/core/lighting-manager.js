@@ -2,6 +2,7 @@
 import { state } from "../state.js";
 import { bus } from "./event-bus.js";
 import { computeLampLightCoords } from "../utils/lighting-math.js";
+import { kelvinToLampRgb } from "../utils/study-tools.js";
 
 export const TIME_PHASES = [
   { id: "auto", label: "Auto (Local Clock)" },
@@ -144,9 +145,14 @@ class LightingManager {
     const root = document.documentElement;
     const windowBeamOn = lighting.windowBeamOn !== false;
 
+    const hour = new Date().getHours();
+    const isDuskOrNight = hour >= 18 || hour < 6;
+    const autoDuskActive = Boolean(prefs.autoDuskLamp && isDuskOrNight);
+    const effectiveLampOn = lighting.lampOn !== false || autoDuskActive;
+
     root.dataset.timePhase = phase;
     root.dataset.weather = activeWeather;
-    root.dataset.lampOn = String(lighting.lampOn !== false);
+    root.dataset.lampOn = String(effectiveLampOn);
     root.dataset.windowBeamOn = String(windowBeamOn);
     root.dataset.lowPerformance = String(Boolean(prefs.lowPerformance));
     root.dataset.reducedMotion = String(Boolean(prefs.reducedMotion));
@@ -155,10 +161,13 @@ class LightingManager {
     const windowBrightness = (Number(lighting.windowBrightness ?? 100) / 100).toFixed(2);
     const darknessPct = Math.min(72, Math.max(0, Number(lighting.ambientDarkness ?? profile.defaultDarkness)));
     const darknessAlpha = (darknessPct / 100 * 0.68).toFixed(3);
-    const lampAlpha = lighting.lampOn === false
+    const lampAlpha = !effectiveLampOn
       ? "0"
-      : ((Number(lighting.lampIntensity ?? 70) / 100) * (phase === "night" || phase === "sunset" ? 0.55 : 0.22)).toFixed(3);
+      : ((Number(lighting.lampIntensity ?? 70) / 100) * (phase === "night" || phase === "sunset" || autoDuskActive ? 0.55 : 0.22)).toFixed(3);
     const warmthAlpha = ((Number(lighting.warmth ?? 35) / 100) * 0.24).toFixed(3);
+    const lampKelvin = autoDuskActive && !lighting.lampKelvin
+      ? 2700
+      : Number(lighting.lampKelvin ?? 3200);
 
     root.style.setProperty("--sky-top", profile.skyTop);
     root.style.setProperty("--sky-mid", profile.skyMid);
@@ -174,6 +183,7 @@ class LightingManager {
     root.dataset.customWindowBrightness = windowBrightness !== "1.00" ? "true" : "false";
     root.style.setProperty("--ambient-darkness", darknessAlpha);
     root.style.setProperty("--lamp-glow-opacity", lampAlpha);
+    root.style.setProperty("--lamp-rgb", kelvinToLampRgb(lampKelvin));
     root.style.setProperty("--warmth-overlay", warmthAlpha);
 
     this.updateLampOrigin();
@@ -186,7 +196,9 @@ class LightingManager {
       this.rafId = null;
     }
     const weather = state.preferences.weather || "clear";
-    const reduced = Boolean(state.preferences.reducedMotion) || Boolean(state.preferences.lowPerformance);
+    const reduced = Boolean(state.preferences.reducedMotion) ||
+      Boolean(state.preferences.lowPerformance) ||
+      Boolean(state.preferences.deepFocusMode);
 
     if (!this.ctx || !this.canvas) return;
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);

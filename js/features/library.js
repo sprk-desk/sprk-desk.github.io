@@ -1,8 +1,9 @@
-// Bookshelf -> Knowledge Library & Share Book Tabs
+// Bookshelf -> Knowledge Library, Spaced-Repetition Flashcards & Share Book Tabs
 import { state, persistLocalCollection } from "../state.js";
 import { supabase } from "../services/supabase.js";
 import { escapeHtml, generateId } from "../utils/dom.js";
 import { syncSavedResourceUpsert, syncSavedResourceDelete } from "../services/database-service.js";
+import { createFlashcard, reviewFlashcard, getDueFlashcards } from "../utils/study-tools.js";
 
 const STARTER_GUIDES = [
   {
@@ -30,12 +31,18 @@ export const libraryFeature = {
   eyebrow: "",
   title: "Bookshelf",
   icon: "📚",
-  render(container) {
-    let tab = "browse"; // browse | share
+  render(container, { param }) {
+    let tab = param === "flashcards" ? "flashcards" : "browse"; // browse | flashcards | share
     let query = "";
     let statusMsg = "";
+    let showBack = false;
 
     const renderView = () => {
+      const seriousMode = Boolean(state.preferences?.seriousMode);
+      const cards = state.localFlashcards || [];
+      const dueCards = getDueFlashcards(cards, Date.now());
+      const activeCard = dueCards[0] || null;
+
       const items = [...STARTER_GUIDES, ...(state.libraryResources || [])].filter((r) => {
         if (!query) return true;
         const q = query.toLowerCase();
@@ -44,7 +51,8 @@ export const libraryFeature = {
 
       container.innerHTML = `
         <nav class="sprk-tabs sprk-tabs-bookshelf" role="tablist">
-          <button type="button" class="sprk-tab ${tab === "browse" ? "is-active" : ""}" data-ltab="browse">📚 Guides (${items.length})</button>
+          <button type="button" class="sprk-tab ${tab === "browse" ? "is-active" : ""}" data-ltab="browse">${seriousMode ? `Guides (${items.length})` : `📚 Guides (${items.length})`}</button>
+          <button type="button" class="sprk-tab ${tab === "flashcards" ? "is-active" : ""}" data-ltab="flashcards">${seriousMode ? `Flashcards (${dueCards.length} due)` : `🗂 Flashcards (${dueCards.length} due)`}</button>
           <button type="button" class="sprk-tab ${tab === "share" ? "is-active" : ""}" data-ltab="share">+ Share Book</button>
         </nav>
 
@@ -73,11 +81,81 @@ export const libraryFeature = {
                     </div>
                   </div>
                   <button type="button" class="sprk-btn ${bookmarked ? "sprk-btn-primary" : ""}" data-bookmark="${escapeHtml(item.id)}" style="min-height:34px;padding:4px 12px;align-self:center;">
-                    ${bookmarked ? "✓ Saved" : "Save"}
+                    ${bookmarked ? "Saved" : "Save"}
                   </button>
                 </div>
               `;
             }).join("")}
+          </div>
+        ` : tab === "flashcards" ? `
+          <div style="display:grid;gap:14px;">
+            ${activeCard ? `
+              <div class="sprk-flashcard-stage" data-flashcard-id="${escapeHtml(activeCard.id)}">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+                  <span class="sprk-badge-chip">${escapeHtml(activeCard.deck || "General")}</span>
+                  <span class="sprk-meta tabular-nums">${dueCards.length} due · Reps ${activeCard.reps || 0}</span>
+                </div>
+
+                <div style="font-size:16px;font-weight:700;line-height:1.45;">
+                  ${escapeHtml(activeCard.front)}
+                </div>
+
+                ${showBack ? `
+                  <div style="padding-top:12px;border-top:1.5px solid rgba(52,44,37,0.16);font-size:14px;line-height:1.5;color:var(--ink);" id="flashcard-back-text">
+                    ${escapeHtml(activeCard.back)}
+                  </div>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <button type="button" class="sprk-btn" data-rate-card="again" style="min-height:34px;padding:4px 12px;">Again (10m)</button>
+                    <button type="button" class="sprk-btn" data-rate-card="hard" style="min-height:34px;padding:4px 12px;">Hard (1d)</button>
+                    <button type="button" class="sprk-btn sprk-btn-primary" data-rate-card="good" style="min-height:34px;padding:4px 12px;">Good</button>
+                    <button type="button" class="sprk-btn" data-rate-card="easy" style="min-height:34px;padding:4px 12px;">Easy (4d+)</button>
+                  </div>
+                ` : `
+                  <div>
+                    <button type="button" class="sprk-btn sprk-btn-primary" id="flashcard-reveal-btn">Show Answer</button>
+                  </div>
+                `}
+              </div>
+            ` : `
+              <div class="sprk-card">
+                <strong>All due flashcards reviewed</strong>
+                <p class="sprk-meta" style="margin:4px 0 0;">${cards.length} card(s) in your spaced-repetition deck.</p>
+              </div>
+            `}
+
+            <form id="flashcard-add-form" class="sprk-card">
+              <strong style="font-size:13.5px;display:block;margin-bottom:8px;">+ Add Flashcard</strong>
+              <div class="sprk-grid-2">
+                <label class="sprk-field">
+                  <span class="sprk-label">Deck / Subject</span>
+                  <input id="fc-deck" class="sprk-input" type="text" maxlength="40" value="General" required />
+                </label>
+                <label class="sprk-field">
+                  <span class="sprk-label">Front Prompt</span>
+                  <input id="fc-front" class="sprk-input" type="text" maxlength="180" placeholder="Question or theorem..." required />
+                </label>
+              </div>
+              <label class="sprk-field">
+                <span class="sprk-label">Back Answer</span>
+                <textarea id="fc-back" class="sprk-textarea" style="min-height:60px;" maxlength="360" placeholder="Recall answer..." required></textarea>
+              </label>
+              <button type="submit" class="sprk-btn sprk-btn-primary" style="min-height:36px;">Add Card</button>
+            </form>
+
+            ${cards.length > 0 ? `
+              <div class="sprk-card" style="display:grid;gap:6px;">
+                <strong style="font-size:13px;">Deck Cards (${cards.length})</strong>
+                ${cards.slice(0, 12).map((c) => `
+                  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.06);">
+                    <div style="min-width:0;">
+                      <div style="font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(c.front)}</div>
+                      <div class="sprk-meta">${escapeHtml(c.deck)} · Interval ${c.intervalDays || 0}d</div>
+                    </div>
+                    <button type="button" class="sprk-btn" data-del-card="${escapeHtml(c.id)}" aria-label="Delete flashcard" style="min-height:30px;padding:2px 9px;">×</button>
+                  </div>
+                `).join("")}
+              </div>
+            ` : ""}
           </div>
         ` : `
           <form id="lib-upload-form" class="sprk-card">
@@ -100,7 +178,7 @@ export const libraryFeature = {
               <textarea id="lib-summary" class="sprk-textarea" style="min-height:70px;" required maxlength="400"></textarea>
             </label>
             <button type="submit" class="sprk-btn sprk-btn-primary" ${!supabase.configured || !state.user ? "disabled" : ""}>
-              ${supabase.configured && state.user ? "Publish" : "🔒 Sign in Required"}
+              ${supabase.configured && state.user ? "Publish" : "Sign in Required"}
             </button>
           </form>
         `}
@@ -109,6 +187,7 @@ export const libraryFeature = {
       container.querySelectorAll("[data-ltab]").forEach((btn) => {
         btn.addEventListener("click", () => {
           tab = btn.dataset.ltab;
+          showBack = false;
           renderView();
         });
       });
@@ -132,6 +211,45 @@ export const libraryFeature = {
               syncSavedResourceUpsert(found);
             }
           }
+          renderView();
+        });
+      });
+
+      container.querySelector("#flashcard-reveal-btn")?.addEventListener("click", () => {
+        showBack = true;
+        renderView();
+      });
+
+      container.querySelectorAll("[data-rate-card]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          if (!activeCard) return;
+          const updated = reviewFlashcard(activeCard, btn.dataset.rateCard, Date.now());
+          const next = cards.map((c) => (c.id === activeCard.id ? updated : c));
+          persistLocalCollection("localFlashcards", next);
+          showBack = false;
+          statusMsg = `Scheduled "${activeCard.front.slice(0, 32)}" (${updated.intervalDays}d interval).`;
+          renderView();
+        });
+      });
+
+      container.querySelector("#flashcard-add-form")?.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const deck = container.querySelector("#fc-deck")?.value.trim() || "General";
+        const front = container.querySelector("#fc-front")?.value.trim();
+        const back = container.querySelector("#fc-back")?.value.trim();
+        if (!front || !back) return;
+        const card = createFlashcard({ id: generateId("card"), deck, front, back, nowMs: Date.now() });
+        persistLocalCollection("localFlashcards", [card, ...cards]);
+        statusMsg = `Added flashcard to ${deck}.`;
+        showBack = false;
+        renderView();
+      });
+
+      container.querySelectorAll("[data-del-card]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const id = btn.dataset.delCard;
+          persistLocalCollection("localFlashcards", cards.filter((c) => c.id !== id));
+          showBack = false;
           renderView();
         });
       });

@@ -17,7 +17,13 @@ import { audioManager, AUDIO_CHANNELS } from "../core/audio-manager.js";
 import { lightingManager } from "../core/lighting-manager.js";
 import { decorationManager } from "../core/decoration-manager.js";
 import { dialogManager } from "../core/dialog-manager.js";
+import { isStrictFocusLockActive } from "../core/settings-manager.js";
 import { escapeHtml } from "../utils/dom.js";
+import {
+  isThemeAccessibleInMode,
+  isThemeFreeInMode,
+  isSeriousTheme
+} from "../utils/room-settings.js";
 
 export function equipShopItem(item) {
   if (!item) return false;
@@ -127,9 +133,17 @@ export const shopFeature = {
 
     const openItemPreview = (item) => {
       if (!previewDialog || !previewBody || !item) return;
+      const locked = isStrictFocusLockActive();
       const currentThemeId = state.preferences.theme || "comic";
+      const seriousMode = Boolean(state.preferences?.seriousMode);
       const desc = getShopPreviewDescriptor(item, currentThemeId);
-      const owned = state.ownedItemIds.includes(item.id);
+      const actuallyOwned = state.ownedItemIds.includes(item.id);
+      const freeViaSerious = Boolean(
+        seriousMode && item.category === "theme" && isSeriousTheme(item.themeId) && !actuallyOwned
+      );
+      const owned = item.category === "theme"
+        ? isThemeAccessibleInMode(item.themeId, { ownedItemIds: state.ownedItemIds, seriousMode })
+        : actuallyOwned;
       const equipped = isShopItemEquipped(item);
       const isPlayingSample = previewingAudioItemId === item.id;
 
@@ -143,22 +157,23 @@ export const shopFeature = {
           <div class="sprk-meta">
             <span>${escapeHtml(item.rarity)}</span>
             <span aria-hidden="true">·</span>
-            <span class="tabular-nums">${item.price === 0 ? "Starter" : `${item.price} SC`}</span>
+            <span class="tabular-nums">${freeViaSerious ? "Free (Serious Mode)" : (item.price === 0 ? "Starter" : `${item.price} SC`)}</span>
             ${item.premiumOnly ? `<span aria-hidden="true">·</span><span>Premium</span>` : ""}
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <button type="button" class="sprk-btn" id="sprk-preview-dismiss" style="min-height:36px;padding:6px 12px;">Close</button>
             ${owned
               ? `${equipped && item.category === "deco"
-                  ? `<button type="button" class="sprk-btn" id="sprk-preview-remove-deco" style="min-height:36px;padding:6px 12px;">Remove</button>`
-                  : `<button type="button" class="sprk-btn sprk-btn-primary" id="sprk-preview-equip" style="min-height:36px;padding:6px 14px;" ${equipped ? "disabled" : ""}>${equipped ? "Equipped" : "Equip"}</button>`}`
-              : `<button type="button" class="sprk-btn sprk-btn-primary" id="sprk-preview-buy" ${!state.user ? "disabled" : ""} style="min-height:36px;padding:6px 14px;">Buy (${item.price} SC)</button>`}
+                  ? `<button type="button" class="sprk-btn" id="sprk-preview-remove-deco" ${locked ? "disabled" : ""} style="min-height:36px;padding:6px 12px;">Remove</button>`
+                  : `<button type="button" class="sprk-btn sprk-btn-primary" id="sprk-preview-equip" style="min-height:36px;padding:6px 14px;" ${equipped || locked ? "disabled" : ""}>${equipped ? "Equipped" : "Equip"}</button>`}`
+              : `<button type="button" class="sprk-btn sprk-btn-primary" id="sprk-preview-buy" ${!state.user || locked ? "disabled" : ""} style="min-height:36px;padding:6px 14px;">Buy (${item.price} SC)</button>`}
           </div>
         </div>
       `;
 
       previewBody.querySelector("#sprk-preview-dismiss")?.addEventListener("click", closePreviewDialog);
       previewBody.querySelector("#sprk-preview-remove-deco")?.addEventListener("click", () => {
+        if (isStrictFocusLockActive()) return;
         decorationManager.setSlotStyle(item.decoSlot, "none", { persist: true });
         statusMessage = `Removed "${item.name}".`;
         closePreviewDialog();
@@ -186,6 +201,7 @@ export const shopFeature = {
       });
 
       previewBody.querySelector("#sprk-preview-equip")?.addEventListener("click", () => {
+        if (isStrictFocusLockActive()) return;
         if (item.category === "music") {
           previewAudioSnapshot = null;
           previewingAudioItemId = null;
@@ -197,6 +213,7 @@ export const shopFeature = {
       });
 
       previewBody.querySelector("#sprk-preview-buy")?.addEventListener("click", async () => {
+        if (isStrictFocusLockActive()) return;
         const res = await purchaseShopItem(item.id);
         statusMessage = res.ok ? `Purchased "${item.name}"!` : (res.error || "Purchase failed.");
         closePreviewDialog();
@@ -217,8 +234,14 @@ export const shopFeature = {
       container.scrollTop = 0;
     };
 
-    const renderItemCard = (item, currentThemeId) => {
-      const owned = state.ownedItemIds.includes(item.id);
+    const renderItemCard = (item, currentThemeId, seriousMode, locked) => {
+      const actuallyOwned = state.ownedItemIds.includes(item.id);
+      const freeViaSerious = Boolean(
+        seriousMode && item.category === "theme" && isThemeFreeInMode(item.themeId, seriousMode) && !actuallyOwned && item.price > 0
+      );
+      const owned = item.category === "theme"
+        ? isThemeAccessibleInMode(item.themeId, { ownedItemIds: state.ownedItemIds, seriousMode })
+        : actuallyOwned;
       const equipped = isShopItemEquipped(item);
       return `
         <article class="sprk-card sprk-shop-card" data-item-id="${escapeHtml(item.id)}">
@@ -232,17 +255,17 @@ export const shopFeature = {
               <div class="sprk-meta" style="margin:5px 0 2px;">
                 <span>${item.category === "theme" ? "Skin Bundle" : escapeHtml(item.rarity)}</span>
                 <span aria-hidden="true">·</span>
-                <span class="tabular-nums">${item.price === 0 ? "Starter" : `${item.price} SC`}</span>
-                ${item.premiumOnly ? `<span aria-hidden="true">·</span><span>★</span>` : ""}
+                <span class="tabular-nums">${freeViaSerious ? "Free (Serious Mode)" : (item.price === 0 ? "Starter" : `${item.price} SC`)}</span>
+                ${item.premiumOnly ? `<span aria-hidden="true">·</span><span>${seriousMode ? "Pro" : "★"}</span>` : ""}
               </div>
             </div>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <button type="button" class="sprk-btn" data-preview="${escapeHtml(item.id)}" aria-label="Preview ${escapeHtml(item.name)}" style="min-height:34px;padding:4px 10px;">Preview</button>
             ${owned
-              ? `<button type="button" class="sprk-btn sprk-btn-primary" data-equip="${escapeHtml(item.id)}" aria-label="${equipped ? `${escapeHtml(item.name)} equipped` : `Equip ${escapeHtml(item.name)}`}" ${equipped ? "disabled" : ""} style="min-height:34px;padding:4px 12px;">${equipped ? "Equipped" : "Equip"}</button>
-                 ${equipped && item.category === "deco" ? `<button type="button" class="sprk-btn" data-remove-deco="${escapeHtml(item.decoSlot)}" aria-label="Remove ${escapeHtml(item.name)}" style="min-height:34px;padding:4px 10px;">Remove</button>` : ""}`
-              : `<button type="button" class="sprk-btn sprk-btn-primary" data-buy="${escapeHtml(item.id)}" aria-label="Buy ${escapeHtml(item.name)} for ${item.price} SC" ${!state.user ? "disabled" : ""} style="min-height:34px;padding:4px 12px;">Buy · ${item.price} SC</button>`}
+              ? `<button type="button" class="sprk-btn sprk-btn-primary" data-equip="${escapeHtml(item.id)}" aria-label="${equipped ? `${escapeHtml(item.name)} equipped` : `Equip ${escapeHtml(item.name)}`}" ${equipped || locked ? "disabled" : ""} style="min-height:34px;padding:4px 12px;">${equipped ? "Equipped" : "Equip"}</button>
+                 ${equipped && item.category === "deco" ? `<button type="button" class="sprk-btn" data-remove-deco="${escapeHtml(item.decoSlot)}" aria-label="Remove ${escapeHtml(item.name)}" ${locked ? "disabled" : ""} style="min-height:34px;padding:4px 10px;">Remove</button>` : ""}`
+              : `<button type="button" class="sprk-btn sprk-btn-primary" data-buy="${escapeHtml(item.id)}" aria-label="Buy ${escapeHtml(item.name)} for ${item.price} SC" ${!state.user || locked ? "disabled" : ""} style="min-height:34px;padding:4px 12px;">Buy · ${item.price} SC</button>`}
           </div>
         </article>
       `;
@@ -251,6 +274,8 @@ export const shopFeature = {
     const renderView = () => {
       const counts = getShopCategoryCounts(SHOP_CATALOG);
       const currentThemeId = state.preferences.theme || "comic";
+      const seriousMode = Boolean(state.preferences?.seriousMode);
+      const locked = isStrictFocusLockActive();
       const activeMeta = SHOP_CATEGORIES.find((c) => c.id === category) || SHOP_CATEGORIES[0];
       const ledger = state.wallet.ledger || [];
 
@@ -259,7 +284,7 @@ export const shopFeature = {
           <div class="sprk-shop-dept-grid" aria-label="Shop departments">
             ${SHOP_CATEGORIES.filter((c) => c.id !== "all").map((dept) => `
               <button type="button" class="sprk-shop-dept-card" data-nav-cat="${dept.id}">
-                <span class="sprk-shop-dept-icon" aria-hidden="true">${dept.icon}</span>
+                ${seriousMode ? "" : `<span class="sprk-shop-dept-icon" aria-hidden="true">${dept.icon}</span>`}
                 <span class="sprk-shop-dept-title">${escapeHtml(dept.label)}</span>
                 <span class="sprk-shop-dept-count">${counts[dept.id] || 0} →</span>
               </button>
@@ -269,24 +294,24 @@ export const shopFeature = {
           ${groupShopCatalogByCategory(SHOP_CATALOG).map((group) => `
             <section class="sprk-shop-section" data-section-cat="${group.category.id}" aria-label="${escapeHtml(group.category.label)}">
               <div class="sprk-shop-section-head">
-                <h3><span aria-hidden="true">${group.category.icon}</span> ${escapeHtml(group.category.label)} (${group.items.length})</h3>
+                <h3>${seriousMode ? "" : `<span aria-hidden="true">${group.category.icon}</span> `}${escapeHtml(group.category.label)} (${group.items.length})</h3>
                 <button type="button" class="sprk-btn" data-nav-cat="${group.category.id}" style="min-height:32px;padding:4px 10px;">
                   ${escapeHtml(group.category.shortLabel)} →
                 </button>
               </div>
               <div class="sprk-grid-2" style="margin-bottom:14px;">
-                ${group.items.map((item) => renderItemCard(item, currentThemeId)).join("")}
+                ${group.items.map((item) => renderItemCard(item, currentThemeId, seriousMode, locked)).join("")}
               </div>
             </section>
           `).join("")}
         `
         : `
           <div class="sprk-shop-section-head" style="margin-top:4px;">
-            <h3><span aria-hidden="true">${activeMeta.icon}</span> ${escapeHtml(activeMeta.label)} (${counts[category] || 0})</h3>
+            <h3>${seriousMode ? "" : `<span aria-hidden="true">${activeMeta.icon}</span> `}${escapeHtml(activeMeta.label)} (${counts[category] || 0})</h3>
             <button type="button" class="sprk-btn" data-nav-cat="all" style="min-height:32px;padding:4px 10px;">← All</button>
           </div>
           <div class="sprk-grid-2" style="margin-bottom:16px;">
-            ${filterShopCatalog(SHOP_CATALOG, category).map((item) => renderItemCard(item, currentThemeId)).join("")}
+            ${filterShopCatalog(SHOP_CATALOG, category).map((item) => renderItemCard(item, currentThemeId, seriousMode, locked)).join("")}
           </div>
         `;
 
@@ -294,20 +319,24 @@ export const shopFeature = {
         <nav class="sprk-shop-roof-tabs" aria-label="Shop categories">
           ${SHOP_CATEGORIES.map((cat) => `
             <button type="button" class="sprk-shop-roof-tab ${category === cat.id ? "is-active" : ""}" data-cat="${cat.id}">
-              <span class="sprk-roof-tab-icon" aria-hidden="true">${cat.icon}</span>
-              <span class="sprk-roof-tab-label">${escapeHtml(cat.shortLabel === "All" ? "All Wares" : cat.shortLabel)}</span>
+              ${seriousMode ? "" : `<span class="sprk-roof-tab-icon" aria-hidden="true">${cat.icon}</span>`}
+              <span class="sprk-roof-tab-label">${escapeHtml(cat.shortLabel === "All" ? (seriousMode ? "All Items" : "All Wares") : cat.shortLabel)}</span>
               <span class="sprk-roof-tab-count tabular-nums">${counts[cat.id] || 0}</span>
             </button>
           `).join("")}
         </nav>
 
+        ${locked ? `<div class="sprk-notice" role="status" style="margin-bottom:12px;">Strict Focus Lock is active while your focus timer runs. Finish or pause your session to equip or buy items.</div>` : ""}
+
         <div class="sprk-shop-wallet-strip">
           <div class="sprk-badge-row">
-            <span class="sprk-badge-chip tabular-nums">🪙 ${state.user ? `${state.wallet.balance} SC` : "— SC"}</span>
-            ${state.user ? `<span class="sprk-meta tabular-nums">+${state.wallet.earned} / -${state.wallet.spent} SC</span>` : `<span class="sprk-meta">🔒 Guest</span>`}
+            <span class="sprk-badge-chip tabular-nums sprk-gamified">${seriousMode ? "" : "🪙 "}${state.user ? `${state.wallet.balance} SC` : "— SC"}</span>
+            ${state.user
+              ? `<span class="sprk-meta tabular-nums sprk-gamified">+${state.wallet.earned} / -${state.wallet.spent} SC</span>`
+              : `<span class="sprk-meta">${seriousMode ? "Local Mode" : "🔒 Guest"}</span>`}
           </div>
-          <div class="sprk-shop-wallet-note tabular-nums">
-            <span>⏱ 25m = 10 SC</span>
+          <div class="sprk-shop-wallet-note tabular-nums sprk-gamified">
+            <span>${seriousMode ? "25m = 10 SC" : "⏱ 25m = 10 SC"}</span>
             <span>·</span>
             <span>Cap 120 SC</span>
           </div>
@@ -347,6 +376,7 @@ export const shopFeature = {
 
       container.querySelectorAll("[data-equip]").forEach((btn) => {
         btn.addEventListener("click", () => {
+          if (isStrictFocusLockActive()) return;
           const item = SHOP_CATALOG.find((i) => i.id === btn.dataset.equip);
           if (item && equipShopItem(item)) {
             if (item.category === "theme") dialogManager.syncHeader("shop");
@@ -358,6 +388,7 @@ export const shopFeature = {
 
       container.querySelectorAll("[data-remove-deco]").forEach((btn) => {
         btn.addEventListener("click", () => {
+          if (isStrictFocusLockActive()) return;
           decorationManager.setSlotStyle(btn.dataset.removeDeco, "none", { persist: true });
           statusMessage = "Decoration removed from slot.";
           renderView();
@@ -366,6 +397,7 @@ export const shopFeature = {
 
       container.querySelectorAll("[data-buy]").forEach((btn) => {
         btn.addEventListener("click", async () => {
+          if (isStrictFocusLockActive()) return;
           const res = await purchaseShopItem(btn.dataset.buy);
           statusMessage = res.ok ? "Added to inventory!" : (res.error || "Purchase failed.");
           rerender();

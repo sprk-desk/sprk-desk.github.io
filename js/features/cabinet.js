@@ -1,11 +1,24 @@
-// Cabinet Drawer -> File-Folder Tabs with Mini Visual Inventory Thumbnails & Saved Bookmarks
-import { state, persistLocalCollection } from "../state.js";
+// Cabinet Drawer -> File-Folder Tabs, Mini Visual Inventory Thumbnails, Saved Bookmarks & JSON Backup/Restore
+import { state, savePreferences, persistLocalCollection } from "../state.js";
 import { SHOP_CATALOG } from "../services/economy-service.js";
 import { equipShopItem, isShopItemEquipped } from "./shop.js";
 import { renderMiniThumbnail } from "../utils/shop-preview.js";
 import { dialogManager } from "../core/dialog-manager.js";
-import { escapeHtml } from "../utils/dom.js";
+import { escapeHtml, todayIsoDate } from "../utils/dom.js";
+import { validateBackupPayload } from "../utils/study-tools.js";
 import { syncSavedResourceDelete } from "../services/database-service.js";
+
+function downloadJsonFile(filename, obj) {
+  const blob = new Blob([JSON.stringify(obj, null, 2)], { type: "application/json;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 
 export const cabinetFeature = {
   skin: "cabinet",
@@ -13,18 +26,23 @@ export const cabinetFeature = {
   title: "Cabinet Drawer",
   icon: "🗄",
   render(container) {
-    let tab = "inventory"; // inventory | saved
+    let tab = "inventory"; // inventory | saved | backup
+    let statusMsg = "";
 
     const renderView = () => {
       const saved = state.localSavedResources || [];
       const ownedItems = SHOP_CATALOG.filter((item) => state.ownedItemIds.includes(item.id));
       const currentThemeId = state.preferences.theme || "comic";
+      const seriousMode = Boolean(state.preferences?.seriousMode);
 
       container.innerHTML = `
         <nav class="sprk-tabs sprk-tabs-folder" role="tablist" aria-label="Cabinet drawer folders">
-          <button type="button" class="sprk-tab ${tab === "inventory" ? "is-active" : ""}" data-cabtab="inventory">🗂 Inventory (${ownedItems.length})</button>
-          <button type="button" class="sprk-tab ${tab === "saved" ? "is-active" : ""}" data-cabtab="saved">🔖 Saved (${saved.length})</button>
+          <button type="button" class="sprk-tab ${tab === "inventory" ? "is-active" : ""}" data-cabtab="inventory">${seriousMode ? `Inventory (${ownedItems.length})` : `🗂 Inventory (${ownedItems.length})`}</button>
+          <button type="button" class="sprk-tab ${tab === "saved" ? "is-active" : ""}" data-cabtab="saved">${seriousMode ? `Saved (${saved.length})` : `🔖 Saved (${saved.length})`}</button>
+          <button type="button" class="sprk-tab ${tab === "backup" ? "is-active" : ""}" data-cabtab="backup">${seriousMode ? "Backup & Restore" : "💾 Backup"}</button>
         </nav>
+
+        ${statusMsg ? `<div class="sprk-notice" role="status" style="margin:10px 0 12px;">${escapeHtml(statusMsg)}</div>` : ""}
 
         ${tab === "inventory" ? `
           <div class="sprk-grid-2">
@@ -46,7 +64,7 @@ export const cabinetFeature = {
               `;
             }).join("")}
           </div>
-        ` : `
+        ` : tab === "saved" ? `
           <div class="sprk-card">
             ${saved.length === 0 ? `
               <div class="sprk-empty">No saved guides yet.</div>
@@ -55,7 +73,7 @@ export const cabinetFeature = {
                 ${saved.map((r) => `
                   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(0,0,0,0.06);">
                     <div>
-                      <strong style="font-size:13.5px;">📖 ${escapeHtml(r.title)}</strong>
+                      <strong style="font-size:13.5px;">${seriousMode ? "" : "📖 "}${escapeHtml(r.title)}</strong>
                       <div class="sprk-meta">${escapeHtml(r.category || "Saved")}</div>
                     </div>
                     <button type="button" class="sprk-btn" data-remove-saved="${escapeHtml(r.id)}" style="min-height:32px;padding:4px 10px;">×</button>
@@ -64,14 +82,93 @@ export const cabinetFeature = {
               </div>
             `}
           </div>
+        ` : `
+          <div style="display:grid;gap:12px;">
+            <div class="sprk-card">
+              <strong style="font-size:14px;display:block;margin-bottom:4px;">Export Local Study Archive</strong>
+              <p class="sprk-meta" style="margin:0 0 12px;">
+                Downloads tasks, notes, study records, flashcards, exam countdowns, subject budgets, audio presets, and room preferences as portable JSON.
+              </p>
+              <button type="button" class="sprk-btn sprk-btn-primary" id="cab-export-json">Download Full Backup (.json)</button>
+            </div>
+
+            <div class="sprk-card">
+              <strong style="font-size:14px;display:block;margin-bottom:4px;">Restore from Backup File</strong>
+              <p class="sprk-meta" style="margin:0 0 10px;">
+                Select a previously exported SPRK Desk backup JSON file to restore your local workspace data.
+              </p>
+              <input id="cab-restore-file" class="sprk-input" type="file" accept=".json,application/json" />
+            </div>
+          </div>
         `}
       `;
 
       container.querySelectorAll("[data-cabtab]").forEach((btn) => {
         btn.addEventListener("click", () => {
           tab = btn.dataset.cabtab;
+          statusMsg = "";
           renderView();
         });
+      });
+
+      container.querySelector("#cab-export-json")?.addEventListener("click", () => {
+        const snapshot = {
+          version: 1,
+          exportedAt: new Date().toISOString(),
+          preferences: state.preferences,
+          localTasks: state.localTasks,
+          localGoals: state.localGoals,
+          localDiary: state.localDiary,
+          localStudyRecords: state.localStudyRecords,
+          localSavedResources: state.localSavedResources,
+          localFlashcards: state.localFlashcards,
+          localExams: state.localExams,
+          localSubjectBudgets: state.localSubjectBudgets,
+          localWorkspaceProfiles: state.localWorkspaceProfiles,
+          localAudioPresets: state.localAudioPresets
+        };
+        downloadJsonFile(`sprk-desk-backup-${todayIsoDate()}.json`, snapshot);
+        statusMsg = "Full workspace backup downloaded.";
+        renderView();
+      });
+
+      container.querySelector("#cab-restore-file")?.addEventListener("change", async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        try {
+          const text = await file.text();
+          const parsed = JSON.parse(text);
+          const validated = validateBackupPayload(parsed);
+          if (!validated.ok) {
+            statusMsg = validated.error;
+            renderView();
+            return;
+          }
+          const { data } = validated;
+          if (data.preferences) savePreferences(data.preferences);
+          if (Array.isArray(parsed.localWorkspaceProfiles)) {
+            persistLocalCollection("localWorkspaceProfiles", parsed.localWorkspaceProfiles);
+          }
+          for (const key of [
+            "localTasks",
+            "localGoals",
+            "localDiary",
+            "localStudyRecords",
+            "localSavedResources",
+            "localFlashcards",
+            "localExams",
+            "localSubjectBudgets",
+            "localAudioPresets"
+          ]) {
+            if (data[key] !== undefined) {
+              persistLocalCollection(key, data[key]);
+            }
+          }
+          statusMsg = "Backup restored cleanly.";
+        } catch {
+          statusMsg = "Could not parse JSON backup file.";
+        }
+        renderView();
       });
 
       container.querySelectorAll("[data-remove-saved]").forEach((btn) => {

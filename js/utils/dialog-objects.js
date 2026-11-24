@@ -3,6 +3,7 @@ import { escapeHtml } from "./dom.js";
 import { BASE_SPRITES, hasCustomSpritePack, resolveObjectSpriteSrc } from "./theme-sprites.js";
 import { THEME_PALETTES, SKIN_STYLES } from "./shop-catalog.js";
 import { getObjectTypeForFeature, getObjectVisualConfig } from "./object-skins.js";
+import { resolveObjectDisplayName } from "./room-settings.js";
 
 export const DIALOG_OBJECT_DEFS = {
   focus: { objectName: "Wall Clock", kind: "svg" },
@@ -23,6 +24,7 @@ export const DIALOG_OBJECT_DEFS = {
   achievements: { objectName: "Shelf Trophy", kind: "trophy" },
   coffee: { objectName: "Coffee Mug", kind: "sprite", spriteKey: "mug" },
   lamp: { objectName: "Desk Lamp", kind: "sprite", spriteKey: "lamp" },
+  settings: { objectName: "Control Panel", kind: "sprite", spriteKey: "settings" },
   customProp: { objectName: "Custom Keepsake", kind: "svg" },
   ops: { objectName: "Ops Console", kind: "svg" }
 };
@@ -324,6 +326,22 @@ function renderObjectSvgPictureByType(objectType, themeId = "comic", vars = {}) 
 }
 
 export function renderObjectSkinVisual(objectType, skinId = "default", roomThemeId = "comic") {
+  if (objectType === "computer" && (skinId === "flat-dark" || skinId === "flat-light")) {
+    const isDark = skinId === "flat-dark";
+    const bezel = isDark ? "#1a1a1d" : "#f4f4f1";
+    const screen = isDark ? "#101215" : "#ffffff";
+    const stand = isDark ? "#333338" : "#d0d0cb";
+    return `
+      <svg class="sprk-obj-pic-svg" viewBox="0 0 110 92" aria-hidden="true">
+        <rect x="40" y="64" width="30" height="20" rx="2" fill="${stand}" stroke="var(--ink)" stroke-width="3"/>
+        <rect x="28" y="82" width="54" height="6" rx="2.5" fill="${stand}" stroke="var(--ink)" stroke-width="2.5"/>
+        <rect x="6" y="10" width="98" height="58" rx="5" fill="${bezel}" stroke="var(--ink)" stroke-width="3.5"/>
+        <rect x="11" y="15" width="88" height="48" rx="2" fill="${screen}" stroke="var(--ink)" stroke-width="2"/>
+        <circle cx="55" cy="40" r="10" fill="none" stroke="${isDark ? "#e6e6e2" : "#141414"}" stroke-width="2" opacity="0.55"/>
+      </svg>
+    `;
+  }
+
   const vis = getObjectVisualConfig(objectType, skinId, roomThemeId);
 
   if (objectType === "trophy") {
@@ -345,9 +363,16 @@ export function renderObjectSkinVisual(objectType, skinId = "default", roomTheme
   return renderObjectSvgPictureByType(objectType, vis.effectiveThemeId, vars);
 }
 
-export function getDialogObjectMeta(feature, themeId = "comic", skinsMap = {}, customProp = null) {
+export function getDialogObjectMeta(
+  feature,
+  themeId = "comic",
+  skinsMap = {},
+  customProp = null,
+  seriousMode = false
+) {
   if (feature === "customProp") {
-    const label = customProp?.label?.trim() || "Custom Keepsake";
+    const fallbackLabel = resolveObjectDisplayName("customProp", "Custom Keepsake", seriousMode);
+    const label = customProp?.label?.trim() || fallbackLabel;
     const imgUrl = customProp?.imageUrl || "";
     return {
       objectName: label,
@@ -365,17 +390,18 @@ export function getDialogObjectMeta(feature, themeId = "comic", skinsMap = {}, c
     };
   }
 
+  const objectName = resolveObjectDisplayName(feature, def.objectName, seriousMode);
   const objectType = getObjectTypeForFeature(feature);
   if (!objectType) {
     return {
-      objectName: def.objectName,
+      objectName,
       pictureHtml: renderObjectSvgPictureByType("ops", themeId)
     };
   }
 
   const skinId = skinsMap?.[objectType] || "default";
   return {
-    objectName: def.objectName,
+    objectName,
     pictureHtml: renderObjectSkinVisual(objectType, skinId, themeId)
   };
 }

@@ -1,5 +1,7 @@
 // Zero-copyright Web Audio API multi-layer procedural ambient soundscape & chime engine
 
+import { state } from "../state.js";
+
 export const AUDIO_CHANNELS = [
   { id: "rain", label: "Soft Rain", icon: "🌧", color: "#5fa3b8" },
   { id: "fireplace", label: "Fireplace", icon: "🔥", color: "#df7a50" },
@@ -8,6 +10,7 @@ export const AUDIO_CHANNELS = [
   { id: "ocean", label: "Ocean Waves", icon: "🌊", color: "#4b95ad" },
   { id: "cafe", label: "Study Hall", icon: "☕", color: "#9c7a56" },
   { id: "whiteNoise", label: "Pink Noise", icon: "〰", color: "#a59bb8" },
+  { id: "brownNoise", label: "Brown Noise", icon: "〰", color: "#7d6858" },
   { id: "lofi", label: "Cozy Keys", icon: "🎹", color: "#d99254" }
 ];
 
@@ -15,6 +18,8 @@ class AudioManager {
   constructor() {
     this.ctx = null;
     this.masterGain = null;
+    this.masterFilter = null;
+    this.lowPassHz = Number(state.preferences?.lowPassHz || 18000);
     this.analyser = null;
     this.analyserData = null;
     this.isPlaying = false;
@@ -31,14 +36,20 @@ class AudioManager {
     this.ctx = new AudioCtx();
     this.masterGain = this.ctx.createGain();
     this.masterGain.gain.value = this.isPlaying ? this.masterVolume : 0;
+
+    this.masterFilter = this.ctx.createBiquadFilter();
+    this.masterFilter.type = "lowpass";
+    this.masterFilter.frequency.value = Math.min(20000, Math.max(400, this.lowPassHz));
+    this.masterGain.connect(this.masterFilter);
+
     if (typeof this.ctx.createAnalyser === "function") {
       this.analyser = this.ctx.createAnalyser();
       this.analyser.fftSize = 64;
       this.analyserData = new Uint8Array(this.analyser.frequencyBinCount);
-      this.masterGain.connect(this.analyser);
+      this.masterFilter.connect(this.analyser);
       this.analyser.connect(this.ctx.destination);
     } else {
-      this.masterGain.connect(this.ctx.destination);
+      this.masterFilter.connect(this.ctx.destination);
     }
     return true;
   }
@@ -55,10 +66,14 @@ class AudioManager {
     const buffer = this.ctx.createBuffer(1, length, sampleRate);
     const data = buffer.getChannelData(0);
     let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+    let lastOut = 0;
     for (let i = 0; i < length; i += 1) {
       const white = Math.random() * 2 - 1;
       if (type === "white") {
         data[i] = white * 0.35;
+      } else if (type === "brown") {
+        lastOut = (lastOut + 0.02 * white) / 1.02;
+        data[i] = lastOut * 2.2;
       } else {
         b0 = 0.99886 * b0 + white * 0.0555179;
         b1 = 0.99332 * b1 + white * 0.0750759;
@@ -87,7 +102,8 @@ class AudioManager {
     }
 
     const src = this.ctx.createBufferSource();
-    src.buffer = this.createNoiseBuffer(3, id === "whiteNoise" ? "white" : "pink");
+    const noiseType = id === "whiteNoise" ? "white" : id === "brownNoise" ? "brown" : "pink";
+    src.buffer = this.createNoiseBuffer(3, noiseType);
     src.loop = true;
 
     const filter = this.ctx.createBiquadFilter();
@@ -119,6 +135,9 @@ class AudioManager {
       filter.type = "bandpass";
       filter.frequency.value = 540;
       filter.Q.value = 0.9;
+    } else if (id === "brownNoise") {
+      filter.type = "lowpass";
+      filter.frequency.value = 620;
     } else {
       filter.type = "lowpass";
       filter.frequency.value = 2400;
@@ -210,7 +229,17 @@ class AudioManager {
     }
   }
 
+  setLowPassFilter(hz) {
+    const cleanHz = Math.min(20000, Math.max(400, Math.round(Number(hz) || 18000)));
+    this.lowPassHz = cleanHz;
+    if (this.masterFilter && this.ctx) {
+      this.masterFilter.frequency.setTargetAtTime(cleanHz, this.ctx.currentTime, 0.06);
+    }
+    return cleanHz;
+  }
+
   playChime(kind = "complete") {
+    if (state.preferences?.muteChimes) return;
     if (!this.ensureContext()) return;
     if (this.ctx.state === "suspended") this.ctx.resume().catch(() => {});
     const now = this.ctx.currentTime;

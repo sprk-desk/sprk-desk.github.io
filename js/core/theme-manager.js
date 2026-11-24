@@ -63,6 +63,14 @@ class ThemeManager {
       }
     });
 
+    const compBtn = document.querySelector(".desk-computer");
+    if (compBtn) {
+      const compSkin = activeSkinsForDoc.computer || "default";
+      if (compSkin === "flat-light") compBtn.dataset.flatBezel = "light";
+      else if (compSkin === "flat-dark") compBtn.dataset.flatBezel = "dark";
+      else delete compBtn.dataset.flatBezel;
+    }
+
     if (persist) {
       savePreferences({ theme: theme.id, skins: effectiveSkins }, { replaceSkins: true });
     }

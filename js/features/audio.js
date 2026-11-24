@@ -77,6 +77,10 @@ export const audioFeature = {
         tick
       });
 
+      const seriousMode = Boolean(state.preferences?.seriousMode);
+      const lowPassHz = Math.min(20000, Math.max(400, Number(audioManager.lowPassHz || state.preferences?.lowPassHz || 18000)));
+      const lowPassLabel = lowPassHz >= 1000 ? `${(lowPassHz / 1000).toFixed(1)} kHz` : `${lowPassHz} Hz`;
+
       container.innerHTML = `
         <div class="sprk-turntable-card ${audioManager.isPlaying ? "is-playing" : ""}">
           <div class="sprk-turntable-platter" aria-hidden="true">
@@ -89,11 +93,11 @@ export const audioFeature = {
           <div class="sprk-turntable-controls">
             <div class="sprk-turntable-top">
               <button type="button" class="sprk-btn sprk-btn-primary" id="audio-master-toggle" style="min-height:36px;padding:6px 14px;">
-                ${audioManager.isPlaying ? "⏸ Pause" : "▶ Play"}
+                ${audioManager.isPlaying ? (seriousMode ? "Pause" : "⏸ Pause") : (seriousMode ? "Play" : "▶ Play")}
               </button>
-              <strong style="font-size:13px;color:#fff6e4;">${escapeHtml(activeDisc.icon)} ${escapeHtml(activeDisc.name)}</strong>
+              <strong style="font-size:13px;color:#fff6e4;">${seriousMode ? "" : `${escapeHtml(activeDisc.icon)} `}${escapeHtml(activeDisc.name)}</strong>
               <label style="display:flex;align-items:center;gap:8px;min-width:130px;flex:1;max-width:210px;">
-                <span aria-hidden="true">🔊</span>
+                <span aria-hidden="true">${seriousMode ? "Vol" : "🔊"}</span>
                 <input id="audio-master-vol" type="range" min="0" max="100" value="${Math.round(audioManager.masterVolume * 100)}" aria-label="Master volume" style="width:100%;" />
               </label>
             </div>
@@ -107,9 +111,9 @@ export const audioFeature = {
         </div>
 
         <nav class="sprk-tabs sprk-tabs-cassette" role="tablist" aria-label="Audio controls">
-          <button type="button" class="sprk-tab ${tab === "discs" ? "is-active" : ""}" data-atab="discs">💿 Music Discs (${discs.length})</button>
-          <button type="button" class="sprk-tab ${tab === "mixer" ? "is-active" : ""}" data-atab="mixer">🎚 Sound Mixer</button>
-          <button type="button" class="sprk-tab ${tab === "saved" ? "is-active" : ""}" data-atab="saved">💾 Saved (${Object.keys(presets).length})</button>
+          <button type="button" class="sprk-tab ${tab === "discs" ? "is-active" : ""}" data-atab="discs">${seriousMode ? `Discs (${discs.length})` : `💿 Music Discs (${discs.length})`}</button>
+          <button type="button" class="sprk-tab ${tab === "mixer" ? "is-active" : ""}" data-atab="mixer">${seriousMode ? "Mixer & Noise" : "🎚 Sound Mixer"}</button>
+          <button type="button" class="sprk-tab ${tab === "saved" ? "is-active" : ""}" data-atab="saved">${seriousMode ? `Saved (${Object.keys(presets).length})` : `💾 Saved (${Object.keys(presets).length})`}</button>
         </nav>
 
         ${tab === "discs" ? `
@@ -119,7 +123,7 @@ export const audioFeature = {
               return `
                 <button type="button" class="sprk-disc-tile ${isAct ? "is-active" : ""} ${audioManager.isPlaying ? "is-playing" : ""}" data-disc-id="${escapeHtml(disc.id)}">
                   <div class="sprk-disc-vinyl" aria-hidden="true">
-                    <span class="sprk-disc-core" style="background:${escapeHtml(disc.swatch)};">${disc.icon}</span>
+                    <span class="sprk-disc-core" style="background:${escapeHtml(disc.swatch)};">${seriousMode ? "" : disc.icon}</span>
                   </div>
                   <strong style="font-size:12.5px;">${escapeHtml(disc.name)}</strong>
                 </button>
@@ -127,6 +131,14 @@ export const audioFeature = {
             }).join("")}
           </div>
         ` : tab === "mixer" ? `
+          <div class="sprk-card sprk-channel-tile" style="margin-bottom:10px;">
+            <div class="sprk-channel-head">
+              <span class="sprk-channel-id">Low-Pass Filter (Acoustic Warmth)</span>
+              <span class="tabular-nums sprk-meta" id="lbl-lowpass">${lowPassLabel}</span>
+            </div>
+            <input id="audio-lowpass-slider" type="range" min="400" max="20000" step="100" value="${lowPassHz}" aria-label="Low-pass filter frequency" style="width:100%;" />
+          </div>
+
           <div class="sprk-grid-2">
             ${AUDIO_CHANNELS.map((ch) => {
               const pct = Math.round((audioManager.levels[ch.id] || 0) * 100);
@@ -134,7 +146,7 @@ export const audioFeature = {
                 <div class="sprk-card sprk-channel-tile">
                   <div class="sprk-channel-head">
                     <span class="sprk-channel-id">
-                      <span aria-hidden="true">${ch.icon}</span>
+                      ${seriousMode ? "" : `<span aria-hidden="true">${ch.icon}</span>`}
                       <span>${escapeHtml(ch.label)}</span>
                     </span>
                     <span class="tabular-nums sprk-meta" id="lvl-${ch.id}">${pct}%</span>
@@ -148,13 +160,13 @@ export const audioFeature = {
           <div class="sprk-card" style="display:flex;flex-direction:column;gap:12px;">
             <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:space-between;align-items:center;">
               <button type="button" class="sprk-btn sprk-btn-primary" id="audio-save-preset">+ Save Current Disc</button>
-              <button type="button" class="sprk-btn" id="open-shop-music">💿 Music Shop →</button>
+              <button type="button" class="sprk-btn" id="open-shop-music">${seriousMode ? "Music Catalog →" : "💿 Music Shop →"}</button>
             </div>
             ${Object.keys(presets).length === 0
               ? `<div class="sprk-meta">No custom mixes saved yet.</div>`
               : `<div style="display:flex;gap:8px;flex-wrap:wrap;">
                   ${Object.keys(presets).map((name) => `
-                    <button type="button" class="sprk-btn" data-load-preset="${escapeHtml(name)}">💿 ${escapeHtml(name)}</button>
+                    <button type="button" class="sprk-btn" data-load-preset="${escapeHtml(name)}">${seriousMode ? "" : "💿 "}${escapeHtml(name)}</button>
                   `).join("")}
                 </div>`}
           </div>
@@ -175,6 +187,14 @@ export const audioFeature = {
 
       container.querySelector("#audio-master-vol")?.addEventListener("input", (e) => {
         audioManager.setMasterVolume(Number(e.target.value) / 100);
+      });
+
+      container.querySelector("#audio-lowpass-slider")?.addEventListener("input", (e) => {
+        const hz = Number(e.target.value);
+        audioManager.setLowPassFilter(hz);
+        savePreferences({ lowPassHz: hz });
+        const lbl = container.querySelector("#lbl-lowpass");
+        if (lbl) lbl.textContent = hz >= 1000 ? `${(hz / 1000).toFixed(1)} kHz` : `${hz} Hz`;
       });
 
       container.querySelectorAll("[data-disc-id]").forEach((btn) => {

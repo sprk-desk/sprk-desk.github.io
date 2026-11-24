@@ -8,6 +8,7 @@ import { renderPreviewStage } from "../utils/shop-preview.js";
 import { purchaseShopItem } from "../services/economy-service.js";
 import { skinManager } from "./skin-manager.js";
 import { escapeHtml } from "../utils/dom.js";
+import { resolveFeatureTabLabel, isFeatureHiddenInSeriousMode } from "../utils/room-settings.js";
 
 const FEATURE_TAB_LABELS = {
   focus: "⏱ Timer",
@@ -27,6 +28,7 @@ const FEATURE_TAB_LABELS = {
   cabinet: "🗂 Drawer",
   achievements: "🏆 Passport",
   coffee: "☕ Break",
+  settings: "🎛 Settings",
   customProp: "✨ Keepsake"
 };
 
@@ -75,7 +77,8 @@ class DialogManager {
     const themeId = state.preferences?.theme || "comic";
     const skinsMap = state.preferences?.skins || {};
     const customProp = state.spectatingRoom?.customProp || state.preferences?.customProp || null;
-    const meta = getDialogObjectMeta(feature, themeId, skinsMap, customProp);
+    const seriousMode = Boolean(state.preferences?.seriousMode);
+    const meta = getDialogObjectMeta(feature, themeId, skinsMap, customProp, seriousMode);
     if (this.eyebrowEl) {
       this.eyebrowEl.textContent = "";
       this.eyebrowEl.hidden = true;
@@ -98,28 +101,36 @@ class DialogManager {
       return;
     }
 
+    const seriousMode = Boolean(state.preferences?.seriousMode);
     const inv = getObjectSkinInventory({
       objectType,
       ownedItemIds: state.ownedItemIds,
       roomThemeId: state.preferences?.theme || "comic",
       activeSkins: state.preferences?.skins || {},
-      lockedSkins: state.preferences?.lockedSkins || {}
+      lockedSkins: state.preferences?.lockedSkins || {},
+      seriousMode
     });
 
     this.modeBarEl.hidden = false;
-    const featureLabel = FEATURE_TAB_LABELS[feature] || "Details";
+    const rawLabel = FEATURE_TAB_LABELS[feature] || "Details";
+    const featureLabel = resolveFeatureTabLabel(feature, rawLabel, seriousMode);
+    const skinsTabLabel = seriousMode ? "Skins" : "🎨 Skins";
+    const lockText = seriousMode
+      ? (inv.isLocked ? "Skin Locked" : "Lock Skin")
+      : (inv.isLocked ? "🔒 Skin Locked" : "🔓 Lock Skin");
+
     this.modeBarEl.innerHTML = `
       <div class="sprk-modebar-tabs" role="tablist" aria-label="Dialog mode">
         <button type="button" class="sprk-mode-tab ${this.activeMode === "feature" ? "is-active" : ""}" data-dialog-mode="feature">
           ${escapeHtml(featureLabel)}
         </button>
         <button type="button" class="sprk-mode-tab ${this.activeMode === "skins" ? "is-active" : ""}" data-dialog-mode="skins">
-          🎨 Skins <span class="sprk-mode-count tabular-nums">(${inv.owned.length})</span>
+          ${skinsTabLabel} <span class="sprk-mode-count tabular-nums">(${inv.owned.length})</span>
         </button>
       </div>
       <button type="button" class="sprk-lock-btn ${inv.isLocked ? "is-locked" : ""}" id="sprk-obj-lock-btn"
         title="${inv.isLocked ? "Locked: applying a room theme keeps this object's skin" : "Unlocked: room themes update this object"}">
-        ${inv.isLocked ? "🔒 Skin Locked" : "🔓 Lock Skin"}
+        ${lockText}
       </button>
     `;
 
@@ -213,22 +224,24 @@ class DialogManager {
     let statusMessage = "";
     const renderSkins = () => {
       const roomThemeId = state.preferences?.theme || "comic";
+      const seriousMode = Boolean(state.preferences?.seriousMode);
       const inv = getObjectSkinInventory({
         objectType,
         ownedItemIds: state.ownedItemIds,
         roomThemeId,
         activeSkins: state.preferences?.skins || {},
-        lockedSkins: state.preferences?.lockedSkins || {}
+        lockedSkins: state.preferences?.lockedSkins || {},
+        seriousMode
       });
       const isOverridden = Boolean(state.preferences?.skins?.[objectType]);
 
       this.bodyEl.innerHTML = `
         <div class="sprk-skins-topbar">
           <div class="sprk-badge-row">
-            <span class="sprk-badge-chip">${inv.isLocked ? "🔒 Locked on theme change" : "🔄 Follows room theme"}</span>
+            <span class="sprk-badge-chip">${seriousMode ? (inv.isLocked ? "Locked on theme change" : "Follows room theme") : (inv.isLocked ? "🔒 Locked on theme change" : "🔄 Follows room theme")}</span>
             ${isOverridden ? `<button type="button" class="sprk-btn" id="sprk-skin-match-room" style="min-height:30px;padding:3px 10px;font-size:12px;">Match Room Theme</button>` : ""}
           </div>
-          <span class="sprk-meta tabular-nums">🪙 ${state.user ? `${state.wallet.balance} SC` : "Guest"}</span>
+          <span class="sprk-meta tabular-nums sprk-gamified">${seriousMode ? "" : "🪙 "}${state.user ? `${state.wallet.balance} SC` : "Guest"}</span>
         </div>
 
         ${statusMessage ? `<div class="sprk-notice" role="status" style="margin-bottom:12px;">${escapeHtml(statusMessage)}</div>` : ""}
@@ -246,7 +259,7 @@ class DialogManager {
               </div>
               <div class="sprk-skin-tile-info">
                 <strong>${escapeHtml(skin.name)}</strong>
-                <span class="sprk-meta">${skin.active ? "Equipped" : (skin.kind === "theme-bundle" ? "Theme Skin" : "Owned")}</span>
+                <span class="sprk-meta">${skin.active ? "Equipped" : (skin.freeViaSeriousMode ? "Free (Serious Mode)" : (skin.kind === "theme-bundle" ? "Theme Skin" : "Owned"))}</span>
               </div>
             </button>
           `).join("")}
@@ -333,6 +346,9 @@ class DialogManager {
 
   open(feature, triggerEl = null, param = null, { syncHash = true } = {}) {
     if (!this.dialog || !this.renderers.has(feature)) return;
+    if (isFeatureHiddenInSeriousMode(feature, Boolean(state.preferences?.seriousMode))) {
+      return;
+    }
     if (this.dialog.open && this.activeFeature === feature && this.activeParam === param) {
       return;
     }

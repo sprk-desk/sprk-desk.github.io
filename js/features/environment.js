@@ -30,16 +30,17 @@ export const environmentFeature = {
 
     const renderView = () => {
       const prefs = state.preferences;
+      const seriousMode = Boolean(prefs.seriousMode);
       const lighting = prefs.lighting || {};
       const lampOn = lighting.lampOn !== false;
 
       container.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
           <nav class="sprk-tabs sprk-tabs-window" style="margin:0;" role="tablist">
-            <button type="button" class="sprk-tab ${tab === "sky" ? "is-active" : ""}" data-etab="sky">🌤 Sky & Weather</button>
-            <button type="button" class="sprk-tab ${tab === "lighting" ? "is-active" : ""}" data-etab="lighting">💡 Lighting</button>
+            <button type="button" class="sprk-tab ${tab === "sky" ? "is-active" : ""}" data-etab="sky">${seriousMode ? "Sky & Weather" : "🌤 Sky & Weather"}</button>
+            <button type="button" class="sprk-tab ${tab === "lighting" ? "is-active" : ""}" data-etab="lighting">${seriousMode ? "Lighting" : "💡 Lighting"}</button>
           </nav>
-          <button type="button" class="sprk-btn" id="open-shop-ambience" style="min-height:36px;padding:6px 12px;">Ambience Shop →</button>
+          <button type="button" class="sprk-btn" id="open-shop-ambience" style="min-height:36px;padding:6px 12px;">Ambience Catalog →</button>
         </div>
 
         ${tab === "sky" ? `
@@ -50,7 +51,7 @@ export const environmentFeature = {
                 const vis = SKY_ICONS[p.id] || SKY_ICONS.auto;
                 return `
                   <button type="button" class="sprk-env-tile ${prefs.timeOfDay === p.id ? "is-active" : ""}" data-time-phase="${p.id}">
-                    <span class="sprk-env-swatch" style="background:${vis.bg};" aria-hidden="true">${vis.icon}</span>
+                    <span class="sprk-env-swatch" style="background:${seriousMode ? (p.id === "night" ? "#1e1e1e" : "#eaeae6") : vis.bg};${seriousMode && p.id === "night" ? "color:#fff;" : ""}" aria-hidden="true">${seriousMode ? p.label.slice(0, 2).toUpperCase() : vis.icon}</span>
                     <span>${escapeHtml(p.id === "auto" ? "Auto" : p.label)}</span>
                   </button>
                 `;
@@ -63,10 +64,11 @@ export const environmentFeature = {
             <div class="sprk-weather-grid">
               ${WEATHER_MODES.map((w) => {
                 const vis = WEATHER_ICONS[w.id] || WEATHER_ICONS.clear;
+                const cleanLabel = w.label.replace("Sky", "").replace("Spring ", "").replace("Gentle ", "").replace("Soft ", "").replace("Evening ", "").trim();
                 return `
                   <button type="button" class="sprk-env-tile ${prefs.weather === w.id ? "is-active" : ""}" data-weather="${w.id}">
-                    <span class="sprk-env-swatch" style="background:${vis.bg};" aria-hidden="true">${vis.icon}</span>
-                    <span>${escapeHtml(w.label.replace("Sky", "").replace("Spring ", "").replace("Gentle ", "").replace("Soft ", "").replace("Evening ", "").trim())}</span>
+                    <span class="sprk-env-swatch" style="background:${seriousMode ? "#eaeae6" : vis.bg};" aria-hidden="true">${seriousMode ? cleanLabel.slice(0, 2).toUpperCase() : vis.icon}</span>
+                    <span>${escapeHtml(cleanLabel)}</span>
                   </button>
                 `;
               }).join("")}
@@ -77,15 +79,15 @@ export const environmentFeature = {
             <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
               <div style="display:flex;gap:8px;flex-wrap:wrap;">
                 <button type="button" class="sprk-btn ${lampOn ? "sprk-btn-primary" : ""}" id="env-lamp-toggle">
-                  ${lampOn ? "💡 Desk Lamp: On" : "🕯 Desk Lamp: Off"}
+                  ${seriousMode ? (lampOn ? "Desk Lamp: On" : "Desk Lamp: Off") : (lampOn ? "💡 Desk Lamp: On" : "🕯 Desk Lamp: Off")}
                 </button>
                 <button type="button" class="sprk-btn ${lighting.windowBeamOn !== false ? "sprk-btn-primary" : ""}" id="env-beam-toggle" aria-pressed="${lighting.windowBeamOn !== false}">
-                  ${lighting.windowBeamOn !== false ? "☀ Window Light Ray: On" : "🌫 Window Light Ray: Off"}
+                  ${seriousMode ? (lighting.windowBeamOn !== false ? "Window Beam: On" : "Window Beam: Off") : (lighting.windowBeamOn !== false ? "☀ Window Light Ray: On" : "🌫 Window Light Ray: Off")}
                 </button>
               </div>
               <span class="sprk-badge-chip">${escapeHtml(prefs.timeOfDay)} · ${escapeHtml(prefs.weather)}</span>
             </div>
-            <div class="sprk-grid-2">
+            <div class="sprk-grid-2" style="margin-bottom:12px;">
               ${[
                 ["roomBrightness", "Room Light", 50, 120, lighting.roomBrightness ?? 100],
                 ["windowBrightness", "Window Light", 40, 130, lighting.windowBrightness ?? 100],
@@ -98,7 +100,15 @@ export const environmentFeature = {
                   <input type="range" min="${min}" max="${max}" value="${val}" data-light-slider="${key}" />
                 </label>
               `).join("")}
+              <label class="sprk-field" style="margin:0;">
+                <span class="sprk-label">Lamp Temp (<span class="tabular-nums" id="val-lampKelvin">${lighting.lampKelvin ?? 3200}K</span>)</span>
+                <input type="range" min="2400" max="6000" step="100" value="${lighting.lampKelvin ?? 3200}" id="env-lamp-kelvin" />
+              </label>
             </div>
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;padding-top:8px;border-top:1px solid rgba(52,44,37,0.12);">
+              <input type="checkbox" id="env-auto-dusk" ${prefs.autoDuskLamp ? "checked" : ""} />
+              <span>Auto-Dusk Lamp (automatically illuminates the desk lamp at sunset and night)</span>
+            </label>
           </div>
         `}
       `;
@@ -147,6 +157,19 @@ export const environmentFeature = {
           const span = container.querySelector(`#val-${key}`);
           if (span) span.textContent = `${val}%`;
         });
+      });
+
+      container.querySelector("#env-lamp-kelvin")?.addEventListener("input", (e) => {
+        const kelvin = Number(e.target.value);
+        savePreferences({ lighting: { lampKelvin: kelvin } });
+        lightingManager.apply();
+        const span = container.querySelector("#val-lampKelvin");
+        if (span) span.textContent = `${kelvin}K`;
+      });
+
+      container.querySelector("#env-auto-dusk")?.addEventListener("change", (e) => {
+        savePreferences({ autoDuskLamp: e.target.checked });
+        lightingManager.apply();
       });
 
       container.querySelector("#open-shop-ambience")?.addEventListener("click", (e) => {

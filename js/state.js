@@ -42,6 +42,17 @@ export const state = {
       theme: APP_CONFIG.defaults.theme,
       timeOfDay: APP_CONFIG.defaults.timeOfDay,
       weather: APP_CONFIG.defaults.weather,
+      seriousMode: APP_CONFIG.defaults.seriousMode,
+      preSeriousTheme: APP_CONFIG.defaults.theme,
+      deepFocusMode: APP_CONFIG.defaults.deepFocusMode,
+      hideGamification: APP_CONFIG.defaults.hideGamification,
+      muteChimes: APP_CONFIG.defaults.muteChimes,
+      autoCycleBreaks: APP_CONFIG.defaults.autoCycleBreaks,
+      strictFocusLock: APP_CONFIG.defaults.strictFocusLock,
+      autoDuskLamp: APP_CONFIG.defaults.autoDuskLamp,
+      defaultFocusMinutes: APP_CONFIG.defaults.focus.focusMinutes,
+      lowPassHz: 18000,
+      pomodoroCyclesCompleted: 0,
       reducedMotion: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches || false,
       lowPerformance: false,
       layoutLocked: false,
@@ -95,6 +106,37 @@ export const state = {
   localDiary: readStorage("diary_notes", []),
   localSavedResources: readStorage("saved_resources", []),
   localAudioPresets: readStorage("audio_presets", {}),
+  localFlashcards: readStorage("flashcards", [
+    {
+      id: "card_starter_1",
+      deck: "Study Method",
+      front: "What is the testing effect in cognitive psychology?",
+      back: "Long-term memory retention improves significantly when retrieving information actively rather than passively rereading.",
+      reps: 0,
+      intervalDays: 0,
+      easeFactor: 2.5,
+      dueAtMs: 0,
+      lastReviewedAtMs: null,
+      createdAtMs: 1700000000000
+    },
+    {
+      id: "card_starter_2",
+      deck: "Mathematics",
+      front: "State the derivative of e^(kx) with respect to x.",
+      back: "k · e^(kx) by the chain rule.",
+      reps: 0,
+      intervalDays: 0,
+      easeFactor: 2.5,
+      dueAtMs: 0,
+      lastReviewedAtMs: null,
+      createdAtMs: 1700000000000
+    }
+  ]),
+  localExams: readStorage("exams", []),
+  localSubjectBudgets: readStorage("subject_budgets", []),
+  localWorkspaceProfiles: readStorage("workspace_profiles", []),
+  bodyDoublingRoom: readStorage("body_doubling_room", null),
+  pendingCheckInRecordId: null,
 
   // Authoritative server-synced collections (populated when signed in to Supabase)
   wallet: { balance: 0, earned: 0, spent: 0, ledger: [] },
@@ -164,6 +206,11 @@ export function persistLocalCollection(key, value) {
     localDiary: "diary_notes",
     localSavedResources: "saved_resources",
     localAudioPresets: "audio_presets",
+    localFlashcards: "flashcards",
+    localExams: "exams",
+    localSubjectBudgets: "subject_budgets",
+    localWorkspaceProfiles: "workspace_profiles",
+    bodyDoublingRoom: "body_doubling_room",
     savedLayouts: "saved_layouts"
   };
   if (map[key]) writeStorage(map[key], value);

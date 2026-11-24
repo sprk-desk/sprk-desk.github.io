@@ -19,6 +19,7 @@ const DEFAULT_PARENTS = [
   [".desk-phone", ".desk"],
   [".desk-notebook", ".desk"],
   [".desk-headphones", ".desk"],
+  [".settings-panel", ".desk"],
   [".coffee-mug", ".desk"]
 ];
 

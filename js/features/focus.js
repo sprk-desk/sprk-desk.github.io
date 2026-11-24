@@ -1,8 +1,10 @@
-// Wall Clock -> Focus Timer with timestamp recovery & idle detection
+// Wall Clock -> Focus Timer with timestamp recovery, Pomodoro Cycles, Interruption Audit & Post-Session Check-In
 import { APP_CONFIG } from "../../config.js";
-import { state, persistLocalCollection } from "../state.js";
+import { state, savePreferences, persistLocalCollection } from "../state.js";
 import { bus } from "../core/event-bus.js";
 import { audioManager } from "../core/audio-manager.js";
+import { isStrictFocusLockActive } from "../core/settings-manager.js";
+import { resolveNextPomodoroStep } from "../utils/study-tools.js";
 import {
   createFocusSession,
   computeElapsedActiveSeconds,
@@ -33,13 +35,37 @@ function updateClockVisualAndWhisper() {
   }
 
   const remaining = computeRemainingSeconds(sess);
-  const label = sess.status === "paused" ? "Paused" : "Focus";
+  const modeTag =
+    sess.mode === "short_break"
+      ? "Short Break"
+      : sess.mode === "long_break"
+        ? "Long Break"
+        : (sess.status === "paused" ? "Paused" : "Focus");
+  const lockSuffix = isStrictFocusLockActive() ? " · Locked" : "";
   whisper.hidden = false;
-  whisper.textContent = `${label} · ${formatDuration(remaining)} · ${sess.subject}`;
+  whisper.textContent = `${modeTag} · ${formatDuration(remaining)} · ${sess.subject}${lockSuffix}`;
 }
 
 export function initFocusBackgroundLoop() {
   updateClockVisualAndWhisper();
+
+  document.addEventListener("visibilitychange", () => {
+    const sess = state.activeSession;
+    if (!sess || sess.status !== "running" || sess.mode !== "focus") return;
+    if (!isStrictFocusLockActive()) return;
+
+    if (document.hidden) {
+      const updated = {
+        ...sess,
+        interruptions: Number(sess.interruptions || 0) + 1
+      };
+      persistLocalCollection("activeSession", updated);
+      updateClockVisualAndWhisper();
+    } else if (!state.preferences?.muteChimes) {
+      audioManager.playChime("focus");
+    }
+  });
+
   window.setInterval(() => {
     const sess = state.activeSession;
     if (!sess) return;
@@ -100,11 +126,42 @@ export async function finishActiveFocusSession({ autoCompleted = false } = {}) {
     durationSeconds: verifiedSeconds,
     creditsAwarded,
     isManual: false,
+    interruptions: Number(sess.interruptions || 0),
+    focusQuality: null,
+    reflection: "",
     startedAt: new Date(completed.startedAtMs).toISOString()
   };
 
   persistLocalCollection("localStudyRecords", [record, ...state.localStudyRecords]);
   persistLocalCollection("activeSession", null);
+
+  if (completed.mode === "focus") {
+    state.pendingCheckInRecordId = record.id;
+  }
+
+  const currentCycles = Number(state.preferences?.pomodoroCyclesCompleted || 0);
+  const nextStep = resolveNextPomodoroStep({
+    completedMode: completed.mode || "focus",
+    completedFocusCycles: currentCycles,
+    defaultFocusMinutes: Number(state.preferences?.defaultFocusMinutes || 25),
+    shortBreakMinutes: APP_CONFIG.defaults.focus.shortBreakMinutes,
+    longBreakMinutes: APP_CONFIG.defaults.focus.longBreakMinutes,
+    longBreakEvery: APP_CONFIG.defaults.focus.longBreakEvery
+  });
+
+  if (completed.mode === "focus") {
+    savePreferences({ pomodoroCyclesCompleted: nextStep.nextCycleCount });
+  }
+
+  if (state.preferences?.autoCycleBreaks !== false) {
+    state.pendingNextPomodoroStep = {
+      ...nextStep,
+      subject: completed.subject || "General Study"
+    };
+  } else {
+    state.pendingNextPomodoroStep = null;
+  }
+
   updateClockVisualAndWhisper();
   if (autoCompleted) audioManager.playChime("complete");
   bus.emit("focus:completed", record);
@@ -118,11 +175,15 @@ export const focusFeature = {
   icon: "◔",
   render(container, { rerender }) {
     let tab = "timer"; // timer | stats
-    let selectedMinutes = APP_CONFIG.defaults.focus.focusMinutes;
+    let selectedMinutes = Number(state.preferences?.defaultFocusMinutes || APP_CONFIG.defaults.focus.focusMinutes);
     let selectedMode = "focus";
+    let selectedQuality = 4;
 
     const renderView = () => {
       const sess = state.activeSession;
+      const prefs = state.preferences || {};
+      const seriousMode = Boolean(prefs.seriousMode);
+      const cycles = Number(prefs.pomodoroCyclesCompleted || 0);
       const remaining = sess ? computeRemainingSeconds(sess) : selectedMinutes * 60;
       const total = sess ? sess.targetSeconds : selectedMinutes * 60;
       const pct = total > 0 ? Math.min(100, Math.max(0, ((total - remaining) / total) * 100)) : 0;
@@ -133,19 +194,59 @@ export const focusFeature = {
       const todayMinutes = Math.round(todayRecords.reduce((sum, r) => sum + (r.durationSeconds || 0), 0) / 60);
       const todayCredits = todayRecords.reduce((sum, r) => sum + (r.creditsAwarded || 0), 0);
 
+      const pendingRecord = state.pendingCheckInRecordId
+        ? state.localStudyRecords.find((r) => r.id === state.pendingCheckInRecordId)
+        : null;
+      const nextStep = !sess ? state.pendingNextPomodoroStep : null;
+
       container.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
           <nav class="sprk-tabs sprk-tabs-clock" style="margin:0;" role="tablist">
-            <button type="button" class="sprk-tab ${tab === "timer" ? "is-active" : ""}" data-ftab="timer">◔ Timer</button>
-            <button type="button" class="sprk-tab ${tab === "stats" ? "is-active" : ""}" data-ftab="stats">📊 Today</button>
+            <button type="button" class="sprk-tab ${tab === "timer" ? "is-active" : ""}" data-ftab="timer">${seriousMode ? "Timer" : "◔ Timer"}</button>
+            <button type="button" class="sprk-tab ${tab === "stats" ? "is-active" : ""}" data-ftab="stats">${seriousMode ? "Today" : "📊 Today"}</button>
           </nav>
           <div class="sprk-badge-row">
-            <span class="sprk-badge-chip tabular-nums">⏱ ${todayMinutes}m</span>
-            <span class="sprk-badge-chip">${state.user ? `🪙 +${todayCredits} SC` : "💾 Local"}</span>
+            <span class="sprk-badge-chip tabular-nums">Cycles: ${cycles}</span>
+            <span class="sprk-badge-chip tabular-nums">${seriousMode ? `${todayMinutes}m` : `⏱ ${todayMinutes}m`}</span>
+            <span class="sprk-badge-chip sprk-gamified">${state.user ? (seriousMode ? `+${todayCredits} SC` : `🪙 +${todayCredits} SC`) : (seriousMode ? "Local" : "💾 Local")}</span>
           </div>
         </div>
 
         ${tab === "timer" ? `
+          ${pendingRecord ? `
+            <div class="sprk-card" style="margin-bottom:12px;border-color:var(--accent);" id="focus-checkin-card">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+                <strong style="font-size:13.5px;">Post-Session Check-In · ${escapeHtml(pendingRecord.subject)}</strong>
+                <span class="sprk-meta tabular-nums">${formatDuration(pendingRecord.durationSeconds || 0)}${pendingRecord.interruptions ? ` · ${pendingRecord.interruptions} switches` : ""}</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+                <span class="sprk-label" style="margin-right:4px;">Focus Quality:</span>
+                ${[1, 2, 3, 4, 5].map((q) => `
+                  <button type="button" class="sprk-btn ${selectedQuality === q ? "sprk-btn-primary" : ""}" data-checkin-q="${q}" style="min-height:30px;padding:3px 10px;">
+                    ${q}
+                  </button>
+                `).join("")}
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <input id="checkin-reflection" class="sprk-input" type="text" maxlength="140" placeholder="One takeaway or blocker resolved..." style="flex:1;min-width:180px;" />
+                <button type="button" class="sprk-btn sprk-btn-primary" id="checkin-save-btn" style="min-height:36px;">Save</button>
+                <button type="button" class="sprk-btn" id="checkin-skip-btn" style="min-height:36px;">Dismiss</button>
+              </div>
+            </div>
+          ` : ""}
+
+          ${nextStep ? `
+            <div class="sprk-notice" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+              <div>
+                <strong>Auto-Cycle Ready:</strong> ${escapeHtml(nextStep.label)}
+              </div>
+              <div style="display:flex;gap:6px;">
+                <button type="button" class="sprk-btn sprk-btn-primary" id="focus-start-next-cycle" style="min-height:32px;padding:4px 12px;">Start ${escapeHtml(nextStep.label)}</button>
+                <button type="button" class="sprk-btn" id="focus-dismiss-next-cycle" style="min-height:32px;padding:4px 10px;">Dismiss</button>
+              </div>
+            </div>
+          ` : ""}
+
           <div class="sprk-tabs sprk-tabs-clock" role="tablist" aria-label="Timer preset">
             <button type="button" class="sprk-tab ${!sess && selectedMode === "focus" && selectedMinutes === 25 ? "is-active" : ""}" data-preset="focus:25">Focus · 25m</button>
             <button type="button" class="sprk-tab ${!sess && selectedMode === "focus" && selectedMinutes === 50 ? "is-active" : ""}" data-preset="focus:50">Deep · 50m</button>
@@ -164,7 +265,7 @@ export const focusFeature = {
               <div style="position:absolute;text-align:center;">
                 <div class="tabular-nums" id="focus-readout" style="font-size:30px;font-weight:700;line-height:1;">${formatDuration(remaining)}</div>
                 <div class="sprk-meta" style="justify-content:center;margin-top:4px;">
-                  <span>${escapeHtml(sess ? (sess.status === "paused" ? "Paused" : "Running") : "Ready")}</span>
+                  <span>${escapeHtml(sess ? (sess.status === "paused" ? "Paused" : (sess.mode === "focus" ? "Focus" : "Break")) : "Ready")}</span>
                 </div>
               </div>
             </div>
@@ -188,19 +289,20 @@ export const focusFeature = {
                   </select>
                 </label>
               </div>
-              <button type="button" class="sprk-btn sprk-btn-primary" id="focus-start-btn" style="min-width:190px;">▶ Start Focus</button>
+              <button type="button" class="sprk-btn sprk-btn-primary" id="focus-start-btn" style="min-width:190px;">${seriousMode ? "Start Focus" : "▶ Start Focus"}</button>
             ` : `
               <div class="sprk-badge-row">
                 <span class="sprk-badge-chip">${escapeHtml(sess.subject)}</span>
                 <span class="sprk-badge-chip">${escapeHtml(sess.scope)}</span>
                 <span class="sprk-badge-chip tabular-nums">${formatDuration(computeElapsedActiveSeconds(sess))}</span>
+                ${prefs.strictFocusLock && sess.mode === "focus" ? `<span class="sprk-badge-chip tabular-nums">Strict Lock · ${sess.interruptions || 0} switches</span>` : ""}
               </div>
               <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;">
                 ${sess.status === "running"
-                  ? `<button type="button" class="sprk-btn" id="focus-pause-btn">⏸ Pause</button>`
-                  : `<button type="button" class="sprk-btn sprk-btn-primary" id="focus-resume-btn">▶ Resume</button>`}
-                <button type="button" class="sprk-btn sprk-btn-primary" id="focus-finish-btn">✓ Finish</button>
-                <button type="button" class="sprk-btn" id="focus-reset-btn">✕ Discard</button>
+                  ? `<button type="button" class="sprk-btn" id="focus-pause-btn">${seriousMode ? "Pause" : "⏸ Pause"}</button>`
+                  : `<button type="button" class="sprk-btn sprk-btn-primary" id="focus-resume-btn">${seriousMode ? "Resume" : "▶ Resume"}</button>`}
+                <button type="button" class="sprk-btn sprk-btn-primary" id="focus-finish-btn">${seriousMode ? "Finish" : "✓ Finish"}</button>
+                <button type="button" class="sprk-btn" id="focus-reset-btn">${seriousMode ? "Discard" : "✕ Discard"}</button>
               </div>
             `}
           </div>
@@ -215,14 +317,20 @@ export const focusFeature = {
               <div class="tabular-nums" style="font-size:22px;font-weight:700;margin-top:4px;">${todayRecords.length}</div>
             </div>
             <div class="sprk-card">
-              <div class="sprk-label">Credits</div>
-              <div class="tabular-nums" style="font-size:22px;font-weight:700;margin-top:4px;">${state.user ? `+${todayCredits} SC` : "Local"}</div>
+              <div class="sprk-label">Pomodoro Cycles</div>
+              <div class="tabular-nums" style="font-size:22px;font-weight:700;margin-top:4px;">${cycles}</div>
             </div>
           </div>
           <div style="display:grid;gap:8px;">
             ${todayRecords.length === 0 ? `<div class="sprk-empty">No sessions today yet.</div>` : todayRecords.slice(0, 8).map((r) => `
-              <div class="sprk-card" style="display:flex;justify-content:space-between;align-items:center;">
-                <strong>${escapeHtml(r.subject || "General Study")}</strong>
+              <div class="sprk-card" style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+                <div>
+                  <strong>${escapeHtml(r.subject || "General Study")}</strong>
+                  <div class="sprk-meta">
+                    ${r.focusQuality ? `<span>Quality ${r.focusQuality}/5</span>` : ""}
+                    ${r.interruptions ? `<span>· ${r.interruptions} switches</span>` : ""}
+                  </div>
+                </div>
                 <span class="tabular-nums sprk-badge-chip">${formatDuration(r.durationSeconds || 0)}</span>
               </div>
             `).join("")}
@@ -249,6 +357,50 @@ export const focusFeature = {
         });
       });
 
+      container.querySelectorAll("[data-checkin-q]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          selectedQuality = Number(btn.dataset.checkinQ);
+          renderView();
+        });
+      });
+
+      container.querySelector("#checkin-save-btn")?.addEventListener("click", () => {
+        const note = container.querySelector("#checkin-reflection")?.value.trim() || "";
+        const targetId = state.pendingCheckInRecordId;
+        const nextRecords = state.localStudyRecords.map((r) =>
+          r.id === targetId ? { ...r, focusQuality: selectedQuality, reflection: note } : r
+        );
+        persistLocalCollection("localStudyRecords", nextRecords);
+        state.pendingCheckInRecordId = null;
+        renderView();
+      });
+
+      container.querySelector("#checkin-skip-btn")?.addEventListener("click", () => {
+        state.pendingCheckInRecordId = null;
+        renderView();
+      });
+
+      container.querySelector("#focus-start-next-cycle")?.addEventListener("click", () => {
+        if (!state.pendingNextPomodoroStep) return;
+        const step = state.pendingNextPomodoroStep;
+        const newSess = createFocusSession({
+          id: generateId("focus"),
+          mode: step.nextMode,
+          targetSeconds: step.nextMinutes * 60,
+          scope: "personal",
+          subject: step.nextMode === "focus" ? (step.subject || "General Study") : step.label
+        });
+        state.pendingNextPomodoroStep = null;
+        persistLocalCollection("activeSession", newSess);
+        updateClockVisualAndWhisper();
+        renderView();
+      });
+
+      container.querySelector("#focus-dismiss-next-cycle")?.addEventListener("click", () => {
+        state.pendingNextPomodoroStep = null;
+        renderView();
+      });
+
       container.querySelector("#focus-custom-mins")?.addEventListener("change", (e) => {
         const val = Math.min(180, Math.max(1, Number(e.target.value) || 25));
         selectedMinutes = val;
@@ -268,6 +420,7 @@ export const focusFeature = {
           scope,
           subject
         });
+        newSess.interruptions = 0;
 
         if (supabase.configured && state.user?.id) {
           const { data } = await supabase.insert("focus_sessions", {
@@ -283,6 +436,7 @@ export const focusFeature = {
           if (data?.[0]?.id) newSess.serverSessionId = data[0].id;
         }
 
+        state.pendingNextPomodoroStep = null;
         persistLocalCollection("activeSession", newSess);
         updateClockVisualAndWhisper();
         renderView();

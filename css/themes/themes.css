@@ -503,4 +503,275 @@ html[data-theme="noir"] .sprk-dialog[data-dialog-skin="tasks"] {
   background-image: radial-gradient(rgba(15, 15, 15, 0.14) 0.9px, transparent 1px);
 }
 
+/* --- Serious Mode: Sober Typography, Monochrome Dialogs, Zero Decorative Clutter --- */
+html[data-serious-mode="true"] {
+  --font-hand: var(--font-body);
+}
 
+html[data-serious-mode="true"] button:focus-visible,
+html[data-serious-mode="true"] input:focus-visible,
+html[data-serious-mode="true"] select:focus-visible,
+html[data-serious-mode="true"] textarea:focus-visible,
+html[data-serious-mode="true"] a:focus-visible,
+html[data-serious-mode="true"] .interactive-object:focus-visible,
+html[data-serious-mode="true"] .room-object:focus-visible {
+  outline-color: var(--ink);
+}
+
+html[data-serious-mode="true"] .sprk-hand {
+  font-family: var(--font-body);
+  font-size: 15px !important;
+  font-weight: 600;
+  line-height: 1.38;
+  letter-spacing: -0.01em;
+}
+
+html[data-serious-mode="true"] .sprk-dialog {
+  border-radius: 6px;
+  box-shadow: 0 20px 52px rgba(0, 0, 0, 0.28), 3px 4px 0 var(--ink);
+}
+
+html[data-serious-mode="true"] .sprk-dialog-modebar {
+  background: #f2f2ef;
+}
+
+html[data-serious-mode="true"] .sprk-dialog-icon {
+  background: #ffffff;
+}
+
+html[data-serious-mode="true"] .sprk-dialog-icon,
+html[data-serious-mode="true"] .sprk-dialog-close,
+html[data-serious-mode="true"] .sprk-btn,
+html[data-serious-mode="true"] .sprk-card,
+html[data-serious-mode="true"] .sprk-tabs,
+html[data-serious-mode="true"] .sprk-tab,
+html[data-serious-mode="true"] .sprk-notice,
+html[data-serious-mode="true"] .sprk-badge-chip,
+html[data-serious-mode="true"] .sprk-skin-tile,
+html[data-serious-mode="true"] .sprk-lock-btn {
+  border-radius: 5px;
+}
+
+html[data-serious-mode="true"] .sprk-dialog[data-dialog-skin="diary"] {
+  background: #ffffff;
+  background-image: none;
+}
+
+html[data-serious-mode="true"] .sprk-dialog[data-dialog-skin="diary"] .sprk-dialog-header {
+  background: #f2f2ef;
+  padding-left: 20px;
+}
+
+html[data-serious-mode="true"] .sprk-dialog[data-dialog-skin="diary"] .sprk-dialog-body {
+  padding-left: 20px;
+}
+
+html[data-serious-mode="true"] .sprk-tabs-notebook .sprk-tab,
+html[data-serious-mode="true"] .sprk-tabs-notebook .sprk-tab[data-dtab="notes"],
+html[data-serious-mode="true"] .sprk-tabs-notebook .sprk-tab[data-dtab="write"],
+html[data-serious-mode="true"] .sprk-tabs-folder .sprk-tab {
+  background: #ededeb;
+  border-radius: 5px 5px 0 0;
+}
+
+html[data-serious-mode="true"] .sprk-tabs-notebook .sprk-tab.is-active,
+html[data-serious-mode="true"] .sprk-tabs-folder .sprk-tab.is-active {
+  background: #ffffff;
+}
+
+html[data-serious-mode="true"] .sprk-dialog[data-dialog-skin="tasks"] {
+  background-color: #f3f3f0;
+  background-image: none;
+}
+
+html[data-serious-mode="true"] .sprk-dialog[data-dialog-skin="tasks"] .sprk-dialog-header {
+  background: #ffffff;
+}
+
+html[data-serious-mode="true"] .sprk-tabs-pinboard,
+html[data-serious-mode="true"] .sprk-tabs-bookshelf,
+html[data-serious-mode="true"] .sprk-tabs-window,
+html[data-serious-mode="true"] .sprk-tabs-plant {
+  background: rgba(15, 15, 15, 0.06);
+  border-color: rgba(15, 15, 15, 0.22);
+}
+
+html[data-serious-mode="true"] .sprk-tabs-pinboard .sprk-tab {
+  padding-left: 12px;
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(15, 15, 15, 0.16);
+}
+
+html[data-serious-mode="true"] .sprk-tabs-pinboard .sprk-tab::before {
+  display: none;
+}
+
+html[data-serious-mode="true"] .sprk-tabs-pinboard .sprk-tab.is-active {
+  background: #ffffff;
+  border-color: var(--ink);
+  box-shadow: none;
+}
+
+html[data-serious-mode="true"] .sprk-sticky-note,
+html[data-serious-mode="true"] .sprk-sticky-note[data-color] {
+  background: #ffffff;
+  border: 1.5px solid var(--ink);
+  border-left-width: 4px;
+  border-radius: 4px;
+  box-shadow: 1px 2px 0 rgba(15, 15, 15, 0.12);
+}
+
+html[data-serious-mode="true"] .sprk-sticky-note[data-color="mint"] { border-left-color: #4a4a48; }
+html[data-serious-mode="true"] .sprk-sticky-note[data-color="peach"] { border-left-color: #20201e; }
+html[data-serious-mode="true"] .sprk-sticky-note[data-color="sky"] { border-left-color: #70706c; }
+
+html[data-serious-mode="true"] .sprk-dialog[data-dialog-skin="calendar"] .sprk-dialog-header,
+html[data-serious-mode="true"] .sprk-dialog[data-dialog-skin="community"] .sprk-dialog-header,
+html[data-serious-mode="true"] .sprk-dialog[data-dialog-skin="friends"] .sprk-dialog-header,
+html[data-serious-mode="true"] .sprk-dialog[data-dialog-skin="audio"] .sprk-dialog-header {
+  background: #141414;
+  color: #f6f6f4;
+}
+
+html[data-serious-mode="true"] .sprk-dialog[data-dialog-skin="community"] {
+  border-width: 2px;
+  border-radius: 6px;
+  background: #f5f5f2;
+}
+
+html[data-serious-mode="true"] .sprk-dialog[data-dialog-skin="friends"] {
+  border-width: 2px;
+  border-radius: 6px;
+}
+
+html[data-serious-mode="true"] .sprk-dialog[data-dialog-skin="community"] .sprk-dialog-eyebrow,
+html[data-serious-mode="true"] .sprk-dialog[data-dialog-skin="friends"] .sprk-dialog-eyebrow {
+  color: #bcbcb6;
+}
+
+html[data-serious-mode="true"] .cal-cell.has-study {
+  background: #e6e6e1;
+  border-color: #1a1a1a;
+}
+
+html[data-serious-mode="true"] .sprk-dialog[data-dialog-skin="shop"] .sprk-dialog-header {
+  background: #141414;
+  color: #f6f6f4;
+  border-bottom: 2px solid var(--ink);
+}
+
+html[data-serious-mode="true"] .sprk-dialog[data-dialog-skin="shop"] .sprk-dialog-title-wrap {
+  background: #ffffff;
+  color: #0f0f0f;
+  border-radius: 5px;
+}
+
+html[data-serious-mode="true"] .sprk-dialog[data-dialog-skin="shop"] .sprk-dialog-close {
+  background: rgba(255, 255, 255, 0.14);
+  color: #f6f6f4;
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+html[data-serious-mode="true"] .sprk-shop-roof-tabs {
+  background: #efefeb;
+  border-radius: 6px;
+  padding: 6px;
+  box-shadow: none;
+}
+
+html[data-serious-mode="true"] .sprk-shop-roof-tabs::before,
+html[data-serious-mode="true"] .sprk-shop-roof-tab::before,
+html[data-serious-mode="true"] .sprk-shop-roof-tab::after {
+  display: none;
+}
+
+html[data-serious-mode="true"] .sprk-shop-roof-tab {
+  padding: 8px 6px;
+  border-radius: 4px;
+  background: #ffffff;
+}
+
+html[data-serious-mode="true"] .sprk-shop-roof-tab[data-cat].is-active {
+  background: #141414;
+  color: #ffffff;
+  transform: none;
+  box-shadow: none;
+}
+
+html[data-serious-mode="true"] .sprk-shop-roof-tab[data-cat].is-active .sprk-roof-tab-count {
+  color: #d4d4cf;
+}
+
+html[data-serious-mode="true"] .sprk-lock-btn.is-locked {
+  background: #1c1c1c;
+  color: #ffffff;
+}
+
+html[data-serious-mode="true"] .sprk-notice {
+  background: #f2f2ee;
+}
+
+html[data-serious-mode="true"] .room-screen .mug-steam,
+html[data-serious-mode="true"] .room-screen .bookcase-fairy-lights,
+html[data-serious-mode="true"] .room-screen .desk-deco-charm,
+html[data-serious-mode="true"] .room-screen .shelf-deco-candle,
+html[data-serious-mode="true"] .room-screen .shelf-deco-bookend {
+  display: none !important;
+}
+
+html[data-serious-mode="true"] .merchant-bird:hover,
+html[data-serious-mode="true"] .merchant-bird:focus-visible,
+html[data-serious-mode="true"] .desk-phone:hover,
+html[data-serious-mode="true"] .desk-phone:focus-visible,
+html[data-serious-mode="true"] .pinboard:hover,
+html[data-serious-mode="true"] .pinboard:focus-visible,
+html[data-serious-mode="true"] .mascot:hover,
+html[data-serious-mode="true"] .mascot:focus-visible,
+html[data-serious-mode="true"] .desk-plant:hover,
+html[data-serious-mode="true"] .desk-plant:focus-visible {
+  animation: none !important;
+  transform: translateY(-2px);
+}
+
+/* --- Deep Focus Mode: Dim Non-Essential Peripheral Room Distractions --- */
+html[data-deep-focus="true"] .merchant-bird,
+html[data-deep-focus="true"] .desk-phone,
+html[data-deep-focus="true"] .mascot,
+html[data-deep-focus="true"] .trophy,
+html[data-deep-focus="true"] .coffee-mug,
+html[data-deep-focus="true"] .custom-prop,
+html[data-deep-focus="true"] .shelf-deco-candle,
+html[data-deep-focus="true"] .shelf-deco-bookend,
+html[data-deep-focus="true"] .desk-deco-charm,
+html[data-deep-focus="true"] .bookcase-fairy-lights {
+  opacity: 0.22;
+  filter: grayscale(0.88);
+  transition: opacity 0.25s ease, filter 0.25s ease;
+}
+
+html[data-deep-focus="true"] .merchant-bird:hover,
+html[data-deep-focus="true"] .merchant-bird:focus-visible,
+html[data-deep-focus="true"] .desk-phone:hover,
+html[data-deep-focus="true"] .desk-phone:focus-visible,
+html[data-deep-focus="true"] .mascot:hover,
+html[data-deep-focus="true"] .mascot:focus-visible,
+html[data-deep-focus="true"] .trophy:hover,
+html[data-deep-focus="true"] .trophy:focus-visible,
+html[data-deep-focus="true"] .coffee-mug:hover,
+html[data-deep-focus="true"] .coffee-mug:focus-visible,
+html[data-deep-focus="true"] .custom-prop:hover,
+html[data-deep-focus="true"] .custom-prop:focus-visible {
+  opacity: 0.78;
+  filter: grayscale(0.3);
+}
+
+/* --- Zero-Gamification: Hide SC Balance & Reward Flares --- */
+html[data-hide-gamification="true"] .sprk-gamified {
+  display: none !important;
+}
+
+html[data-serious-mode="true"] .sprk-cmd-item.is-selected,
+html[data-serious-mode="true"] .sprk-flashcard-stage {
+  border-radius: 5px;
+  background: #ffffff;
+}

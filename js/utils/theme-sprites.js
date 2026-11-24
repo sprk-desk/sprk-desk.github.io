@@ -8,6 +8,7 @@ export const BASE_SPRITES = {
   computer: "./assets/sprites/themes/comic/computer.png",
   headphones: "./assets/sprites/themes/comic/headphones.png",
   mug: "./assets/sprites/themes/comic/mug.png",
+  settings: "./assets/sprites/themes/comic/settings.png",
   trophy: null,
   portrait: "./assets/sprites/portrait_meadow.jpg"
 };
@@ -34,6 +35,7 @@ export const OBJECT_SPRITE_SELECTORS = {
   computer: ".computer-sprite",
   headphones: ".headphones-sprite",
   mug: ".mug-sprite",
+  settings: ".settings-sprite",
   trophy: ".trophy-sprite"
 };
 
@@ -45,6 +47,7 @@ export const SPRITE_KEY_TO_OBJECT_TYPE = {
   computer: "computer",
   headphones: "headphones",
   mug: "coffee",
+  settings: "settings",
   trophy: "trophy"
 };
 

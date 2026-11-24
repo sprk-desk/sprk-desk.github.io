@@ -9,6 +9,7 @@ import { layoutManager } from "./core/layout-manager.js";
 import { decorationManager } from "./core/decoration-manager.js";
 import { dialogManager } from "./core/dialog-manager.js";
 import { audioManager } from "./core/audio-manager.js";
+import { applyRoomSettingsToDocument } from "./core/settings-manager.js";
 import { initRouter, parseHashRoute } from "./router.js";
 import { restoreSession } from "./services/auth-service.js";
 import {
@@ -37,7 +38,9 @@ import { achievementsFeature } from "./features/achievements.js";
 import { buddyFeature } from "./features/buddy.js";
 import { coffeeFeature } from "./features/coffee.js";
 import { customPropFeature } from "./features/custom-prop.js";
+import { settingsFeature } from "./features/settings.js";
 import { adminFeature } from "./features/admin.js";
+import { initCommandPalette, openCommandPalette } from "./features/command-palette.js";
 
 const FEATURE_OBJECT_MAP = [
   [".desk-clock", "focus"],
@@ -57,7 +60,8 @@ const FEATURE_OBJECT_MAP = [
   [".cabinet-drawer", "cabinet"],
   [".trophy", "achievements"],
   [".coffee-mug", "coffee"],
-  [".custom-prop", "customProp"]
+  [".custom-prop", "customProp"],
+  [".settings-panel", "settings"]
 ];
 
 async function bootstrap() {
@@ -66,13 +70,15 @@ async function bootstrap() {
   themeManager.registerObjects(roomObjects);
   skinManager.registerObjects(roomObjects);
 
-  // Apply saved theme, skins, fixed decorations, custom prop, and layered lighting
+  // Apply saved theme, skins, fixed decorations, custom prop, study modes, and layered lighting
   themeManager.apply(state.preferences.theme || "comic", { persist: false });
   skinManager.applySavedSkins();
   decorationManager.init();
+  applyRoomSettingsToDocument();
   lightingManager.init();
   layoutManager.init();
   dialogManager.init();
+  initCommandPalette();
 
   // Register all object-launched dialogs
   dialogManager.register("focus", focusFeature);
@@ -93,6 +99,7 @@ async function bootstrap() {
   dialogManager.register("achievements", achievementsFeature);
   dialogManager.register("coffee", coffeeFeature);
   dialogManager.register("customProp", customPropFeature);
+  dialogManager.register("settings", settingsFeature);
   dialogManager.register("ops", adminFeature);
 
   // Wire physical room object buttons
@@ -165,14 +172,38 @@ async function bootstrap() {
     decorationManager.applyCustomProp();
   });
 
-  // Automatic cloud persistence for theme, object skins, lighting, and object positions
+  // Automatic cloud persistence & runtime mode sync
   bus.on("preferences:changed", ({ preferences, skipCloudSync }) => {
+    applyRoomSettingsToDocument();
     if (!skipCloudSync) {
       scheduleCloudPreferencesSync(preferences);
     }
   });
+  bus.on("state:activeSession", () => {
+    applyRoomSettingsToDocument();
+  });
   bus.on("layout:changed", ({ layoutName, layout }) => {
     scheduleCloudLayoutSync(layoutName, layout);
+  });
+
+  // Global keyboard shortcuts: Ctrl/Cmd+K (Command Palette) & Shift+F (Focus View)
+  window.addEventListener("keydown", (event) => {
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+      event.preventDefault();
+      openCommandPalette();
+      return;
+    }
+    if (!event.shiftKey || event.key.toLowerCase() !== "f") return;
+    const tag = event.target?.tagName?.toLowerCase();
+    if (tag === "input" || tag === "textarea" || tag === "select" || event.target?.isContentEditable) {
+      return;
+    }
+    event.preventDefault();
+    if (dialogManager.dialog?.open && dialogManager.activeFeature === "settings" && dialogManager.activeParam === "focus") {
+      dialogManager.close();
+    } else {
+      dialogManager.open("settings", document.querySelector(".settings-panel"), "focus");
+    }
   });
 
   // Hash navigation sync

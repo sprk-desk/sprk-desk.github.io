@@ -1,7 +1,20 @@
-// Hourglass -> Study Register & Session History Tabs
+// Hourglass -> Study Register, CSV/Markdown Export & Session Quality History
 import { state, persistLocalCollection } from "../state.js";
 import { escapeHtml, formatDuration, todayIsoDate, generateId } from "../utils/dom.js";
+import { formatStudyRecordsCsv, formatStudyRecordsMarkdown } from "../utils/study-tools.js";
 import { syncManualStudyRecord } from "../services/database-service.js";
+
+function downloadStudyFile(filename, content, mime) {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 
 export const registerFeature = {
   skin: "register",
@@ -13,14 +26,21 @@ export const registerFeature = {
 
     const renderView = () => {
       const records = state.localStudyRecords || [];
+      const seriousMode = Boolean(state.preferences?.seriousMode);
 
       container.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
           <nav class="sprk-tabs sprk-tabs-clock" style="margin:0;" role="tablist">
-            <button type="button" class="sprk-tab ${tab === "history" ? "is-active" : ""}" data-rtab="history">⧖ History (${records.length})</button>
+            <button type="button" class="sprk-tab ${tab === "history" ? "is-active" : ""}" data-rtab="history">${seriousMode ? `History (${records.length})` : `⧖ History (${records.length})`}</button>
             <button type="button" class="sprk-tab ${tab === "log" ? "is-active" : ""}" data-rtab="log">+ Log Study</button>
           </nav>
-          <span class="sprk-badge-chip">⏳ Manual = 0 SC</span>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            ${records.length > 0 ? `
+              <button type="button" class="sprk-btn" id="reg-export-csv" style="min-height:30px;padding:3px 10px;font-size:12px;">Export .csv</button>
+              <button type="button" class="sprk-btn" id="reg-export-md" style="min-height:30px;padding:3px 10px;font-size:12px;">Export .md</button>
+            ` : ""}
+            <span class="sprk-badge-chip sprk-gamified">${seriousMode ? "Manual = 0 SC" : "⏳ Manual = 0 SC"}</span>
+          </div>
         </div>
 
         ${tab === "log" ? `
@@ -48,17 +68,20 @@ export const registerFeature = {
             <div style="display:grid;gap:8px;">
               ${records.slice(0, 30).map((r) => `
                 <div class="sprk-card" style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
-                  <div>
-                    <div style="font-weight:700;font-size:14px;">${r.isManual ? "✎" : "◔"} ${escapeHtml(r.subject || "General Study")}</div>
+                  <div style="min-width:0;">
+                    <div style="font-weight:700;font-size:14px;">${seriousMode ? "" : (r.isManual ? "✎ " : "◔ ")}${escapeHtml(r.subject || "General Study")}</div>
                     <div class="sprk-meta">
                       <span>${escapeHtml(r.date || "")}</span>
                       <span aria-hidden="true">·</span>
                       <span>${r.isManual ? "Manual" : "Timer"}</span>
+                      ${r.focusQuality ? `<span aria-hidden="true">·</span><span>Quality ${r.focusQuality}/5</span>` : ""}
+                      ${r.interruptions ? `<span aria-hidden="true">·</span><span>${r.interruptions} switches</span>` : ""}
                     </div>
+                    ${r.reflection ? `<div class="sprk-meta" style="margin-top:3px;">“${escapeHtml(r.reflection)}”</div>` : ""}
                   </div>
-                  <div style="text-align:right;">
+                  <div style="text-align:right;flex-shrink:0;">
                     <div class="tabular-nums" style="font-weight:700;">${formatDuration(r.durationSeconds || 0)}</div>
-                    <div class="sprk-meta tabular-nums" style="justify-content:flex-end;">${r.creditsAwarded ? `+${r.creditsAwarded} SC` : "0 SC"}</div>
+                    <div class="sprk-meta tabular-nums sprk-gamified" style="justify-content:flex-end;">${r.creditsAwarded ? `+${r.creditsAwarded} SC` : "0 SC"}</div>
                   </div>
                 </div>
               `).join("")}
@@ -72,6 +95,14 @@ export const registerFeature = {
           tab = btn.dataset.rtab;
           renderView();
         });
+      });
+
+      container.querySelector("#reg-export-csv")?.addEventListener("click", () => {
+        downloadStudyFile(`sprk-study-log-${todayIsoDate()}.csv`, formatStudyRecordsCsv(records), "text/csv;charset=utf-8");
+      });
+
+      container.querySelector("#reg-export-md")?.addEventListener("click", () => {
+        downloadStudyFile(`sprk-study-log-${todayIsoDate()}.md`, formatStudyRecordsMarkdown(records), "text/markdown;charset=utf-8");
       });
 
       container.querySelector("#manual-record-form")?.addEventListener("submit", (e) => {
@@ -89,6 +120,7 @@ export const registerFeature = {
           durationSeconds: mins * 60,
           creditsAwarded: 0,
           isManual: true,
+          interruptions: 0,
           startedAt: new Date().toISOString()
         };
         persistLocalCollection("localStudyRecords", [rec, ...state.localStudyRecords]);

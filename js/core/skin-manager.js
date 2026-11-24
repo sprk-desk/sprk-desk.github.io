@@ -6,6 +6,8 @@ import {
   getObjectSkinInventory,
   toggleObjectSkinLock
 } from "../utils/object-skins.js";
+import { isObjectHiddenInSeriousMode } from "../utils/room-settings.js";
+import { syncComputerScreenMedia } from "./settings-manager.js";
 
 class SkinManager {
   constructor() {
@@ -23,7 +25,21 @@ class SkinManager {
     for (const [type, skinName] of Object.entries(saved)) {
       this.applySkin(type, skinName, { persist: false, syncSprites: false });
     }
+    this._syncComputerFlatBezel(saved.computer);
     applyThemeSpritesToDocument(document, roomTheme, saved);
+    syncComputerScreenMedia();
+  }
+
+  _syncComputerFlatBezel(skinName) {
+    const compBtn = document.querySelector(".desk-computer");
+    if (!compBtn) return;
+    if (skinName === "flat-light") {
+      compBtn.dataset.flatBezel = "light";
+    } else if (skinName === "flat-dark") {
+      compBtn.dataset.flatBezel = "dark";
+    } else {
+      delete compBtn.dataset.flatBezel;
+    }
   }
 
   listAvailableSkins() {
@@ -32,10 +48,14 @@ class SkinManager {
     const roomTheme = state.preferences.theme || "comic";
     const activeSkins = state.preferences.skins || {};
     const lockedSkins = state.preferences.lockedSkins || {};
+    const seriousMode = Boolean(state.preferences?.seriousMode);
 
     for (const obj of this.objects) {
       const type = obj.definition?.type;
       if (!type || type === "room" || type === "bookcase" || type === "desk" || seen.has(type)) {
+        continue;
+      }
+      if (isObjectHiddenInSeriousMode(type, seriousMode)) {
         continue;
       }
       seen.add(type);
@@ -44,7 +64,8 @@ class SkinManager {
         ownedItemIds: state.ownedItemIds,
         roomThemeId: roomTheme,
         activeSkins,
-        lockedSkins
+        lockedSkins,
+        seriousMode: Boolean(state.preferences?.seriousMode)
       });
       out.push({
         type,
@@ -97,11 +118,18 @@ class SkinManager {
       nextSkins[objectType] = targetSkin;
     }
 
+    if (objectType === "computer") {
+      this._syncComputerFlatBezel(targetSkin);
+    }
+
     if (persist) {
       savePreferences({ skins: nextSkins }, { replaceSkins: true });
     }
     if (syncSprites) {
       applyThemeSpritesToDocument(document, state.preferences.theme || "comic", nextSkins);
+      if (objectType === "computer") {
+        syncComputerScreenMedia();
+      }
     }
     if (persist) {
       bus.emit("skins:changed", { objectType, skinName: targetSkin });
@@ -114,8 +142,10 @@ class SkinManager {
         obj.applySkin("default");
       }
     }
+    this._syncComputerFlatBezel("default");
     savePreferences({ skins: {}, lockedSkins: {} }, { replaceSkins: true });
     applyThemeSpritesToDocument(document, state.preferences.theme || "comic", {});
+    syncComputerScreenMedia();
     bus.emit("skins:changed", { reset: true });
   }
 }

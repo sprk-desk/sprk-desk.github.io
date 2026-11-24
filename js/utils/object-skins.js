@@ -1,6 +1,11 @@
 // Pure Per-Object Skin Inventory, Cross-Theme Overrides & Skin Locking Logic
 import { SHOP_CATALOG, SKIN_STYLES, THEME_PALETTES } from "./shop-catalog.js";
 import { hasCustomSpritePack, resolveObjectSpriteSrc } from "./theme-sprites.js";
+import {
+  getThemeDisplayPrice,
+  isSeriousTheme,
+  isThemeAccessibleInMode
+} from "./room-settings.js";
 
 export const FEATURE_OBJECT_TYPE = {
   focus: "clock",
@@ -20,7 +25,8 @@ export const FEATURE_OBJECT_TYPE = {
   cabinet: "drawer",
   achievements: "trophy",
   coffee: "coffee",
-  lamp: "lamp"
+  lamp: "lamp",
+  settings: "settings"
 };
 
 export const OBJECT_TYPE_LABELS = {
@@ -41,7 +47,8 @@ export const OBJECT_TYPE_LABELS = {
   drawer: "Cabinet Drawer",
   trophy: "Shelf Trophy",
   coffee: "Coffee Mug",
-  lamp: "Desk Lamp"
+  lamp: "Desk Lamp",
+  settings: "Control Panel"
 };
 
 export const THEME_BUNDLE_IDS = [
@@ -62,7 +69,11 @@ export const STARTER_OBJECT_SKINS = {
   "photo-frame": [{ skinName: "walnut", name: "Walnut Wood", swatch: "#8b5a3c" }],
   pinboard: [{ skinName: "mint", name: "Mint Cork", swatch: "#9fc9b1" }],
   drawer: [{ skinName: "brass", name: "Antique Brass", swatch: "#b4863f" }],
-  calendar: [{ skinName: "ocean", name: "Seafoam Header", swatch: "#4e99ad" }]
+  calendar: [{ skinName: "ocean", name: "Seafoam Header", swatch: "#4e99ad" }],
+  computer: [
+    { skinName: "flat-light", name: "Flat Display · White", swatch: "#f4f4f1" },
+    { skinName: "flat-dark", name: "Flat Display · Black", swatch: "#1a1a1c" }
+  ]
 };
 
 const SPRITE_OBJECT_KEYS = {
@@ -73,6 +84,7 @@ const SPRITE_OBJECT_KEYS = {
   computer: "computer",
   headphones: "headphones",
   coffee: "mug",
+  settings: "settings",
   trophy: "trophy"
 };
 
@@ -123,6 +135,7 @@ export function getObjectSkinInventory({
   roomThemeId = "comic",
   activeSkins = {},
   lockedSkins = {},
+  seriousMode = false,
   catalog = SHOP_CATALOG
 } = {}) {
   const ownedSet = new Set(ownedItemIds || []);
@@ -183,7 +196,8 @@ export function getObjectSkinInventory({
   for (const themeItem of bundleItems) {
     const themeId = themeItem.themeId;
     const bundleSkinId = `theme:${themeId}`;
-    const isOwned = ownedSet.has(themeItem.id) || themeId === "comic";
+    const isOwned = isThemeAccessibleInMode(themeId, { ownedItemIds, seriousMode });
+    const displayPrice = getThemeDisplayPrice(themeId, themeItem.price, { ownedItemIds, seriousMode });
     const isActive =
       currentSkin === bundleSkinId ||
       (currentSkin === "default" && (roomThemeId || "comic") === themeId) ||
@@ -198,10 +212,12 @@ export function getObjectSkinInventory({
       kind: "theme-bundle",
       targetObject: objectType,
       swatch: themeItem.swatch,
-      price: themeItem.price,
+      price: displayPrice,
+      basePrice: themeItem.price,
       rarity: themeItem.rarity,
       shopItemId: themeItem.id,
       bundleName: themeItem.name,
+      freeViaSeriousMode: Boolean(seriousMode && isSeriousTheme(themeId) && !ownedSet.has(themeItem.id)),
       owned: isOwned,
       active: isActive
     };

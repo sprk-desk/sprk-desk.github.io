@@ -268,6 +268,11 @@
     <div class="wall-trim wall-trim-left" aria-hidden="true"></div>
     <div class="wall-trim wall-trim-right" aria-hidden="true"></div>
 
+    <!-- Wall/Ledge Control Switchboard for Settings & Focus Modes -->
+    <button class="settings-panel room-object" type="button" aria-label="Settings and focus modes">
+      <img class="sprite-img settings-sprite" src="./assets/sprites/themes/comic/settings.png" alt="" draggable="false" referrerpolicy="no-referrer">
+    </button>
+
     <!-- Foreground Study Desk -->
     <div class="desk" aria-label="Study desk">
       <div class="desk-top"></div>
@@ -390,6 +395,14 @@
       <button type="button" class="sprk-dialog-close sprk-preview-close" aria-label="Close preview">×</button>
     </header>
     <div id="sprk-preview-body" class="sprk-dialog-body sprk-preview-body"></div>
+  </dialog>
+
+  <dialog id="sprk-command-dialog" class="sprk-dialog sprk-cmd-dialog" aria-label="Command palette">
+    <div class="sprk-cmd-search-row">
+      <input id="sprk-cmd-input" class="sprk-input" type="search" autocomplete="off" placeholder="Jump to object, start sprint, toggle mode, apply profile..." aria-label="Filter commands" />
+      <button type="button" id="sprk-cmd-close" class="sprk-btn" style="min-height:36px;padding:4px 10px;">Esc</button>
+    </div>
+    <div id="sprk-cmd-list" class="sprk-cmd-list" role="listbox" aria-label="Commands"></div>
   </dialog>
 
   <script type="module" src="./js/app.js"></script>
