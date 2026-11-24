@@ -8,7 +8,14 @@ import { lightingManager } from "../core/lighting-manager.js";
 import { layoutManager } from "../core/layout-manager.js";
 import { decorationManager } from "../core/decoration-manager.js";
 import { buildSpectatorSafeRoomView } from "../utils/privacy-scope.js";
-import { formatProfilePayload, sanitizeAvatarUrl } from "../utils/profile-helpers.js";
+import {
+  formatProfilePayload,
+  sanitizeAvatarUrl,
+  extractMissingProfileColumn,
+  buildProfileDbPayload,
+  buildProfileAuthMetadata,
+  mergeResolvedProfile
+} from "../utils/profile-helpers.js";
 import { sanitizeRoomLayoutMap } from "../utils/layout-geometry.js";
 import { DEFAULT_DECORATIONS } from "../utils/decorations.js";
 
@@ -261,41 +268,72 @@ export async function updateProfile(fields) {
     return { data: [clean], error: null, localOnly: true };
   }
 
-  const payload = {
-    display_name: clean.displayName,
-    username: clean.username || null,
-    avatar_preset: clean.avatarPreset,
-    avatar_url: clean.avatarUrl,
-    bio: clean.bio,
-    course_class: clean.courseClass,
-    exam_aim: clean.examAim,
-    favorite_subjects: clean.favoriteSubjects,
-    updated_at: new Date().toISOString()
-  };
+  const uid = state.user.id;
+  const excludedColumns = [];
+  let data = null;
+  let error = null;
 
-  if (fields.privacy) {
-    payload.privacy = fields.privacy;
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    const payload = buildProfileDbPayload(clean, fields, excludedColumns);
+    const res = await supabase.update("profiles", `id=eq.${uid}`, payload);
+    data = res.data;
+    error = res.error;
+
+    if (error) {
+      const missingCol = extractMissingProfileColumn(error.message);
+      if (missingCol && !excludedColumns.includes(missingCol)) {
+        excludedColumns.push(missingCol);
+        continue;
+      }
+      break;
+    }
+
+    // If PATCH matched 0 rows (e.g. bootstrap profile row didn't exist yet), upsert it cleanly
+    if (!Array.isArray(data) || data.length === 0) {
+      const upsertRes = await supabase.upsert("profiles", { id: uid, ...payload }, "id");
+      if (!upsertRes.error) {
+        data = upsertRes.data;
+        error = null;
+      } else {
+        const missingCol = extractMissingProfileColumn(upsertRes.error.message);
+        if (missingCol && !excludedColumns.includes(missingCol)) {
+          excludedColumns.push(missingCol);
+          continue;
+        }
+        error = upsertRes.error;
+      }
+    }
+    break;
   }
 
-  const { data, error } = await supabase.update("profiles", `id=eq.${state.user.id}`, payload);
-  if (!error) {
-    const row = data?.[0] || {};
+  // Always back up full academic card fields into Auth user_metadata as a resilient fallback
+  const authMeta = buildProfileAuthMetadata(clean);
+  const metaRes = await supabase.request("/auth/v1/user", {
+    method: "PUT",
+    body: JSON.stringify({ data: authMeta })
+  });
+
+  if (!error || !metaRes.error) {
+    const row = Array.isArray(data) ? (data[0] || {}) : {};
+    const merged = mergeResolvedProfile({
+      uid,
+      email: state.user.email,
+      dbRow: row,
+      userMetadata: authMeta,
+      localProfile: clean
+    });
     state.user = {
       ...state.user,
-      displayName: row.display_name ?? clean.displayName,
-      username: row.username ?? clean.username,
-      avatarPreset: row.avatar_preset ?? clean.avatarPreset,
-      avatarUrl: row.avatar_url ?? clean.avatarUrl,
-      bio: row.bio ?? clean.bio,
-      courseClass: row.course_class ?? clean.courseClass,
-      examAim: row.exam_aim ?? clean.examAim,
-      favoriteSubjects: Array.isArray(row.favorite_subjects) ? row.favorite_subjects : clean.favoriteSubjects,
-      privacy: row.privacy || state.user.privacy
+      ...merged,
+      privacy: row.privacy || fields.privacy || state.user.privacy
     };
+    saveLocalProfile(clean);
     savePreferences({ localDisplayName: state.user.displayName });
     bus.emit("auth:changed", state.user);
+    bus.emit("profile:changed", state.user);
   }
-  return { data, error };
+
+  return { data, error: error || metaRes.error };
 }
 
 export async function uploadAvatarFile(file) {
@@ -494,7 +532,8 @@ export async function loadFriendsAndRequests() {
       bio: p.bio || "",
       courseClass: p.course_class || "",
       examAim: p.exam_aim || "",
-      favoriteSubjects: Array.isArray(p.favorite_subjects) ? p.favorite_subjects : []
+      favoriteSubjects: Array.isArray(p.favorite_subjects) ? p.favorite_subjects : [],
+      privacy: p.privacy || { showOnlineStatus: true, showStudyActivity: true, allowRoomVisits: true }
     };
   });
 

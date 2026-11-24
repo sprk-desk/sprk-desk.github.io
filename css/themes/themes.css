@@ -733,38 +733,6 @@ html[data-serious-mode="true"] .desk-plant:focus-visible {
   transform: translateY(-2px);
 }
 
-/* --- Deep Focus Mode: Dim Non-Essential Peripheral Room Distractions --- */
-html[data-deep-focus="true"] .merchant-bird,
-html[data-deep-focus="true"] .desk-phone,
-html[data-deep-focus="true"] .mascot,
-html[data-deep-focus="true"] .trophy,
-html[data-deep-focus="true"] .coffee-mug,
-html[data-deep-focus="true"] .custom-prop,
-html[data-deep-focus="true"] .shelf-deco-candle,
-html[data-deep-focus="true"] .shelf-deco-bookend,
-html[data-deep-focus="true"] .desk-deco-charm,
-html[data-deep-focus="true"] .bookcase-fairy-lights {
-  opacity: 0.22;
-  filter: grayscale(0.88);
-  transition: opacity 0.25s ease, filter 0.25s ease;
-}
-
-html[data-deep-focus="true"] .merchant-bird:hover,
-html[data-deep-focus="true"] .merchant-bird:focus-visible,
-html[data-deep-focus="true"] .desk-phone:hover,
-html[data-deep-focus="true"] .desk-phone:focus-visible,
-html[data-deep-focus="true"] .mascot:hover,
-html[data-deep-focus="true"] .mascot:focus-visible,
-html[data-deep-focus="true"] .trophy:hover,
-html[data-deep-focus="true"] .trophy:focus-visible,
-html[data-deep-focus="true"] .coffee-mug:hover,
-html[data-deep-focus="true"] .coffee-mug:focus-visible,
-html[data-deep-focus="true"] .custom-prop:hover,
-html[data-deep-focus="true"] .custom-prop:focus-visible {
-  opacity: 0.78;
-  filter: grayscale(0.3);
-}
-
 /* --- Zero-Gamification: Hide SC Balance & Reward Flares --- */
 html[data-hide-gamification="true"] .sprk-gamified {
   display: none !important;
@@ -773,5 +741,9 @@ html[data-hide-gamification="true"] .sprk-gamified {
 html[data-serious-mode="true"] .sprk-cmd-item.is-selected,
 html[data-serious-mode="true"] .sprk-flashcard-stage {
   border-radius: 5px;
+}
+
+html[data-serious-mode="true"] .sprk-cmd-item.is-selected,
+html[data-serious-mode="true"] .sprk-flashcard-stage {
   background: #ffffff;
 }

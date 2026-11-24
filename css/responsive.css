@@ -29,6 +29,20 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .sprk-disc-purchasable-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sprk-study-circle-root {
+    right: 10px;
+    bottom: 10px;
+    max-width: calc(100vw - 20px);
+  }
+
+  .sprk-study-circle-stage {
+    width: calc(100vw - 20px);
+  }
+
   .sprk-sky-grid,
   .sprk-weather-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));

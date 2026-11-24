@@ -1,5 +1,6 @@
 // Pure Shop Catalog, Category Navigation & Preview Descriptor Rules
 import { hasCustomSpritePack, resolveObjectSpriteSrc } from "./theme-sprites.js";
+import { AMBIENT_LOOP_DISCS } from "./audio-loops.js";
 
 export const SHOP_CATEGORIES = [
   {
@@ -276,6 +277,7 @@ export const SHOP_CATALOG = [
     audioMix: { lofi: 0.52, whiteNoise: 0.28, wind: 0.18 },
     tempoLabel: "60 BPM · Ambient Synth"
   },
+  ...AMBIENT_LOOP_DISCS,
 
   // --- Lighting & Ambience Packs (4) ---
   {

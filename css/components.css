@@ -678,6 +678,50 @@
   font-weight: 700;
 }
 
+.sprk-disc-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.sprk-disc-purchasable-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.sprk-disc-shop-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px;
+}
+
+.sprk-disc-mini-vinyl {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 2px solid var(--ink);
+  background: repeating-radial-gradient(circle, #1e242a 0 2px, #313a44 2px 4px);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.sprk-disc-mini-core {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid #fff8ea;
+  display: grid;
+  place-items: center;
+  font-size: 9px;
+}
+
 /* --- Visual Sky / Weather / Space / Book Tiles --- */
 .sprk-sky-grid {
   display: grid;
@@ -1620,3 +1664,178 @@ button.sprk-skin-tile:hover {
   background: var(--accent);
   transition: width 0.2s ease;
 }
+
+/* --- Live Study Circle Visual Mode (Friends Studying With User) --- */
+.sprk-study-circle-root {
+  position: fixed;
+  right: 16px;
+  bottom: 14px;
+  z-index: 41;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  max-width: min(360px, calc(100vw - 32px));
+}
+.sprk-study-circle-root[hidden] {
+  display: none;
+}
+
+.sprk-study-circle-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 1.5px solid var(--ink);
+  border-radius: 10px;
+  background: var(--wall-light);
+  color: var(--ink);
+  box-shadow: 2px 3px 0 rgba(35, 28, 22, 0.24);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.14s ease, background-color 0.14s ease;
+}
+.sprk-study-circle-toggle:hover {
+  transform: translateY(-1px);
+}
+.sprk-study-circle-toggle.is-open {
+  background: var(--ink);
+  color: var(--wall-light);
+}
+
+.sprk-study-toggle-count {
+  padding: 2px 7px;
+  border-radius: 6px;
+  border: 1px solid currentColor;
+  font-size: 11px;
+  opacity: 0.9;
+}
+
+.sprk-study-circle-stage {
+  width: 344px;
+  max-width: calc(100vw - 32px);
+  max-height: min(360px, 52vh);
+  overflow-y: auto;
+  padding: 12px;
+  border: 2px solid var(--ink);
+  border-radius: 13px;
+  background: var(--wall-light);
+  color: var(--ink);
+  box-shadow: 0 8px 24px rgba(25, 20, 16, 0.22);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sprk-study-circle-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1.5px solid rgba(52, 44, 37, 0.14);
+}
+
+.sprk-study-circle-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.sprk-study-circle-empty p {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.sprk-study-peer-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.sprk-study-peer-card {
+  padding: 9px 10px;
+  border: 1.5px solid rgba(52, 44, 37, 0.2);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.sprk-study-peer-card.is-studying {
+  border-color: var(--ink);
+  background: #fffcf4;
+}
+.sprk-study-peer-card.is-offline {
+  opacity: 0.72;
+}
+
+.sprk-study-peer-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sprk-study-peer-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1.5px solid var(--ink);
+  background: #fff7e6;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.sprk-study-peer-img {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1.5px solid var(--ink);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.sprk-study-peer-name {
+  font-size: 12.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sprk-study-peer-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.sprk-study-peer-subject {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.sprk-study-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px solid var(--ink);
+  flex-shrink: 0;
+}
+.sprk-study-dot.is-studying {
+  background: #4e9d68;
+}
+.sprk-study-dot.is-online {
+  background: #e5b24a;
+}
+.sprk-study-dot.is-offline {
+  background: #b8b3aa;
+}
+

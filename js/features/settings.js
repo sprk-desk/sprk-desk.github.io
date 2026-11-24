@@ -7,7 +7,6 @@ import { audioManager } from "../core/audio-manager.js";
 import {
   setSeriousMode,
   setSeriousPresetTheme,
-  toggleDeepFocusMode,
   toggleHideGamification,
   toggleMuteChimes,
   toggleStrictFocusLock,
@@ -41,7 +40,6 @@ export const settingsFeature = {
     const renderView = () => {
       const prefs = state.preferences || {};
       const seriousMode = Boolean(prefs.seriousMode);
-      const deepFocusMode = Boolean(prefs.deepFocusMode);
       const hideGamification = Boolean(prefs.hideGamification);
       const muteChimes = Boolean(prefs.muteChimes);
       const strictFocusLock = Boolean(prefs.strictFocusLock);
@@ -137,38 +135,21 @@ export const settingsFeature = {
               </div>
             </section>
 
-            <section class="sprk-grid-2">
-              <div class="sprk-card" style="display:flex;flex-direction:column;justify-content:space-between;gap:10px;">
-                <div>
-                  <strong style="font-size:14px;display:block;">Deep Focus Mode</strong>
-                  <p style="margin:4px 0 0;font-size:12.5px;color:var(--muted);">
-                    Dims non-essential room distractions (shop, phone, buddy, mug, trinkets) and pauses animated window weather.
-                  </p>
-                </div>
-                <button type="button"
-                  id="toggle-deep-focus"
-                  role="switch"
-                  aria-checked="${deepFocusMode}"
-                  class="sprk-btn ${deepFocusMode ? "sprk-btn-primary" : ""}">
-                  ${deepFocusMode ? "Deep Focus: Active" : "Enable Deep Focus"}
-                </button>
+            <section class="sprk-card" style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+              <div style="flex:1;min-width:220px;">
+                <strong style="font-size:14px;display:block;">Strict Focus Lock</strong>
+                <p style="margin:4px 0 0;font-size:12.5px;color:var(--muted);">
+                  Locks Shop/Studio browsing while a focus timer runs and audits tab-switch interruptions on your session log.
+                </p>
               </div>
-
-              <div class="sprk-card" style="display:flex;flex-direction:column;justify-content:space-between;gap:10px;">
-                <div>
-                  <strong style="font-size:14px;display:block;">Strict Focus Lock</strong>
-                  <p style="margin:4px 0 0;font-size:12.5px;color:var(--muted);">
-                    Locks Shop/Studio browsing while a focus timer runs and audits tab-switch interruptions on your session log.
-                  </p>
-                </div>
-                <button type="button"
-                  id="toggle-strict-lock"
-                  role="switch"
-                  aria-checked="${strictFocusLock}"
-                  class="sprk-btn ${strictFocusLock ? "sprk-btn-primary" : ""}">
-                  ${strictFocusLock ? "Strict Lock: Active" : "Enable Strict Lock"}
-                </button>
-              </div>
+              <button type="button"
+                id="toggle-strict-lock"
+                role="switch"
+                aria-checked="${strictFocusLock}"
+                class="sprk-btn ${strictFocusLock ? "sprk-btn-primary" : ""}"
+                style="min-width:136px;">
+                ${strictFocusLock ? "Strict Lock: Active" : "Enable Strict Lock"}
+              </button>
             </section>
 
             <section class="sprk-card" style="display:grid;gap:10px;">
@@ -337,15 +318,6 @@ export const settingsFeature = {
         });
       });
 
-      container.querySelector("#toggle-deep-focus")?.addEventListener("click", () => {
-        const next = !Boolean(state.preferences?.deepFocusMode);
-        toggleDeepFocusMode(next);
-        statusMessage = next
-          ? "Deep Focus Mode active: peripheral room distractions dimmed."
-          : "Deep Focus Mode disabled.";
-        renderView();
-      });
-
       container.querySelector("#toggle-strict-lock")?.addEventListener("click", () => {
         const next = !Boolean(state.preferences?.strictFocusLock);
         toggleStrictFocusLock(next);
@@ -375,7 +347,6 @@ export const settingsFeature = {
           settings: {
             seriousMode: Boolean(p.seriousMode),
             theme: p.theme || "comic",
-            deepFocusMode: Boolean(p.deepFocusMode),
             hideGamification: Boolean(p.hideGamification),
             strictFocusLock: Boolean(p.strictFocusLock),
             defaultFocusMinutes: Number(p.defaultFocusMinutes || 25),

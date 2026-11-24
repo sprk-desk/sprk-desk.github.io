@@ -197,8 +197,7 @@ class LightingManager {
     }
     const weather = state.preferences.weather || "clear";
     const reduced = Boolean(state.preferences.reducedMotion) ||
-      Boolean(state.preferences.lowPerformance) ||
-      Boolean(state.preferences.deepFocusMode);
+      Boolean(state.preferences.lowPerformance);
 
     if (!this.ctx || !this.canvas) return;
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);

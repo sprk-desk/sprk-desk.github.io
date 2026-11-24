@@ -27,8 +27,8 @@ class RealtimeService {
       this.heartbeatTimer = window.setInterval(() => {
         this.send({ topic: "phoenix", event: "heartbeat", payload: {}, ref: this.nextRef() });
       }, 25_000);
-      for (const topic of this.channels.keys()) {
-        this.joinTopic(topic, token);
+      for (const [topic, entry] of this.channels.entries()) {
+        this.joinTopic(topic, token, entry?.config || null);
       }
     });
 
@@ -64,22 +64,37 @@ class RealtimeService {
     }
   }
 
-  joinTopic(topic, token) {
+  joinTopic(topic, token, extraConfig = null) {
+    const payload = { access_token: token };
+    if (extraConfig && typeof extraConfig === "object") {
+      payload.config = extraConfig;
+    }
     this.send({
       topic,
       event: "phx_join",
-      payload: { access_token: token },
+      payload,
       ref: this.nextRef()
     });
   }
 
-  subscribe(topic, handler) {
+  publish(topic, event, payload = {}) {
+    if (!isSupabaseConfigured()) return false;
+    this.send({
+      topic,
+      event: "broadcast",
+      payload: { type: "broadcast", event, payload },
+      ref: this.nextRef()
+    });
+    return true;
+  }
+
+  subscribe(topic, handler, { config = null } = {}) {
     if (!isSupabaseConfigured()) return () => {};
     this.connect();
     if (!this.channels.has(topic)) {
-      this.channels.set(topic, { handlers: new Set() });
+      this.channels.set(topic, { handlers: new Set(), config });
       if (this.socket?.readyState === WebSocket.OPEN) {
-        this.joinTopic(topic, supabase.accessToken || APP_CONFIG.supabase.anonKey);
+        this.joinTopic(topic, supabase.accessToken || APP_CONFIG.supabase.anonKey, config);
       }
     }
     this.channels.get(topic).handlers.add(handler);

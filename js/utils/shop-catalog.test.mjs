@@ -32,7 +32,7 @@ test("filterShopCatalog and getShopCategoryCounts cover every catalog item", () 
   assert.equal(counts.theme, 16);
   assert.equal(counts.skin, 10);
   assert.equal(counts.deco, 14);
-  assert.equal(counts.music, 5);
+  assert.equal(counts.music, 11);
   assert.equal(counts.ambience, 4);
 
   for (const cat of ["theme", "skin", "deco", "music", "ambience"]) {
@@ -83,6 +83,15 @@ test("music and ambience items resolve audio and ambience preview descriptors", 
   const musicDesc = getShopPreviewDescriptor(music);
   assert.equal(musicDesc.mode, "audio");
   assert.ok(musicDesc.audioMix.lofi > 0);
+
+  for (const loopId of ["music_loop_rain", "music_loop_forest", "music_loop_cafe", "music_loop_brown"]) {
+    const loopDisc = SHOP_CATALOG.find((i) => i.id === loopId);
+    assert.ok(loopDisc, `Missing ${loopId}`);
+    assert.ok(loopDisc.price > 0, `${loopId} should be purchasable`);
+    const loopDesc = getShopPreviewDescriptor(loopDisc);
+    assert.equal(loopDesc.mode, "audio");
+    assert.ok(Object.keys(loopDesc.audioMix).length > 0);
+  }
 
   const ambience = SHOP_CATALOG.find((i) => i.id === "ambience_firefly_meadow");
   const ambienceDesc = getShopPreviewDescriptor(ambience, "space");

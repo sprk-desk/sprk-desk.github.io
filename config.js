@@ -25,7 +25,7 @@ export const APP_CONFIG = {
     timeOfDay: "auto", // auto | morning | afternoon | sunset | night
     weather: "clear", // clear | rain | snow | fireflies | breeze
     seriousMode: false,
-    deepFocusMode: false,
+    studyTogetherVisualMode: false,
     hideGamification: false,
     muteChimes: false,
     autoCycleBreaks: true,

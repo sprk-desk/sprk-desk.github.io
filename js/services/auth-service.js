@@ -2,6 +2,7 @@
 import { supabase } from "./supabase.js";
 import { state } from "../state.js";
 import { bus } from "../core/event-bus.js";
+import { mergeResolvedProfile } from "../utils/profile-helpers.js";
 
 async function ensureUserBootstrap(userResp, displayNameHint = "Student") {
   const uid = userResp?.id;
@@ -11,15 +12,21 @@ async function ensureUserBootstrap(userResp, displayNameHint = "Student") {
     userResp.user_metadata?.display_name ||
     (userResp.email ? userResp.email.split("@")[0] : "Student");
 
-  await supabase.upsert("profiles", {
-    id: uid,
-    display_name: fallbackName
-  }, "id");
+  const existingProfile = await supabase.select("profiles", `id=eq.${uid}&limit=1`);
+  if (!existingProfile.error && (!existingProfile.data || existingProfile.data.length === 0)) {
+    await supabase.upsert("profiles", {
+      id: uid,
+      display_name: fallbackName
+    }, "id");
+  }
 
-  await supabase.upsert("user_settings", {
-    user_id: uid,
-    local_display_name: fallbackName
-  }, "user_id");
+  const existingSettings = await supabase.select("user_settings", `user_id=eq.${uid}&limit=1`);
+  if (!existingSettings.error && (!existingSettings.data || existingSettings.data.length === 0)) {
+    await supabase.upsert("user_settings", {
+      user_id: uid,
+      local_display_name: fallbackName
+    }, "user_id");
+  }
 }
 
 export async function signUpWithEmail({ email, password, displayName }) {
@@ -126,18 +133,13 @@ export async function restoreSession() {
   const isPremium = Boolean(entRes.data?.some((e) => e.entitlement === "premium"));
 
   state.user = {
-    id: uid,
-    email: userResp.email,
-    publicId: profile.public_id || `SPK-${uid.slice(0, 6).toUpperCase()}`,
-    username: profile.username || "",
-    displayName: profile.display_name || userResp.user_metadata?.display_name || "Student",
-    avatarPreset: profile.avatar_preset || "☺",
-    avatarUrl: profile.avatar_url || "",
-    bio: profile.bio || "",
-    courseClass: profile.course_class || "",
-    examAim: profile.exam_aim || "",
-    favoriteSubjects: Array.isArray(profile.favorite_subjects) ? profile.favorite_subjects : [],
-    privacy: profile.privacy || { showOnlineStatus: true, showStudyActivity: true, allowRoomVisits: true },
+    ...mergeResolvedProfile({
+      uid,
+      email: userResp.email,
+      dbRow: profile,
+      userMetadata: userResp.user_metadata,
+      localProfile: state.localProfile
+    }),
     role,
     isPremium
   };

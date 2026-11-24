@@ -9,6 +9,12 @@ import {
   isThemeAccessibleInMode,
   SERIOUS_OBJECT_NAMES
 } from "../utils/room-settings.js";
+import {
+  resolveEffectiveComputerSkinKey,
+  getComputerScreenFrameBox,
+  sanitizeComputerScreenPrefs
+} from "../utils/computer-screen.js";
+import { loadLocalScreenBlob } from "../services/local-media-store.js";
 
 const SELECTOR_FEATURE_PAIRS = [
   [".desk-clock", "focus"],
@@ -32,6 +38,103 @@ const SELECTOR_FEATURE_PAIRS = [
   [".settings-panel", "settings"]
 ];
 
+let activeScreenObjectUrl = null;
+let mediaSyncSeq = 0;
+
+export async function syncComputerScreenMedia() {
+  const compBtn = document.querySelector(".desk-computer");
+  if (!compBtn) return;
+
+  const slot = compBtn.querySelector(".computer-screen-slot");
+  const imgEl = compBtn.querySelector(".computer-screen-img");
+  const videoEl = compBtn.querySelector(".computer-screen-video");
+  if (!slot || !imgEl || !videoEl) return;
+
+  const prefs = state.preferences || {};
+  const isSpectating = Boolean(state.spectatingRoom);
+  const roomThemeId = isSpectating ? (state.spectatingRoom?.theme || "comic") : (prefs.theme || "comic");
+  const skinsMap = isSpectating ? (state.spectatingRoom?.skins || {}) : (prefs.skins || {});
+  const compSkin = skinsMap.computer || "default";
+
+  const skinKey = resolveEffectiveComputerSkinKey({ skinId: compSkin, roomThemeId });
+  const box = getComputerScreenFrameBox(skinKey);
+  const screenPrefs = sanitizeComputerScreenPrefs(prefs.computerScreen);
+
+  if (!box || isSpectating || screenPrefs.mode === "none") {
+    slot.hidden = true;
+    imgEl.hidden = true;
+    imgEl.removeAttribute("src");
+    videoEl.hidden = true;
+    if (typeof videoEl.pause === "function") videoEl.pause();
+    videoEl.removeAttribute("src");
+    if (activeScreenObjectUrl) {
+      URL.revokeObjectURL(activeScreenObjectUrl);
+      activeScreenObjectUrl = null;
+    }
+    return;
+  }
+
+  slot.style.setProperty("--screen-left", box.left);
+  slot.style.setProperty("--screen-right", box.right);
+  slot.style.setProperty("--screen-top", box.top);
+  slot.style.setProperty("--screen-bottom", box.bottom);
+  slot.style.setProperty("--screen-radius", box.radius);
+  slot.style.setProperty("--screen-bg", box.bg);
+  slot.style.setProperty("--screen-fit", screenPrefs.fit);
+
+  const seq = ++mediaSyncSeq;
+  let mediaSrc = screenPrefs.url || "";
+  let mediaType = screenPrefs.mediaType;
+
+  if (screenPrefs.mode === "upload") {
+    const localMedia = await loadLocalScreenBlob();
+    if (seq !== mediaSyncSeq) {
+      if (localMedia?.objectUrl) URL.revokeObjectURL(localMedia.objectUrl);
+      return;
+    }
+    if (!localMedia?.objectUrl) {
+      slot.hidden = true;
+      return;
+    }
+    if (activeScreenObjectUrl && activeScreenObjectUrl !== localMedia.objectUrl) {
+      URL.revokeObjectURL(activeScreenObjectUrl);
+    }
+    activeScreenObjectUrl = localMedia.objectUrl;
+    mediaSrc = localMedia.objectUrl;
+    mediaType = localMedia.mediaType;
+  } else if (activeScreenObjectUrl) {
+    URL.revokeObjectURL(activeScreenObjectUrl);
+    activeScreenObjectUrl = null;
+  }
+
+  if (!mediaSrc) {
+    slot.hidden = true;
+    return;
+  }
+
+  slot.hidden = false;
+  if (mediaType === "video") {
+    imgEl.hidden = true;
+    imgEl.removeAttribute("src");
+    videoEl.muted = screenPrefs.muted !== false;
+    videoEl.hidden = false;
+    if (videoEl.getAttribute("src") !== mediaSrc) {
+      videoEl.setAttribute("src", mediaSrc);
+    }
+    if (typeof videoEl.play === "function") {
+      videoEl.play().catch(() => {});
+    }
+  } else {
+    videoEl.hidden = true;
+    if (typeof videoEl.pause === "function") videoEl.pause();
+    videoEl.removeAttribute("src");
+    imgEl.hidden = false;
+    if (imgEl.getAttribute("src") !== mediaSrc) {
+      imgEl.setAttribute("src", mediaSrc);
+    }
+  }
+}
+
 export function isStrictFocusLockActive() {
   const sess = state.activeSession;
   return Boolean(
@@ -48,7 +151,8 @@ export function applyRoomSettingsToDocument() {
   const seriousMode = Boolean(prefs.seriousMode);
 
   root.dataset.seriousMode = String(seriousMode);
-  root.dataset.deepFocus = String(Boolean(prefs.deepFocusMode));
+  delete root.dataset.deepFocus;
+  root.dataset.studyCircle = String(Boolean(prefs.studyTogetherVisualMode));
   root.dataset.hideGamification = String(Boolean(prefs.hideGamification));
   root.dataset.muteChimes = String(Boolean(prefs.muteChimes));
   root.dataset.strictLock = String(isStrictFocusLockActive());
@@ -65,6 +169,8 @@ export function applyRoomSettingsToDocument() {
       el.dataset.label = el.dataset.defaultLabel;
     }
   }
+
+  syncComputerScreenMedia();
 }
 
 export function setSeriousMode(enabled, { preferredThemeId = null } = {}) {
@@ -108,10 +214,11 @@ export function setSeriousPresetTheme(themeId) {
   return themeId;
 }
 
-export function toggleDeepFocusMode(enabled) {
-  savePreferences({ deepFocusMode: Boolean(enabled) });
+export function toggleStudyTogetherVisualMode(enabled) {
+  const next = typeof enabled === "boolean" ? enabled : !Boolean(state.preferences?.studyTogetherVisualMode);
+  savePreferences({ studyTogetherVisualMode: next });
   applyRoomSettingsToDocument();
-  lightingManager.apply();
+  return next;
 }
 
 export function toggleHideGamification(enabled) {
@@ -160,7 +267,6 @@ export function applyWorkspaceProfile(profile) {
   }
 
   const patch = {};
-  if (typeof s.deepFocusMode === "boolean") patch.deepFocusMode = s.deepFocusMode;
   if (typeof s.hideGamification === "boolean") patch.hideGamification = s.hideGamification;
   if (typeof s.strictFocusLock === "boolean") patch.strictFocusLock = s.strictFocusLock;
   if (typeof s.autoCycleBreaks === "boolean") patch.autoCycleBreaks = s.autoCycleBreaks;

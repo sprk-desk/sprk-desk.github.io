@@ -10,26 +10,27 @@ An interactive, customizable 2D virtual study room built with semantic HTML5, mo
 - **Wall Calendar**: Monthly study calendar, streaks, and subject breakdown statistics.
 - **Pinboard**: Sticky-note tasks, priorities, deadlines, and daily goals.
 - **Notebook**: Owner-only private diary and personal study notes.
-- **Headphones**: Zero-dependency Web Audio API procedural soundscape mixer (8 layers + presets).
+- **Headphones**: Zero-dependency Web Audio API procedural soundscape mixer with curated tracks and 6 purchasable ambient loop discs (Soft Rain, Forest Canopy, Quiet Study Cafe, Cozy Fireplace, Ocean Surf, Library Hum).
 - **Bookshelf**: Knowledge Library with searchable guides, bookmarks, and resource sharing.
-- **Cabinet Drawer**: Saved personal resources and unlocked customization inventory.
-- **Framed Portrait**: Profile, Supabase authentication, and account settings.
+- **Cabinet Drawer**: Saved personal resources, JSON backup/restore, and unlocked customization inventory.
+- **Framed Portrait**: Profile editor, Supabase authentication, avatar customization, and account settings.
 - **Desk Computer**: Discover public study rooms and three-role study groups (Owner, Moderator, Member).
-- **Desk Phone**: Friends, notifications, and read-only room visits.
+- **Desk Phone & Live Study Circle**: Friends, notifications, read-only room visits, and a toggleable in-room Live Study Circle visual overlay showing friends currently studying.
 - **Trophy**: Study Passport and milestone achievements.
-- **Desk Plant**: 10 room themes, object skins, layout locking, and reduced-motion preferences.
+- **Control Panel**: Serious Mode (monochrome Swiss Editorial & Obsidian Minimal themes unlocked free, clean UI discipline), Strict Focus Lock, Workspace Profiles, and quick toggles (`Ctrl/Cmd + K` Command Palette).
+- **Desk Plant**: 16 room themes (including Swiss Editorial and Obsidian Minimal), object skins, layout locking, and reduced-motion preferences.
 - **Desk Lamp & Mug**: Direct in-room lamp toggle and cozy break chime.
 
 ## Local Testing
-Serve the repository root with any static file server (or `npm run dev` on port 3000):
+Serve the repository root locally (or run `npm run dev` on port 3000):
 ```bash
 python3 -m http.server 3000
 ```
 Run unit tests:
 ```bash
-node --test js/utils/*.test.mjs
+npx --yes tsx --test js/utils/*.test.mjs
 ```
 
 ## Supabase Setup & GitHub Pages Deployment
-See `supabase/README.md` for running `supabase/migrations/001_sprk_desk_schema.sql` and `supabase/seed.sql`, then update `config.js` with your Supabase Project URL and public Anon Key.
-Push to GitHub and enable **Settings -> Pages -> Deploy from branch (`main` / root)**. All asset paths are relative (`./`) for project-subpath compatibility.
+See `supabase/README.md` for database setup if configuring your own Supabase backend, then update `config.js` with your Supabase Project URL and public Anon Key.
+Push to GitHub and enable **Settings -> Pages -> Deploy from branch (`main` / root)**. All asset paths (including `./assets/icon.svg`) are relative (`./`) for project-subpath compatibility.

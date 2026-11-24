@@ -8,6 +8,8 @@
   <meta name="description" content="An interactive, customizable virtual study room where every physical object opens your focus timer, diary, tasks, ambient audio, study community, and desk shop.">
   <meta property="og:title" content="SPRK Desk — Cozy Virtual Study Room">
   <meta property="og:description" content="An interactive, customizable virtual study room for focused study, cozy ambience, and community.">
+  <link rel="icon" type="image/svg+xml" href="./assets/icon.svg">
+  <link rel="apple-touch-icon" href="./assets/icon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
@@ -313,6 +315,18 @@
       </button>
       <button class="desk-computer room-object" type="button" aria-label="Discover study rooms and groups">
         <img class="sprite-img computer-sprite" src="./assets/sprites/themes/comic/computer.png" alt="" draggable="false" referrerpolicy="no-referrer">
+        <svg class="sprite-svg computer-flat-svg" viewBox="0 0 352 360" aria-hidden="true">
+          <rect x="138" y="280" width="76" height="62" rx="4" fill="var(--flat-stand, #3d3d42)" stroke="var(--ink)" stroke-width="4"/>
+          <rect x="96" y="336" width="160" height="16" rx="6" fill="var(--flat-stand-base, #2a2a2e)" stroke="var(--ink)" stroke-width="4"/>
+          <rect x="4" y="66" width="344" height="222" rx="10" fill="var(--flat-bezel, #1a1a1d)" stroke="var(--ink)" stroke-width="4"/>
+          <circle cx="176" cy="72.5" r="3" fill="var(--flat-cam, #6e6e75)"/>
+          <rect x="11" y="78.5" width="330" height="196" rx="4" fill="var(--flat-screen-bg, #101215)" stroke="var(--ink)" stroke-width="2.5"/>
+          <circle cx="176" cy="176" r="24" fill="none" stroke="var(--flat-idle-ring, rgba(242,242,239,0.34))" stroke-width="3"/>
+        </svg>
+        <span class="computer-screen-slot" hidden aria-hidden="true">
+          <img class="computer-screen-img" alt="" draggable="false" referrerpolicy="no-referrer" hidden>
+          <video class="computer-screen-video" autoplay loop playsinline muted hidden></video>
+        </span>
       </button>
       <button class="desk-phone room-object" type="button" aria-label="Friends, presence, and messages">
         <svg class="sprite-svg phone-svg" viewBox="0 0 88 134" aria-hidden="true">
@@ -368,6 +382,7 @@
   </main>
 
   <button id="room-active-whisper" class="room-active-whisper" type="button" hidden></button>
+  <div id="sprk-study-circle-root" class="sprk-study-circle-root"></div>
 
   <dialog id="sprk-dialog" class="sprk-dialog" aria-labelledby="sprk-dialog-title">
     <header class="sprk-dialog-header">

@@ -325,11 +325,10 @@ export const BUILTIN_WORKSPACE_PROFILES = [
   {
     id: "exam_sprint",
     name: "Exam Sprint",
-    description: "Obsidian dark monochrome, Deep Focus dimming, 50m blocks, Brown Noise.",
+    description: "Obsidian dark monochrome, Strict Focus Lock, 50m blocks, Brown Noise.",
     settings: {
       seriousMode: true,
       theme: "noir",
-      deepFocusMode: true,
       hideGamification: true,
       strictFocusLock: true,
       defaultFocusMinutes: 50,
@@ -347,7 +346,6 @@ export const BUILTIN_WORKSPACE_PROFILES = [
     settings: {
       seriousMode: true,
       theme: "editorial",
-      deepFocusMode: false,
       hideGamification: false,
       strictFocusLock: false,
       defaultFocusMinutes: 25,
@@ -365,7 +363,6 @@ export const BUILTIN_WORKSPACE_PROFILES = [
     settings: {
       seriousMode: false,
       theme: "comic",
-      deepFocusMode: false,
       hideGamification: false,
       strictFocusLock: false,
       defaultFocusMinutes: 25,

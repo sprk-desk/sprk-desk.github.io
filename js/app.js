@@ -41,6 +41,8 @@ import { customPropFeature } from "./features/custom-prop.js";
 import { settingsFeature } from "./features/settings.js";
 import { adminFeature } from "./features/admin.js";
 import { initCommandPalette, openCommandPalette } from "./features/command-palette.js";
+import { presenceService } from "./services/presence-service.js";
+import { initStudyCircle } from "./features/study-circle.js";
 
 const FEATURE_OBJECT_MAP = [
   [".desk-clock", "focus"],
@@ -79,6 +81,8 @@ async function bootstrap() {
   layoutManager.init();
   dialogManager.init();
   initCommandPalette();
+  presenceService.init();
+  initStudyCircle();
 
   // Register all object-launched dialogs
   dialogManager.register("focus", focusFeature);

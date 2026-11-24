@@ -4,7 +4,7 @@ import { dialogManager } from "../core/dialog-manager.js";
 import { lightingManager } from "../core/lighting-manager.js";
 import {
   setSeriousMode,
-  toggleDeepFocusMode,
+  toggleStudyTogetherVisualMode,
   toggleStrictFocusLock,
   applyWorkspaceProfile
 } from "../core/settings-manager.js";
@@ -71,12 +71,12 @@ function getCommands() {
       run: () => setSeriousMode(!serious)
     },
     {
-      id: "cmd_deep_focus",
+      id: "cmd_study_circle",
       group: "Modes",
-      label: prefs.deepFocusMode ? "Disable Deep Focus Dimming" : "Enable Deep Focus Dimming",
-      hint: prefs.deepFocusMode ? "Active" : "Room Dim",
-      keywords: "deep focus dim distractions",
-      run: () => toggleDeepFocusMode(!prefs.deepFocusMode)
+      label: prefs.studyTogetherVisualMode ? "Hide Live Study Circle" : "Show Live Study Circle (Friends)",
+      hint: prefs.studyTogetherVisualMode ? "Visible" : "Visual Mode",
+      keywords: "friends studying together study circle visual mode live",
+      run: () => toggleStudyTogetherVisualMode(!prefs.studyTogetherVisualMode)
     },
     {
       id: "cmd_strict_lock",

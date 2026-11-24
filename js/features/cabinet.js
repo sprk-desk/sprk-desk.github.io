@@ -145,7 +145,10 @@ export const cabinetFeature = {
             return;
           }
           const { data } = validated;
-          if (data.preferences) savePreferences(data.preferences);
+          if (data.preferences) {
+            const { deepFocusMode: _legacyDeepFocus, ...cleanPrefs } = data.preferences;
+            savePreferences(cleanPrefs);
+          }
           if (Array.isArray(parsed.localWorkspaceProfiles)) {
             persistLocalCollection("localWorkspaceProfiles", parsed.localWorkspaceProfiles);
           }

@@ -12,7 +12,7 @@ import {
   respondFriendRequest,
   visitFriendRoom
 } from "../services/database-service.js";
-import { sanitizeAvatarUrl, parseFavoriteSubjects } from "../utils/profile-helpers.js";
+import { sanitizeAvatarUrl, parseFavoriteSubjects, validateUsernameInput } from "../utils/profile-helpers.js";
 import { dialogManager } from "../core/dialog-manager.js";
 import { escapeHtml } from "../utils/dom.js";
 
@@ -106,7 +106,7 @@ export const profileFeature = {
             ` : ""}
           </div>
 
-          <form id="profile-edit-form" class="sprk-card">
+          <form id="profile-edit-form" class="sprk-card" novalidate>
             <div class="sprk-grid-2">
               <label class="sprk-field">
                 <span class="sprk-label">Display Name</span>
@@ -114,7 +114,7 @@ export const profileFeature = {
               </label>
               <label class="sprk-field">
                 <span class="sprk-label">Username</span>
-                <input id="prof-username" class="sprk-input" type="text" pattern="[a-zA-Z0-9_]{3,24}" value="${escapeHtml(prof.username || "")}" placeholder="study_fox" />
+                <input id="prof-username" class="sprk-input" type="text" maxlength="24" value="${escapeHtml(prof.username || "")}" placeholder="study_fox" />
               </label>
             </div>
 
@@ -156,7 +156,7 @@ export const profileFeature = {
               <textarea id="prof-bio" class="sprk-textarea" style="min-height:60px;" maxlength="200" placeholder="What are you studying today?">${escapeHtml(prof.bio || "")}</textarea>
             </label>
 
-            <button type="submit" class="sprk-btn sprk-btn-primary">💾 Save Profile</button>
+            <button type="submit" id="prof-save-btn" class="sprk-btn sprk-btn-primary">💾 Save Profile</button>
           </form>
         ` : mainTab === "friends" ? `
           <div style="display:grid;gap:12px;">
@@ -344,23 +344,35 @@ export const profileFeature = {
           return;
         }
         const curr = getActiveProfile();
-        await updateProfile({
+        const { error: saveErr } = await updateProfile({
           ...curr,
           avatarUrl: url
         });
-        statusMsg = "Profile picture updated!";
+        statusMsg = saveErr ? saveErr.message : "Profile picture updated!";
         renderView();
       });
 
       container.querySelector("#prof-pfp-clear")?.addEventListener("click", async () => {
         const curr = getActiveProfile();
-        await updateProfile({ ...curr, avatarUrl: "" });
-        statusMsg = "Profile picture cleared.";
+        const { error: clearErr } = await updateProfile({ ...curr, avatarUrl: "" });
+        statusMsg = clearErr ? clearErr.message : "Profile picture cleared.";
         renderView();
       });
 
       container.querySelector("#profile-edit-form")?.addEventListener("submit", async (e) => {
         e.preventDefault();
+        const displayName = container.querySelector("#prof-display").value.trim();
+        if (!displayName) {
+          statusMsg = "Display Name cannot be empty.";
+          renderView();
+          return;
+        }
+        const usernameCheck = validateUsernameInput(container.querySelector("#prof-username").value);
+        if (!usernameCheck.valid) {
+          statusMsg = usernameCheck.error;
+          renderView();
+          return;
+        }
         const rawUrl = container.querySelector("#prof-pfp-url")?.value.trim() || "";
         const safeUrl = sanitizeAvatarUrl(rawUrl);
         if (rawUrl && !safeUrl) {
@@ -368,9 +380,14 @@ export const profileFeature = {
           renderView();
           return;
         }
+        const saveBtn = container.querySelector("#prof-save-btn");
+        if (saveBtn) {
+          saveBtn.disabled = true;
+          saveBtn.textContent = "Saving...";
+        }
         const { error, localOnly } = await updateProfile({
-          displayName: container.querySelector("#prof-display").value.trim(),
-          username: container.querySelector("#prof-username").value.trim().toLowerCase(),
+          displayName,
+          username: usernameCheck.value,
           avatarPreset: chosenAvatar,
           avatarUrl: safeUrl,
           courseClass: container.querySelector("#prof-course").value.trim(),

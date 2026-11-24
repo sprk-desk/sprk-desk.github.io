@@ -38,13 +38,14 @@ export const state = {
   }),
   preferences: (() => {
     const saved = readStorage("preferences", {});
+    const { deepFocusMode: _legacyDeepFocus, ...cleanSaved } = saved || {};
     return {
       theme: APP_CONFIG.defaults.theme,
       timeOfDay: APP_CONFIG.defaults.timeOfDay,
       weather: APP_CONFIG.defaults.weather,
       seriousMode: APP_CONFIG.defaults.seriousMode,
       preSeriousTheme: APP_CONFIG.defaults.theme,
-      deepFocusMode: APP_CONFIG.defaults.deepFocusMode,
+      studyTogetherVisualMode: APP_CONFIG.defaults.studyTogetherVisualMode,
       hideGamification: APP_CONFIG.defaults.hideGamification,
       muteChimes: APP_CONFIG.defaults.muteChimes,
       autoCycleBreaks: APP_CONFIG.defaults.autoCycleBreaks,
@@ -59,15 +60,15 @@ export const state = {
       skins: {},
       lockedSkins: {},
       activeLayoutName: "Default Desk",
-      ...saved,
-      lighting: { ...APP_CONFIG.defaults.lighting, ...(saved.lighting || {}) },
-      decorations: normalizeDecorationsMap(saved.decorations || DEFAULT_DECORATIONS),
+      ...cleanSaved,
+      lighting: { ...APP_CONFIG.defaults.lighting, ...(cleanSaved.lighting || {}) },
+      decorations: normalizeDecorationsMap(cleanSaved.decorations || DEFAULT_DECORATIONS),
       customProp: {
         imageUrl: "",
         label: "Custom Keepsake",
         size: "md",
         frameStyle: "sprite",
-        ...(saved.customProp || {})
+        ...(cleanSaved.customProp || {})
       }
     };
   })(),

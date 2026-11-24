@@ -1,6 +1,13 @@
 // Zero-copyright Web Audio API multi-layer procedural ambient soundscape & chime engine
 
 import { state } from "../state.js";
+import { SHOP_CATALOG } from "../utils/shop-catalog.js";
+
+const BUILTIN_MIX_BY_ID = {
+  disc_rainy: { rain: 0.65, wind: 0.25, lofi: 0.35 },
+  disc_hearth: { fireplace: 0.7, rain: 0.25 },
+  disc_keys: { lofi: 0.6, whiteNoise: 0.2 }
+};
 
 export const AUDIO_CHANNELS = [
   { id: "rain", label: "Soft Rain", icon: "🌧", color: "#5fa3b8" },
@@ -24,7 +31,10 @@ class AudioManager {
     this.analyserData = null;
     this.isPlaying = false;
     this.masterVolume = 0.65;
-    this.levels = Object.fromEntries(AUDIO_CHANNELS.map((c) => [c.id, c.id === "rain" ? 0.55 : 0]));
+    const savedId = state.preferences?.activeMusicId;
+    const catalogDisc = savedId ? SHOP_CATALOG.find((i) => i.id === savedId && i.category === "music") : null;
+    const initialMix = BUILTIN_MIX_BY_ID[savedId] || catalogDisc?.audioMix || { rain: 0.55 };
+    this.levels = Object.fromEntries(AUDIO_CHANNELS.map((c) => [c.id, Number(initialMix[c.id] || 0)]));
     this.nodes = new Map();
     this.chordTimer = null;
   }
