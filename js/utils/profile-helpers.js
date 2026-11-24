@@ -199,7 +199,7 @@ export function mergeResolvedProfile({
   return {
     id: uid,
     email,
-    publicId: row.public_id || (uid ? `SPK-${uid.slice(0, 6).toUpperCase()}` : "LOCAL"),
+    publicId: row.public_id || (uid ? `SPRK-${uid.slice(0, 6).toUpperCase()}` : "LOCAL"),
     username: pickString(row.username, meta.username, local.username),
     displayName: pickString(row.display_name, meta.display_name, local.displayName) || "Student",
     avatarPreset: pickString(row.avatar_preset, meta.avatar_preset, local.avatarPreset) || "☺",

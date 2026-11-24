@@ -481,7 +481,7 @@ export function initAccountPage() {
                   <button type="button" class="acc-btn" id="acc-refresh-friends">↻ Refresh</button>
                 </div>
                 <form id="acc-friend-search-form" style="display:flex;gap:8px;flex-wrap:wrap;">
-                  <input id="acc-friend-query" class="acc-input" type="text" required placeholder="Search by name, @username, course, or Public ID (SPK-...)" style="flex:1;min-width:220px;" />
+                  <input id="acc-friend-query" class="acc-input" type="text" required placeholder="Search by name, @username, course, or Public ID (SPRK-...)" style="flex:1;min-width:220px;" />
                   <button type="submit" class="acc-btn-primary">Search</button>
                 </form>
 

@@ -73,7 +73,7 @@ export function buildSpectatorSafeRoomView(roomOwnerData = {}) {
   return {
     profile: {
       id: roomOwnerData.id || "",
-      publicId: roomOwnerData.publicId || "SPK-0000",
+      publicId: roomOwnerData.publicId || "SPRK-0000",
       displayName: roomOwnerData.displayName || "Student",
       username: roomOwnerData.username || "",
       avatar: roomOwnerData.avatar || "☺",

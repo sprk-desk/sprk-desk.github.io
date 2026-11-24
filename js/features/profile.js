@@ -286,7 +286,7 @@ export const profileFeature = {
                   <button type="button" class="sprk-btn" id="prof-refresh-friends" style="min-height:32px;padding:4px 10px;">↻ Refresh</button>
                 </div>
                 <form id="prof-friend-search" style="display:flex;gap:8px;flex-wrap:wrap;">
-                  <input id="prof-friend-query" class="sprk-input" type="text" placeholder="Search name, @username, course, or SPK-ID" required style="flex:1;min-width:180px;" />
+                  <input id="prof-friend-query" class="sprk-input" type="text" placeholder="Search name, @username, course, or SPRK-ID" required style="flex:1;min-width:180px;" />
                   <button type="submit" class="sprk-btn sprk-btn-primary">Search</button>
                 </form>
                 ${searchResults ? `

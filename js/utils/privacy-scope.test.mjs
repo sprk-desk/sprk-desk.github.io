@@ -13,7 +13,7 @@ import {
 test("spectator room view strips private diary, notes, and hidden status while keeping safe public fields", () => {
   const safe = buildSpectatorSafeRoomView({
     displayName: "Mina",
-    publicId: "SPK-4821",
+    publicId: "SPRK-4821",
     courseClass: "B.Sc Physics",
     examAim: "GRE Physics",
     favoriteSubjects: ["Quantum Mechanics", "Optics"],

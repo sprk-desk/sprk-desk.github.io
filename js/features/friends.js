@@ -157,7 +157,7 @@ export const friendsFeature = {
         ${tab === "friends" ? `
           <div class="sprk-card" style="margin-bottom:12px;">
             <form id="visit-room-form" style="display:flex;gap:8px;flex-wrap:wrap;">
-              <input id="visit-public-id" class="sprk-input" type="text" placeholder="Student Public ID (SPK-...) or @username" required style="flex:1;min-width:180px;" />
+              <input id="visit-public-id" class="sprk-input" type="text" placeholder="Student Public ID (SPRK-...) or @username" required style="flex:1;min-width:180px;" />
               <button type="submit" class="sprk-btn">View Profile</button>
               <button type="button" id="visit-room-direct" class="sprk-btn sprk-btn-primary">🚪 Visit Room</button>
             </form>
@@ -208,7 +208,7 @@ export const friendsFeature = {
             <form id="friend-search-form" class="sprk-card">
               <label class="sprk-field">
                 <span class="sprk-label">Search Students (Name, @username, Course, or Public ID)</span>
-                <input id="friend-query" class="sprk-input" type="text" required maxlength="32" placeholder="Aarav, study_fox, or SPK-..." />
+                <input id="friend-query" class="sprk-input" type="text" required maxlength="32" placeholder="Aarav, study_fox, or SPRK-..." />
               </label>
               <button type="submit" class="sprk-btn sprk-btn-primary">Search</button>
               <div id="friend-results" style="margin-top:12px;display:grid;gap:8px;">

@@ -128,7 +128,7 @@ test("mergeResolvedProfile prefers non-empty DB row fields and falls back to aut
       favorite_subjects: ["Anatomy", "Physiology"]
     }
   });
-  assert.equal(merged.publicId, "SPK-ABCDEF");
+  assert.equal(merged.publicId, "SPRK-ABCDEF");
   assert.equal(merged.displayName, "Meera");
   assert.equal(merged.bio, "DB bio");
   assert.equal(merged.courseClass, "MBBS Year 2");

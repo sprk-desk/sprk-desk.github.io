@@ -901,7 +901,7 @@ export function createDeepFocusModalController({
             </div>
           ` : `
             <form id="dfm-friend-search-form" class="df-inline-form">
-              <input id="dfm-friend-query" class="df-input" type="text" required placeholder="Search name, @username, course, or SPK-ID" style="flex:1;" />
+              <input id="dfm-friend-query" class="df-input" type="text" required placeholder="Search name, @username, course, or SPRK-ID" style="flex:1;" />
               <button type="submit" class="df-btn-accent">Search</button>
               <button type="button" class="df-btn-subtle" id="dfm-friends-refresh">↻</button>
             </form>

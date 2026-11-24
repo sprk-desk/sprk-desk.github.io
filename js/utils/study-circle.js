@@ -58,7 +58,7 @@ export function mergeFriendsWithPresence({
 
       return {
         id: friend.id,
-        publicId: friend.publicId || "SPK-USER",
+        publicId: friend.publicId || "SPRK-USER",
         displayName: friend.displayName || "Student",
         avatarPreset: friend.avatarPreset || "☺",
         avatarUrl: friend.avatarUrl || "",

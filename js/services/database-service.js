@@ -37,7 +37,7 @@ function cleanPostgrestSearchTerm(raw = "") {
 function mapProfileRow(p = {}) {
   return {
     id: p.id || "",
-    publicId: p.public_id || "SPK-USER",
+    publicId: p.public_id || "SPRK-USER",
     username: p.username || "",
     displayName: p.display_name || "Student",
     avatarPreset: p.avatar_preset || "☺",
@@ -627,13 +627,13 @@ export async function loadFriendsAndRequests() {
       id: r.id,
       senderId: r.sender_id,
       createdAt: r.created_at,
-      profile: profileMap.get(r.sender_id) || { id: r.sender_id, display_name: "Student", public_id: "SPK-USER" }
+      profile: profileMap.get(r.sender_id) || { id: r.sender_id, display_name: "Student", public_id: "SPRK-USER" }
     })),
     outgoing: outgoingRaw.map((r) => ({
       id: r.id,
       receiverId: r.receiver_id,
       createdAt: r.created_at,
-      profile: profileMap.get(r.receiver_id) || { id: r.receiver_id, display_name: "Student", public_id: "SPK-USER" }
+      profile: profileMap.get(r.receiver_id) || { id: r.receiver_id, display_name: "Student", public_id: "SPRK-USER" }
     }))
   };
 
@@ -999,7 +999,7 @@ export async function loadSocialFeed(scope = "all") {
       id: post.author_id,
       displayName: "Student",
       username: "",
-      publicId: "SPK-USER",
+      publicId: "SPRK-USER",
       avatarPreset: "☺",
       avatarUrl: ""
     },
@@ -1206,7 +1206,7 @@ export async function loadGroupWorkspace(groupId) {
     userId: m.user_id,
     role: m.role,
     joinedAt: m.joined_at,
-    profile: profMap.get(m.user_id) || { id: m.user_id, displayName: "Student", publicId: "SPK-USER", avatarPreset: "☺", avatarUrl: "" }
+    profile: profMap.get(m.user_id) || { id: m.user_id, displayName: "Student", publicId: "SPRK-USER", avatarPreset: "☺", avatarUrl: "" }
   }));
 
   const messages = messageRows.map((msg) => ({

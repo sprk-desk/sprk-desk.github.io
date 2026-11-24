@@ -15,8 +15,9 @@ CREATE OR REPLACE FUNCTION public.generate_public_id()
 RETURNS text
 LANGUAGE sql
 VOLATILE
+SET search_path = public, extensions
 AS $$
-  SELECT 'SPK-' || upper(substr(encode(gen_random_bytes(4), 'hex'), 1, 6));
+  SELECT 'SPRK-' || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 6));
 $$;
 
 CREATE OR REPLACE FUNCTION public.set_updated_at()
@@ -56,6 +57,45 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 
 CREATE INDEX IF NOT EXISTS idx_profiles_public_id ON public.profiles (public_id);
 CREATE INDEX IF NOT EXISTS idx_profiles_username_lower ON public.profiles (lower(username));
+
+-- Align pre-existing profiles tables (e.g. from older project setups) safely
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS public_id text;
+ALTER TABLE public.profiles ALTER COLUMN public_id SET DEFAULT public.generate_public_id();
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS username text;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS display_name text NOT NULL DEFAULT 'Student';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS avatar_preset text NOT NULL DEFAULT '☺';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS avatar_url text NOT NULL DEFAULT '';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS banner_url text NOT NULL DEFAULT '';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS bio text NOT NULL DEFAULT '';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS course_class text NOT NULL DEFAULT '';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS exam_aim text NOT NULL DEFAULT '';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS favorite_subjects text[] NOT NULL DEFAULT '{}';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_verified boolean NOT NULL DEFAULT false;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS privacy jsonb NOT NULL DEFAULT '{"showOnlineStatus":true,"showStudyActivity":true,"allowRoomVisits":true,"roomVisibility":"friends"}'::jsonb;
+
+-- Upgrade any legacy SPK- public IDs or missing public IDs to SPRK-
+DO $$
+DECLARE
+  r record;
+  candidate text;
+BEGIN
+  FOR r IN
+    SELECT id, public_id
+    FROM public.profiles
+    WHERE public_id IS NULL OR public_id = '' OR public_id LIKE 'SPK-%'
+  LOOP
+    candidate := CASE
+      WHEN r.public_id LIKE 'SPK-%' THEN 'SPRK-' || substr(r.public_id, 5)
+      ELSE public.generate_public_id()
+    END;
+    BEGIN
+      UPDATE public.profiles SET public_id = candidate WHERE id = r.id;
+    EXCEPTION WHEN unique_violation THEN
+      UPDATE public.profiles SET public_id = public.generate_public_id() WHERE id = r.id;
+    END;
+  END LOOP;
+END;
+$$;
 
 DROP TRIGGER IF EXISTS trg_profiles_updated_at ON public.profiles;
 CREATE TRIGGER trg_profiles_updated_at
@@ -282,7 +322,7 @@ CREATE TABLE IF NOT EXISTS public.study_groups (
   description text NOT NULL DEFAULT '',
   subject text NOT NULL DEFAULT 'General',
   is_private boolean NOT NULL DEFAULT false,
-  invite_code text UNIQUE NOT NULL DEFAULT upper(substr(encode(gen_random_bytes(4), 'hex'), 1, 8)),
+  invite_code text UNIQUE NOT NULL DEFAULT upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 8)),
   pinned_announcement text NOT NULL DEFAULT '',
   member_count integer NOT NULL DEFAULT 1,
   max_members integer NOT NULL DEFAULT 24,
@@ -435,6 +475,7 @@ CREATE TABLE IF NOT EXISTS public.study_credit_transactions (
   UNIQUE (user_id, idempotency_key)
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_sc_tx_user_idempotency ON public.study_credit_transactions (user_id, idempotency_key);
 CREATE INDEX IF NOT EXISTS idx_sc_tx_user ON public.study_credit_transactions (user_id, created_at DESC);
 
 CREATE TABLE IF NOT EXISTS public.user_inventory (
@@ -608,42 +649,72 @@ CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, auth, extensions
 AS $$
 DECLARE
   v_name text;
+  v_avatar_url text;
+  v_public_id text;
 BEGIN
   v_name := coalesce(
     nullif(trim(NEW.raw_user_meta_data->>'display_name'), ''),
+    nullif(trim(NEW.raw_user_meta_data->>'full_name'), ''),
+    nullif(trim(NEW.raw_user_meta_data->>'name'), ''),
     nullif(split_part(coalesce(NEW.email, ''), '@', 1), ''),
     'Student'
   );
+  v_avatar_url := coalesce(
+    nullif(trim(NEW.raw_user_meta_data->>'avatar_url'), ''),
+    nullif(trim(NEW.raw_user_meta_data->>'picture'), ''),
+    ''
+  );
+  v_public_id := public.generate_public_id();
 
-  INSERT INTO public.profiles (id, display_name)
-  VALUES (NEW.id, left(v_name, 32))
+  INSERT INTO public.profiles (id, public_id, display_name, avatar_url)
+  VALUES (NEW.id, v_public_id, left(v_name, 32), left(v_avatar_url, 512))
   ON CONFLICT (id) DO NOTHING;
 
-  INSERT INTO public.user_settings (user_id, local_display_name)
-  VALUES (NEW.id, left(v_name, 32))
-  ON CONFLICT (user_id) DO NOTHING;
+  BEGIN
+    INSERT INTO public.user_settings (user_id, local_display_name)
+    VALUES (NEW.id, left(v_name, 32))
+    ON CONFLICT (user_id) DO NOTHING;
+  EXCEPTION WHEN OTHERS THEN
+    RAISE WARNING 'handle_new_user user_settings skipped for %: %', NEW.id, SQLERRM;
+  END;
 
-  INSERT INTO public.user_roles (user_id, role)
-  VALUES (NEW.id, 'user')
-  ON CONFLICT (user_id) DO NOTHING;
+  BEGIN
+    INSERT INTO public.user_roles (user_id, role)
+    VALUES (NEW.id, 'user')
+    ON CONFLICT (user_id) DO NOTHING;
+  EXCEPTION WHEN OTHERS THEN
+    RAISE WARNING 'handle_new_user user_roles skipped for %: %', NEW.id, SQLERRM;
+  END;
 
-  INSERT INTO public.user_inventory (user_id, item_id)
-  VALUES
-    (NEW.id, 'theme_comic'),
-    (NEW.id, 'music_rainy_vinyl'),
-    (NEW.id, 'ambience_golden_hour'),
-    (NEW.id, 'deco_penstand_classic'),
-    (NEW.id, 'deco_penstand_mint'),
-    (NEW.id, 'deco_charm_terrarium')
-  ON CONFLICT DO NOTHING;
+  BEGIN
+    INSERT INTO public.user_inventory (user_id, item_id)
+    VALUES
+      (NEW.id, 'theme_comic'),
+      (NEW.id, 'music_rainy_vinyl'),
+      (NEW.id, 'ambience_golden_hour'),
+      (NEW.id, 'deco_penstand_classic'),
+      (NEW.id, 'deco_penstand_mint'),
+      (NEW.id, 'deco_charm_terrarium')
+    ON CONFLICT DO NOTHING;
+  EXCEPTION WHEN OTHERS THEN
+    RAISE WARNING 'handle_new_user user_inventory skipped for %: %', NEW.id, SQLERRM;
+  END;
 
-  INSERT INTO public.study_credit_transactions (user_id, amount, reason, idempotency_key)
-  VALUES (NEW.id, 50, 'Welcome Study Credits', 'welcome_' || NEW.id::text)
-  ON CONFLICT (user_id, idempotency_key) DO NOTHING;
+  BEGIN
+    IF NOT EXISTS (
+      SELECT 1 FROM public.study_credit_transactions
+      WHERE user_id = NEW.id AND idempotency_key = 'welcome_' || NEW.id::text
+    ) THEN
+      INSERT INTO public.study_credit_transactions (user_id, amount, reason, idempotency_key)
+      VALUES (NEW.id, 50, 'Welcome Study Credits', 'welcome_' || NEW.id::text);
+    END IF;
+  EXCEPTION WHEN OTHERS THEN
+    RAISE WARNING 'handle_new_user welcome credits skipped for %: %', NEW.id, SQLERRM;
+  END;
 
   RETURN NEW;
 END;
@@ -1353,9 +1424,10 @@ CREATE POLICY storage_group_assets_write_auth ON storage.objects
 -- 13. Grants & PostgREST Schema Reload
 -- ----------------------------------------------------------------------------
 
-GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT USAGE ON SCHEMA public TO anon, authenticated, supabase_auth_admin, service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO authenticated;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO supabase_auth_admin, service_role;
 GRANT SELECT ON public.achievements TO anon;
-GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO authenticated;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO authenticated, supabase_auth_admin, service_role;
 
 NOTIFY pgrst, 'reload schema';
