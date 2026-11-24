@@ -1,8 +1,11 @@
-// Cabinet Drawer -> File-Folder Tabs, Mini Visual Inventory Thumbnails, Saved Bookmarks & JSON Backup/Restore
+// Cabinet Drawer -> File-Folder Tabs, Mini Visual Inventory Thumbnails, Live Previews, Saved Bookmarks & JSON Backup/Restore
 import { state, savePreferences, persistLocalCollection } from "../state.js";
 import { SHOP_CATALOG } from "../services/economy-service.js";
+import { getShopPreviewDescriptor } from "../utils/shop-catalog.js";
 import { equipShopItem, isShopItemEquipped } from "./shop.js";
-import { renderMiniThumbnail } from "../utils/shop-preview.js";
+import { renderMiniThumbnail, renderPreviewStage } from "../utils/shop-preview.js";
+import { audioManager, AUDIO_CHANNELS } from "../core/audio-manager.js";
+import { isStrictFocusLockActive } from "../core/settings-manager.js";
 import { dialogManager } from "../core/dialog-manager.js";
 import { escapeHtml, todayIsoDate, downloadFile } from "../utils/dom.js";
 import { validateBackupPayload } from "../utils/study-tools.js";
@@ -16,12 +19,113 @@ export const cabinetFeature = {
   render(container) {
     let tab = "inventory"; // inventory | saved | backup
     let statusMsg = "";
+    let previewAudioSnapshot = null;
+    let previewingAudioItemId = null;
+
+    const previewDialog = document.getElementById("sprk-preview-dialog");
+    const previewEyebrow = document.getElementById("sprk-preview-eyebrow");
+    const previewTitle = document.getElementById("sprk-preview-title");
+    const previewBody = document.getElementById("sprk-preview-body");
+    const previewCloseBtn = previewDialog?.querySelector(".sprk-preview-close");
+
+    const stopAudioSample = () => {
+      if (!previewAudioSnapshot) return;
+      for (const ch of AUDIO_CHANNELS) {
+        audioManager.setChannelLevel(ch.id, previewAudioSnapshot.levels[ch.id] || 0);
+      }
+      if (!previewAudioSnapshot.wasPlaying && audioManager.isPlaying) {
+        audioManager.togglePlay(false).catch(() => {});
+      }
+      previewAudioSnapshot = null;
+      previewingAudioItemId = null;
+    };
+
+    const closePreviewDialog = () => {
+      stopAudioSample();
+      if (previewDialog?.open) previewDialog.close();
+    };
+
+    const onPreviewBackdropClick = (event) => {
+      if (event.target === previewDialog) closePreviewDialog();
+    };
+    const onPreviewCancel = (event) => {
+      event.preventDefault();
+      closePreviewDialog();
+    };
+
+    previewCloseBtn?.addEventListener("click", closePreviewDialog);
+    previewDialog?.addEventListener("click", onPreviewBackdropClick);
+    previewDialog?.addEventListener("cancel", onPreviewCancel);
+
+    const openItemPreview = (item) => {
+      if (!previewDialog || !previewBody || !item) return;
+      const locked = isStrictFocusLockActive();
+      const currentThemeId = state.preferences.theme || "comic";
+      const desc = getShopPreviewDescriptor(item, currentThemeId);
+      const equipped = isShopItemEquipped(item);
+      const isPlayingSample = previewingAudioItemId === item.id;
+
+      previewEyebrow.textContent = desc?.subtitle || "ITEM PREVIEW";
+      previewTitle.textContent = item.name;
+
+      previewBody.innerHTML = `
+        ${renderPreviewStage(item, { currentThemeId, isPlayingSample })}
+        <p style="margin:0 0 12px;font-size:13px;color:var(--muted);">${escapeHtml(item.description || "")}</p>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid rgba(52,44,37,0.14);padding-top:12px;">
+          <div class="sprk-meta">
+            <span>${escapeHtml(item.rarity || "Owned")}</span>
+            <span aria-hidden="true">·</span>
+            <span style="text-transform:capitalize;">${escapeHtml(item.category)}</span>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button type="button" class="sprk-btn" id="sprk-preview-dismiss" style="min-height:36px;padding:6px 12px;">Close</button>
+            <button type="button" class="sprk-btn sprk-btn-primary" id="sprk-preview-equip" style="min-height:36px;padding:6px 14px;" ${equipped || locked ? "disabled" : ""}>${equipped ? "Equipped" : "Equip"}</button>
+          </div>
+        </div>
+      `;
+
+      previewBody.querySelector("#sprk-preview-dismiss")?.addEventListener("click", closePreviewDialog);
+      previewBody.querySelector("#sprk-preview-audio-btn")?.addEventListener("click", async () => {
+        if (previewingAudioItemId === item.id) {
+          stopAudioSample();
+          openItemPreview(item);
+          return;
+        }
+        if (!previewAudioSnapshot) {
+          previewAudioSnapshot = {
+            wasPlaying: audioManager.isPlaying,
+            levels: { ...audioManager.levels }
+          };
+        }
+        for (const ch of AUDIO_CHANNELS) {
+          audioManager.setChannelLevel(ch.id, item.audioMix?.[ch.id] || 0);
+        }
+        previewingAudioItemId = item.id;
+        await audioManager.togglePlay(true);
+        openItemPreview(item);
+      });
+      previewBody.querySelector("#sprk-preview-equip")?.addEventListener("click", () => {
+        if (isStrictFocusLockActive()) return;
+        if (item.category === "music") {
+          previewAudioSnapshot = null;
+          previewingAudioItemId = null;
+        }
+        equipShopItem(item);
+        if (item.category === "theme") dialogManager.syncHeader("cabinet");
+        statusMsg = `Equipped "${item.name}".`;
+        closePreviewDialog();
+        renderView();
+      });
+
+      if (!previewDialog.open) previewDialog.showModal();
+    };
 
     const renderView = () => {
       const saved = state.localSavedResources || [];
       const ownedItems = SHOP_CATALOG.filter((item) => state.ownedItemIds.includes(item.id));
       const currentThemeId = state.preferences.theme || "comic";
       const seriousMode = Boolean(state.preferences?.seriousMode);
+      const locked = isStrictFocusLockActive();
 
       container.innerHTML = `
         <nav class="sprk-tabs sprk-tabs-folder" role="tablist" aria-label="Cabinet drawer folders">
@@ -45,9 +149,12 @@ export const cabinetFeature = {
                       <div class="sprk-meta" style="margin-top:3px;text-transform:capitalize;">${escapeHtml(item.category)}</div>
                     </div>
                   </div>
-                  <button type="button" class="sprk-btn sprk-btn-primary" data-cabinet-equip="${escapeHtml(item.id)}" ${equipped ? "disabled" : ""} style="min-height:34px;padding:4px 12px;">
-                    ${equipped ? "Equipped" : "Equip"}
-                  </button>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <button type="button" class="sprk-btn" data-cabinet-preview="${escapeHtml(item.id)}" style="min-height:34px;padding:4px 10px;">Preview</button>
+                    <button type="button" class="sprk-btn sprk-btn-primary" data-cabinet-equip="${escapeHtml(item.id)}" ${equipped || locked ? "disabled" : ""} style="min-height:34px;padding:4px 12px;">
+                      ${equipped ? "Equipped" : "Equip"}
+                    </button>
+                  </div>
                 </div>
               `;
             }).join("")}
@@ -171,11 +278,20 @@ export const cabinetFeature = {
         });
       });
 
+      container.querySelectorAll("[data-cabinet-preview]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const item = SHOP_CATALOG.find((i) => i.id === btn.dataset.cabinetPreview);
+          if (item) openItemPreview(item);
+        });
+      });
+
       container.querySelectorAll("[data-cabinet-equip]").forEach((btn) => {
         btn.addEventListener("click", () => {
+          if (isStrictFocusLockActive()) return;
           const item = SHOP_CATALOG.find((i) => i.id === btn.dataset.cabinetEquip);
           if (item && equipShopItem(item)) {
             if (item.category === "theme") dialogManager.syncHeader("cabinet");
+            statusMsg = `Equipped "${item.name}".`;
             renderView();
           }
         });
@@ -183,5 +299,12 @@ export const cabinetFeature = {
     };
 
     renderView();
+
+    return () => {
+      closePreviewDialog();
+      previewCloseBtn?.removeEventListener("click", closePreviewDialog);
+      previewDialog?.removeEventListener("click", onPreviewBackdropClick);
+      previewDialog?.removeEventListener("cancel", onPreviewCancel);
+    };
   }
 };

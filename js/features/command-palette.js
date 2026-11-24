@@ -134,7 +134,7 @@ function getCommands() {
       id: "nav_deepfocus",
       group: "Pages",
       label: "Open Deep Focus Studio (/deep-focus)",
-      hint: "DeepFocus",
+      hint: "Deep Focus",
       keywords: "deep focus studio minimal distraction free",
       run: () => {
         setAppMode("deepfocus", { syncUrl: false });

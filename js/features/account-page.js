@@ -1,7 +1,6 @@
-// Dedicated /account Social Hub — Study Feed, People & Friends, Study Groups, Public Profiles & Privacy Controls
-import { state } from "../state.js";
+// Unified Social Study Website (/ & /account) — Feed, People, Groups, Public Profiles, Themes & Account
+import { state, savePreferences } from "../state.js";
 import { bus } from "../core/event-bus.js";
-import { supabase } from "../services/supabase.js";
 import { signInWithEmail, signUpWithEmail, sendPasswordRecovery, signOut } from "../services/auth-service.js";
 import {
   updateProfile,
@@ -32,8 +31,14 @@ import {
   updateGroupAnnouncement
 } from "../services/database-service.js";
 import { presenceService } from "../services/presence-service.js";
-import { setAppMode } from "../core/settings-manager.js";
+import { purchaseShopItem } from "../services/economy-service.js";
+import { themeManager, ROOM_THEMES } from "../core/theme-manager.js";
+import { setAppMode, getEffectiveColorMode, setColorMode, setSeriousMode } from "../core/settings-manager.js";
 import { navigateToPage, parseCurrentPage, PAGE_ROUTES } from "../router.js";
+import { SHOP_CATALOG } from "../utils/shop-catalog.js";
+import { renderMiniThumbnail } from "../utils/shop-preview.js";
+import { isThemeAccessibleInMode } from "../utils/room-settings.js";
+import { THEME_DEEPFOCUS_MAP, isParticleOwned } from "../utils/deepfocus-config.js";
 import {
   AVATAR_PRESETS,
   sanitizeAvatarUrl,
@@ -75,7 +80,7 @@ export function initAccountPage() {
   const shellEl = document.getElementById("sprk-account-shell");
   if (!shellEl) return;
 
-  let activeTab = "feed"; // feed | people | groups | profile | auth
+  let activeTab = "feed"; // feed | people | groups | profile | themes | auth
   let feedScope = "all"; // all | friends | mine
   let authMode = "signin"; // signin | register | recover
   let statusMsg = "";
@@ -86,7 +91,10 @@ export function initAccountPage() {
   let activeGroupId = null;
   let showCreateGroup = false;
 
-  const isAccountActive = () => parseCurrentPage().page === PAGE_ROUTES.ACCOUNT;
+  const isAccountActive = () => {
+    const page = parseCurrentPage().page;
+    return page === PAGE_ROUTES.HOME || page === PAGE_ROUTES.ACCOUNT;
+  };
 
   const getActiveProfile = () => {
     if (state.user) return state.user;
@@ -281,6 +289,11 @@ export function initAccountPage() {
       return true;
     });
 
+    const colorMode = getEffectiveColorMode();
+    const activeThemeId = state.preferences?.theme || "comic";
+    const seriousMode = Boolean(state.preferences?.seriousMode);
+    const activeThemeMeta = ROOM_THEMES.find((t) => t.id === activeThemeId) || ROOM_THEMES[0];
+
     shellEl.innerHTML = `
       <header class="acc-topbar">
         <button type="button" class="acc-brand" data-acc-nav="home">
@@ -289,7 +302,10 @@ export function initAccountPage() {
         </button>
 
         <div class="acc-topbar-actions">
-          <button type="button" class="acc-btn" data-acc-nav="home">← Home</button>
+          <div class="acc-color-switch" role="group" aria-label="Color mode">
+            <button type="button" class="acc-color-btn ${colorMode === "light" ? "is-active" : ""}" data-acc-color="light">☀ Light</button>
+            <button type="button" class="acc-color-btn ${colorMode === "dark" ? "is-active" : ""}" data-acc-color="dark">🌙 Dark</button>
+          </div>
           <button type="button" class="acc-btn-primary" id="acc-return-study">
             ${preferredMode === "deepfocus" ? "Open Deep Focus →" : "Open Cozy Study →"}
           </button>
@@ -302,16 +318,14 @@ export function initAccountPage() {
             <h1 class="acc-h1">
               ${inspectedProfile && activeTab === "profile"
                 ? escapeHtml(inspectedProfile.profile.displayName)
-                : user
-                  ? escapeHtml(prof.displayName)
-                  : "SPRK Social &amp; Account"}
+                : escapeHtml(prof.displayName || "SPRK Desk")}
             </h1>
             <p class="acc-sub">
               ${inspectedProfile && activeTab === "profile"
                 ? `${inspectedProfile.profile.username ? `@${escapeHtml(inspectedProfile.profile.username)} · ` : ""}${escapeHtml(inspectedProfile.profile.publicId)} · ${escapeHtml(roomVisibilityLabel(inspectedProfile.roomAccess.visibility))}`
                 : user
                   ? `Connected · ${escapeHtml(user.publicId)} · ${escapeHtml(roomVisibilityLabel(myPrivacy.roomVisibility))}`
-                  : "Sign in to share study updates, connect with friends, join subject groups, and manage room privacy."}
+                  : `Local Mode · ${escapeHtml(activeThemeMeta.name)} · Sign in to sync feed, friends & groups`}
             </p>
           </div>
 
@@ -325,6 +339,9 @@ export function initAccountPage() {
             </button>
             <button type="button" class="acc-tab ${activeTab === "profile" && !inspectedProfile ? "is-active" : ""}" data-acc-tab="profile">
               My Profile
+            </button>
+            <button type="button" class="acc-tab ${activeTab === "themes" ? "is-active" : ""}" data-acc-tab="themes">
+              Themes
             </button>
             <button type="button" class="acc-tab ${activeTab === "auth" ? "is-active" : ""}" data-acc-tab="auth">
               ${user ? "Account" : "Sign In"}
@@ -358,56 +375,78 @@ export function initAccountPage() {
         ${activeTab === "feed" ? `
           ${!user ? `
             <div class="acc-grid-feed">
-              <div class="acc-card">
-                <h2>Join the SPRK Study Community</h2>
-                <p class="acc-sub" style="margin:0;">
-                  Sign in to post study milestones, follow classmates, view student profiles, send friend requests by SPRK- ID, and join subject study groups.
-                  Your Cozy Study desk stays protected under your chosen privacy level.
-                </p>
-                <div class="acc-feature-preview-grid">
-                  <div class="acc-feature-preview-box">
-                    <strong>Study Feed</strong>
-                    <span>Share progress updates, questions, and resource notes publicly or with friends only.</span>
-                  </div>
-                  <div class="acc-feature-preview-box">
-                    <strong>Public Student Cards</strong>
-                    <span>Look up peers by @username or SPRK- ID and see streaks, bio, and study status.</span>
-                  </div>
-                  <div class="acc-feature-preview-box">
-                    <strong>Study Groups</strong>
-                    <span>Create or join topic rooms via 6-character invite codes with pinned notices and group chat.</span>
-                  </div>
-                  <div class="acc-feature-preview-box">
-                    <strong>Granular Room Privacy</strong>
-                    <span>Switch between Public, Friends Only, or Private room access while keeping your profile viewable.</span>
+              <section style="display:grid;gap:16px;">
+                <div class="acc-card">
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                      ${renderAvatar(prof.avatarPreset, prof.avatarUrl, 42)}
+                      <div>
+                        <strong>${escapeHtml(prof.displayName)}</strong>
+                        <div class="acc-meta-line">Sign in to post updates, add friends, and join study groups</div>
+                      </div>
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                      <button type="button" class="acc-btn-primary" data-acc-tab="auth">Sign In / Register</button>
+                      <button type="button" class="acc-btn" data-acc-nav="cozy">Cozy Study</button>
+                      <button type="button" class="acc-btn" data-acc-nav="deepfocus">Deep Focus</button>
+                    </div>
                   </div>
                 </div>
-                <div style="display:flex;gap:10px;flex-wrap:wrap;">
-                  <button type="button" class="acc-btn-primary" data-acc-tab="auth">Sign In / Create Account</button>
-                  <button type="button" class="acc-btn" data-acc-tab="profile">Edit Local Card</button>
+
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+                  <div class="acc-tabs">
+                    <button type="button" class="acc-tab is-active" data-feed-scope="all">All Students</button>
+                    <button type="button" class="acc-tab" data-acc-tab="people">Find People</button>
+                    <button type="button" class="acc-tab" data-acc-tab="groups">Study Groups</button>
+                  </div>
+                  <button type="button" class="acc-btn" data-acc-tab="themes">Theme: ${escapeHtml(activeThemeMeta.name)}</button>
                 </div>
-              </div>
-              <aside class="acc-card">
-                <h3>Local Workspace Snapshot</h3>
-                <div class="acc-profile-hero">
-                  ${renderAvatar(prof.avatarPreset, prof.avatarUrl, 52)}
-                  <div style="min-width:0;">
-                    <strong>${escapeHtml(prof.displayName)}</strong>
-                    <div class="acc-meta-line"><span>Local Mode · Not synced to cloud</span></div>
+
+                <div class="acc-feed-list">
+                  ${visibleFeed.length === 0
+                    ? `<div class="acc-card"><p class="acc-sub" style="margin:0;">Sign in to view and share study updates with your circle.</p></div>`
+                    : visibleFeed.map((post) => renderPostCard(post)).join("")}
+                </div>
+              </section>
+
+              <aside style="display:grid;gap:16px;">
+                <div class="acc-card">
+                  <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <h3>My Study Snapshot</h3>
+                    <button type="button" class="acc-btn" data-acc-tab="profile" style="min-height:30px;padding:0 10px;font-size:12px;">Edit</button>
+                  </div>
+                  <div class="acc-profile-hero">
+                    ${renderAvatar(prof.avatarPreset, prof.avatarUrl, 52)}
+                    <div style="min-width:0;">
+                      <strong>${escapeHtml(prof.displayName)}</strong>
+                      <div class="acc-meta-line"><span>Local Mode</span></div>
+                    </div>
+                  </div>
+                  <div class="acc-stat-strip">
+                    <div class="acc-stat-item">
+                      <span class="acc-stat-label">Focus</span>
+                      <span class="acc-stat-val tabular-nums">${formatMinutesLabel(totalFocusMins)}</span>
+                    </div>
+                    <div class="acc-stat-item">
+                      <span class="acc-stat-label">Streak</span>
+                      <span class="acc-stat-val tabular-nums">${streakInfo.currentStreak}d</span>
+                    </div>
+                    <div class="acc-stat-item">
+                      <span class="acc-stat-label">Active Days</span>
+                      <span class="acc-stat-val tabular-nums">${streakInfo.activeDaysCount}</span>
+                    </div>
                   </div>
                 </div>
-                <div class="acc-stat-strip">
-                  <div class="acc-stat-item">
-                    <span class="acc-stat-label">Focus</span>
-                    <span class="acc-stat-val tabular-nums">${formatMinutesLabel(totalFocusMins)}</span>
+
+                <div class="acc-card">
+                  <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <h3>Active Theme</h3>
+                    <button type="button" class="acc-btn" data-acc-tab="themes" style="min-height:30px;padding:0 10px;font-size:12px;">Browse 16</button>
                   </div>
-                  <div class="acc-stat-item">
-                    <span class="acc-stat-label">Streak</span>
-                    <span class="acc-stat-val tabular-nums">${streakInfo.currentStreak}d</span>
-                  </div>
-                  <div class="acc-stat-item">
-                    <span class="acc-stat-label">Active Days</span>
-                    <span class="acc-stat-val tabular-nums">${streakInfo.activeDaysCount}</span>
+                  <div class="acc-meta-line">
+                    <strong>${escapeHtml(activeThemeMeta.name)}</strong>
+                    <span>·</span>
+                    <span>${colorMode === "dark" ? "Dark" : "Light"}</span>
                   </div>
                 </div>
               </aside>
@@ -719,7 +758,7 @@ export function initAccountPage() {
                         <span>${grp.is_private ? "Private Group" : "Public Group"}</span>
                         ${grp.invite_code ? `<span>·</span><span>Invite Code: <strong class="tabular-nums">${escapeHtml(grp.invite_code)}</strong></span>` : ""}
                       </div>
-                      ${grp.description ? `<p style="margin:8px 0 0;font-size:13.5px;color:#4a3f35;">${escapeHtml(grp.description)}</p>` : ""}
+                      ${grp.description ? `<p style="margin:8px 0 0;font-size:13.5px;color:var(--site-muted);">${escapeHtml(grp.description)}</p>` : ""}
                     </div>
                     <div style="display:flex;gap:8px;flex-wrap:wrap;">
                       ${isMember
@@ -859,7 +898,7 @@ export function initAccountPage() {
                             <span>${g.is_private ? "Private" : "Public"}</span>
                             ${role ? `<span>·</span><strong>Joined (${escapeHtml(role)})</strong>` : ""}
                           </div>
-                          ${g.description ? `<p style="margin:6px 0 0;font-size:13.5px;color:#52463b;">${escapeHtml(g.description)}</p>` : ""}
+                          ${g.description ? `<p style="margin:6px 0 0;font-size:13.5px;color:var(--site-muted);">${escapeHtml(g.description)}</p>` : ""}
                         </div>
                         <div class="acc-friend-actions">
                           <button type="button" class="acc-btn" data-grp-open="${escapeHtml(g.id)}">Open Group</button>
@@ -905,11 +944,11 @@ export function initAccountPage() {
                     ${tp.examAim ? `<div class="acc-meta-line" style="margin-top:4px;"><span>Target Aim: <strong>${escapeHtml(tp.examAim)}</strong></span></div>` : ""}
                   </div>
 
-                  ${tp.bio ? `<p style="margin:0;font-size:13.5px;line-height:1.55;color:#3d332a;">${escapeHtml(tp.bio)}</p>` : ""}
+                  ${tp.bio ? `<p style="margin:0;font-size:13.5px;line-height:1.55;color:var(--site-text);">${escapeHtml(tp.bio)}</p>` : ""}
 
                   ${tSubs.length > 0 ? `
                     <div class="acc-meta-line">
-                      <strong style="color:#241e19;">Subjects:</strong>
+                      <strong style="color:var(--site-text);">Subjects:</strong>
                       <span>${escapeHtml(tSubs.join(" · "))}</span>
                     </div>
                   ` : ""}
@@ -977,11 +1016,11 @@ export function initAccountPage() {
                 ` : ""}
               </div>
 
-              ${prof.bio ? `<p style="margin:0;font-size:13.5px;line-height:1.55;color:#4a3f35;">${escapeHtml(prof.bio)}</p>` : `<p style="margin:0;font-size:13px;color:#73665a;">Add your bio, course, exam aim, and favorite subjects on the right.</p>`}
+              ${prof.bio ? `<p style="margin:0;font-size:13.5px;line-height:1.55;color:var(--site-text);">${escapeHtml(prof.bio)}</p>` : `<p style="margin:0;font-size:13px;color:var(--site-muted);">Add your bio, course, exam aim, and favorite subjects on the right.</p>`}
 
               ${favSubs.length > 0 ? `
                 <div class="acc-meta-line">
-                  <strong style="color:#241e19;">Subjects:</strong>
+                  <strong style="color:var(--site-text);">Subjects:</strong>
                   <span>${escapeHtml(favSubs.join(" · "))}</span>
                 </div>
               ` : ""}
@@ -1098,6 +1137,73 @@ export function initAccountPage() {
               </div>
             </form>
           </div>
+        ` : activeTab === "themes" ? `
+          <section class="acc-card" aria-label="Workspace themes">
+            <div class="acc-themes-bar">
+              <div>
+                <h2>Workspace Themes &amp; Color Mode</h2>
+                <p class="acc-sub" style="margin-top:2px;">Applies across Main Website, Cozy Study, and Deep Focus.</p>
+              </div>
+              <div class="acc-themes-controls">
+                <div class="acc-color-switch" role="group" aria-label="Theme color mode">
+                  <button type="button" class="acc-color-btn ${colorMode === "light" ? "is-active" : ""}" data-acc-color="light">☀ Light</button>
+                  <button type="button" class="acc-color-btn ${colorMode === "dark" ? "is-active" : ""}" data-acc-color="dark">🌙 Dark</button>
+                </div>
+                <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;">
+                  <input id="acc-serious-mode" type="checkbox" ${seriousMode ? "checked" : ""} />
+                  <span>Serious Mode</span>
+                </label>
+                ${user ? `<span class="acc-stat-val tabular-nums" style="font-size:13.5px;">${state.wallet?.balance || 0} SC</span>` : ""}
+              </div>
+            </div>
+
+            <div class="acc-theme-grid">
+              ${ROOM_THEMES.map((t) => {
+                const isActive = activeThemeId === t.id;
+                const item = SHOP_CATALOG.find((i) => i.category === "theme" && i.themeId === t.id) || {
+                  id: `theme_${t.id}`,
+                  category: "theme",
+                  themeId: t.id,
+                  name: t.name,
+                  price: 0,
+                  swatch: t.swatch?.[1] || "#e76d50"
+                };
+                const accessible = isThemeAccessibleInMode(t.id, {
+                  ownedItemIds: state.ownedItemIds || [],
+                  seriousMode
+                });
+                const price = item.price || 0;
+                return `
+                  <article class="acc-theme-card ${isActive ? "is-active" : ""}">
+                    <div>
+                      <div class="acc-theme-head">
+                        <div class="acc-theme-thumb" aria-hidden="true">${renderMiniThumbnail(item, t.id)}</div>
+                        <div style="min-width:0;">
+                          <strong style="font-size:14.5px;display:block;">${escapeHtml(t.name)}</strong>
+                          <div class="acc-theme-swatches" aria-hidden="true">
+                            ${(t.swatch || []).map((hex) => `<span class="acc-theme-swatch" style="background:${escapeHtml(hex)};"></span>`).join("")}
+                          </div>
+                        </div>
+                      </div>
+                      <p class="acc-theme-desc" style="margin-top:10px;">${escapeHtml(t.description || "")}</p>
+                    </div>
+                    <div class="acc-theme-foot">
+                      <span class="acc-meta-line tabular-nums">
+                        ${isActive ? "Active Theme" : accessible ? (price === 0 ? "Starter" : "Unlocked") : `${price} SC`}
+                      </span>
+                      ${isActive
+                        ? `<button type="button" class="acc-btn is-active" disabled>Active</button>`
+                        : accessible
+                          ? `<button type="button" class="acc-btn-primary" data-acc-apply-theme="${escapeHtml(t.id)}">Apply Theme</button>`
+                          : user
+                            ? `<button type="button" class="acc-btn" data-acc-buy-theme="${escapeHtml(t.id)}">Unlock · ${price} SC</button>`
+                            : `<button type="button" class="acc-btn" data-acc-tab="auth">Sign In · ${price} SC</button>`}
+                    </div>
+                  </article>
+                `;
+              }).join("")}
+            </div>
+          </section>
         ` : user ? `
           <div class="acc-card" style="max-width:640px;">
             <h2>Cloud Account Status</h2>
@@ -1108,7 +1214,7 @@ export function initAccountPage() {
               <span>·</span>
               <span>${user.isPremium ? "Premium" : "Standard"}</span>
             </div>
-            <p style="margin:0;font-size:13.5px;color:#5c5045;">
+            <p style="margin:0;font-size:13.5px;color:var(--site-muted);">
               Your Cozy Study room, Deep Focus studio, social feed, friend requests, and study groups all sync cleanly across sessions.
             </p>
             <div style="display:flex;gap:10px;flex-wrap:wrap;">
@@ -1154,7 +1260,14 @@ export function initAccountPage() {
       </main>
     `;
 
-    // Top Navigation
+    // Top Navigation & Color Mode
+    shellEl.querySelectorAll("[data-acc-color]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        setColorMode(btn.dataset.accColor);
+        render();
+      });
+    });
+
     shellEl.querySelectorAll("[data-acc-nav]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const target = btn.dataset.accNav;
@@ -1165,6 +1278,8 @@ export function initAccountPage() {
           setAppMode("deepfocus", { syncUrl: false });
           navigateToPage(PAGE_ROUTES.DEEPFOCUS);
         } else if (target === "home") {
+          activeTab = "feed";
+          inspectedProfile = null;
           navigateToPage(PAGE_ROUTES.HOME);
         } else {
           navigateToPage(PAGE_ROUTES.ACCOUNT);
@@ -1188,6 +1303,51 @@ export function initAccountPage() {
         statusMsg = "";
         render();
       });
+    });
+
+    // Themes Tab Events
+    const applySyncedTheme = (themeId) => {
+      themeManager.apply(themeId, { persist: true });
+      const mapped = THEME_DEEPFOCUS_MAP[themeId];
+      if (mapped) {
+        savePreferences({
+          deepFocus: {
+            followThemeScene: true,
+            sceneId: mapped.sceneId,
+            followThemeParticle: true,
+            particleId: isParticleOwned(mapped.particleId, state.ownedItemIds) ? mapped.particleId : "ambient_drift"
+          }
+        });
+      }
+      const meta = ROOM_THEMES.find((t) => t.id === themeId);
+      statusMsg = `Applied "${meta?.name || themeId}" across Main Website, Cozy Study, and Deep Focus.`;
+      render();
+    };
+
+    shellEl.querySelectorAll("[data-acc-apply-theme]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        applySyncedTheme(btn.dataset.accApplyTheme);
+      });
+    });
+
+    shellEl.querySelectorAll("[data-acc-buy-theme]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const themeId = btn.dataset.accBuyTheme;
+        const item = SHOP_CATALOG.find((i) => i.category === "theme" && i.themeId === themeId);
+        if (!item) return;
+        const res = await purchaseShopItem(item.id);
+        if (!res.ok) {
+          statusMsg = res.error || "Purchase failed.";
+          render();
+          return;
+        }
+        applySyncedTheme(themeId);
+      });
+    });
+
+    shellEl.querySelector("#acc-serious-mode")?.addEventListener("change", (e) => {
+      setSeriousMode(e.target.checked);
+      render();
     });
 
     // Open public profile from anywhere (feed authors, friends, suggested, group members)
@@ -1648,6 +1808,12 @@ export function initAccountPage() {
   bus.on("auth:changed", render);
   bus.on("profile:changed", render);
   bus.on("friends:changed", render);
+  bus.on("preferences:changed", () => {
+    if (isAccountActive()) render();
+  });
+  bus.on("economy:updated", () => {
+    if (isAccountActive()) render();
+  });
   bus.on("socialFeed:changed", () => {
     if (isAccountActive() && activeTab === "feed") render();
   });
@@ -1658,7 +1824,7 @@ export function initAccountPage() {
     if (isAccountActive() && activeTab === "people") render();
   });
   bus.on("account:openTab", async ({ tab } = {}) => {
-    const allowed = new Set(["feed", "people", "groups", "profile", "auth"]);
+    const allowed = new Set(["feed", "people", "groups", "profile", "themes", "auth"]);
     if (tab && allowed.has(tab)) {
       activeTab = tab;
       if (tab === "profile") inspectedProfile = null;

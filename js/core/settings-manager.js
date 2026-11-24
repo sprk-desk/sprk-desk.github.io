@@ -5,6 +5,7 @@ import { lightingManager } from "./lighting-manager.js";
 import { audioManager, AUDIO_CHANNELS } from "./audio-manager.js";
 import {
   resolveSeriousModeTransition,
+  resolveEffectiveColorMode,
   isSeriousTheme,
   isThemeAccessibleInMode,
   SERIOUS_OBJECT_NAMES,
@@ -137,8 +138,12 @@ export function applyRoomSettingsToDocument() {
       ? "cozy"
       : (prefs.appMode === "deepfocus" ? "deepfocus" : "cozy");
 
+  const activeThemeId = state.spectatingRoom?.theme || prefs.theme || "comic";
+  const colorMode = resolveEffectiveColorMode(activeThemeId, prefs.colorMode);
+
   root.dataset.page = currentPage;
   root.dataset.appMode = appMode;
+  root.dataset.colorMode = colorMode;
   root.dataset.seriousMode = String(seriousMode);
   root.dataset.spectating = String(Boolean(state.spectatingRoom));
   delete root.dataset.deepFocus;
@@ -214,6 +219,20 @@ export function setAppMode(nextMode, { syncUrl = true } = {}) {
       window.history.pushState({ page }, "", targetPath);
     }
   }
+  applyRoomSettingsToDocument();
+  lightingManager.apply();
+  return mode;
+}
+
+export function getEffectiveColorMode() {
+  const prefs = state.preferences || {};
+  const activeThemeId = state.spectatingRoom?.theme || prefs.theme || "comic";
+  return resolveEffectiveColorMode(activeThemeId, prefs.colorMode);
+}
+
+export function setColorMode(nextMode) {
+  const mode = nextMode === "dark" ? "dark" : "light";
+  savePreferences({ colorMode: mode });
   applyRoomSettingsToDocument();
   lightingManager.apply();
   return mode;

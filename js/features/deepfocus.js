@@ -1,4 +1,4 @@
-// DeepFocus Studio — Pure-Zen Stage, Top-Left Switcher, Radial Game-Style Menu & Bottom-Right Friends Popover
+// Deep Focus Studio — Pure-Zen Stage, Top-Left Switcher, Radial Menu & Bottom-Right Friends Popover
 import { APP_CONFIG } from "../../config.js";
 import { state, savePreferences, persistLocalCollection } from "../state.js";
 import { bus } from "../core/event-bus.js";
@@ -7,6 +7,8 @@ import { audioManager } from "../core/audio-manager.js";
 import { deepFocusParticles } from "../core/deepfocus-particles.js";
 import {
   setAppMode,
+  getEffectiveColorMode,
+  setColorMode,
   isStrictFocusLockActive,
   toggleStrictFocusLock,
   toggleAutoCycleBreaks,
@@ -112,12 +114,17 @@ export function initDeepFocusWorkspace() {
     }
 
     const isDf = page === PAGE_ROUTES.DEEPFOCUS;
+    const colorMode = getEffectiveColorMode();
     modeSwitcherEl.hidden = false;
     modeSwitcherEl.classList.toggle("is-pure-zen", Boolean(zenMode && isDf));
     modeSwitcherEl.innerHTML = `
       <div class="sprk-mode-switch" role="group" aria-label="Workspace mode">
         <button type="button" class="sprk-mode-switch-btn ${!isDf ? "is-active" : ""}" data-switch-mode="cozy">Cozy Study</button>
-        <button type="button" class="sprk-mode-switch-btn ${isDf ? "is-active" : ""}" data-switch-mode="deepfocus">DeepFocus</button>
+        <button type="button" class="sprk-mode-switch-btn ${isDf ? "is-active" : ""}" data-switch-mode="deepfocus">Deep Focus</button>
+      </div>
+      <div class="sprk-color-mode-switch" role="group" aria-label="Theme color mode">
+        <button type="button" class="sprk-color-mode-btn ${colorMode === "light" ? "is-active" : ""}" data-color-mode="light" title="Light mode">☀ Light</button>
+        <button type="button" class="sprk-color-mode-btn ${colorMode === "dark" ? "is-active" : ""}" data-color-mode="dark" title="Dark mode">🌙 Dark</button>
       </div>
     `;
     modeSwitcherEl.querySelectorAll("[data-switch-mode]").forEach((btn) => {
@@ -130,6 +137,12 @@ export function initDeepFocusWorkspace() {
           setAppMode("cozy", { syncUrl: false });
           navigateToPage(PAGE_ROUTES.COZY);
         }
+      });
+    });
+    modeSwitcherEl.querySelectorAll("[data-color-mode]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        setColorMode(btn.dataset.colorMode);
+        renderModeSwitcher();
       });
     });
   };
@@ -770,7 +783,7 @@ export function initDeepFocusWorkspace() {
       <div class="df-layout is-zen ${activeDrawer ? "has-drawer" : ""}">
         ${renderRadialMenuHtml({ openTasks })}
 
-        <main class="df-stage" aria-label="DeepFocus Timer Stage">
+        <main class="df-stage" aria-label="Deep Focus Timer Stage">
           <section class="df-timer-card" aria-label="Focus timer">
             <div class="df-segmented" role="tablist" aria-label="Timer type">
               <button type="button" class="df-seg-btn ${timerTab === "pomodoro" ? "is-active" : ""}" data-df-tab="pomodoro">Pomodoro</button>
@@ -1244,7 +1257,7 @@ export function initDeepFocusWorkspace() {
     });
   };
 
-  // Global DeepFocus keyboard shortcuts (Space, S, R, F, M, Escape)
+  // Global Deep Focus keyboard shortcuts (Space, S, R, F, M, Escape)
   window.addEventListener("keydown", (event) => {
     if (!isDeepFocusActive()) return;
     if (document.getElementById("sprk-command-dialog")?.open) return;
@@ -1254,6 +1267,11 @@ export function initDeepFocusWorkspace() {
     const key = event.key.toLowerCase();
 
     if (key === "escape") {
+      if (modals.hasPreviewOpen?.()) {
+        event.preventDefault();
+        modals.closePreview();
+        return;
+      }
       if (modals.getActiveModal()) {
         event.preventDefault();
         modals.close();

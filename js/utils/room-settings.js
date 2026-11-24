@@ -3,6 +3,13 @@
 export const SERIOUS_THEME_IDS = Object.freeze(["editorial", "noir"]);
 export const DARK_THEME_IDS = new Set(["space", "alchemy", "midnight", "noir"]);
 
+export function resolveEffectiveColorMode(themeId = "comic", explicitColorMode = null) {
+  if (explicitColorMode === "dark" || explicitColorMode === "light") {
+    return explicitColorMode;
+  }
+  return DARK_THEME_IDS.has(String(themeId || "")) ? "dark" : "light";
+}
+
 export const DISABLED_FEATURES = Object.freeze(["customization"]);
 
 export const SPECTATOR_ALLOWED_FEATURES = Object.freeze([

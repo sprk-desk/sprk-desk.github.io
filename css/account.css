@@ -1,10 +1,17 @@
-/* SPRK Desk — Dedicated Social Hub, Profile Viewer, Feed & Study Groups (/account) */
+/* SPRK Desk — Main Social Study Website (/ & /account), Synced Across All Themes & Light/Dark Mode */
 
+html[data-page="home"] .room-screen,
+html[data-page="home"] #room-active-whisper,
+html[data-page="home"] #sprk-study-circle-root,
+html[data-page="home"] #sprk-mode-switcher,
+html[data-page="home"] #deepfocus-shell,
+html[data-page="home"] #sprk-home-shell,
 html[data-page="account"] .room-screen,
 html[data-page="account"] #room-active-whisper,
 html[data-page="account"] #sprk-study-circle-root,
 html[data-page="account"] #sprk-mode-switcher,
-html[data-page="account"] #deepfocus-shell {
+html[data-page="account"] #deepfocus-shell,
+html[data-page="account"] #sprk-home-shell {
   display: none !important;
 }
 
@@ -16,9 +23,10 @@ html[data-page="account"] #deepfocus-shell {
   overflow-x: hidden;
   scrollbar-width: none;
   -ms-overflow-style: none;
-  background: #f5ecda;
-  color: #241e19;
+  background: var(--site-bg, #f5ecda);
+  color: var(--site-text, #241e19);
   font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+  transition: background-color 180ms ease, color 180ms ease;
 }
 
 .sprk-account-shell::-webkit-scrollbar {
@@ -40,9 +48,9 @@ html[data-page="account"] #deepfocus-shell {
   max-width: 1180px;
   margin: 0 auto;
   padding: 14px 28px;
-  background: rgba(245, 236, 218, 0.94);
+  background: var(--site-topbar, rgba(245, 236, 218, 0.94));
   backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(36, 30, 25, 0.12);
+  border-bottom: 1px solid var(--site-border, rgba(36, 30, 25, 0.12));
 }
 
 .acc-brand {
@@ -52,7 +60,7 @@ html[data-page="account"] #deepfocus-shell {
   font-family: "Fraunces", Georgia, serif;
   font-weight: 700;
   font-size: 20px;
-  color: #241e19;
+  color: var(--site-text, #241e19);
   background: transparent;
   border: 0;
   padding: 0;
@@ -67,8 +75,8 @@ html[data-page="account"] #deepfocus-shell {
   border-radius: 7px;
   display: grid;
   place-items: center;
-  background: #241e19;
-  color: #f5ecda;
+  background: var(--site-text, #241e19);
+  color: var(--site-bg, #f5ecda);
   font-family: "JetBrains Mono", monospace;
   font-size: 13px;
   font-weight: 700;
@@ -81,12 +89,48 @@ html[data-page="account"] #deepfocus-shell {
   flex-shrink: 0;
 }
 
+.acc-color-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 9px;
+  background: var(--site-tabs-bg, rgba(36, 30, 25, 0.06));
+  border: 1px solid var(--site-border, rgba(36, 30, 25, 0.14));
+}
+
+.acc-color-btn {
+  appearance: none;
+  border: 0;
+  border-radius: 6px;
+  padding: 5px 10px;
+  min-height: 28px;
+  font: 600 12px/1 "Plus Jakarta Sans", system-ui, sans-serif;
+  color: var(--site-muted, #5d5146);
+  background: transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.acc-color-btn:hover {
+  color: var(--site-text, #241e19);
+}
+
+.acc-color-btn.is-active {
+  background: var(--site-tab-active-bg, #ffffff);
+  color: var(--site-text, #241e19);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+}
+
 .acc-main {
   max-width: 1140px;
   margin: 0 auto;
-  padding: 28px 28px 64px;
+  padding: 26px 28px 64px;
   display: grid;
-  gap: 22px;
+  gap: 20px;
 }
 
 .acc-header-row {
@@ -102,12 +146,13 @@ html[data-page="account"] #deepfocus-shell {
   font-family: "Fraunces", Georgia, serif;
   font-size: clamp(1.65rem, 2.8vw, 2.2rem);
   line-height: 1.12;
+  color: var(--site-text, #241e19);
 }
 
 .acc-sub {
   margin: 4px 0 0;
   font-size: 13.5px;
-  color: #5d5146;
+  color: var(--site-muted, #5d5146);
 }
 
 .acc-tabs {
@@ -116,8 +161,8 @@ html[data-page="account"] #deepfocus-shell {
   gap: 4px;
   padding: 4px;
   border-radius: 10px;
-  background: rgba(36, 30, 25, 0.06);
-  border: 1px solid rgba(36, 30, 25, 0.1);
+  background: var(--site-tabs-bg, rgba(36, 30, 25, 0.06));
+  border: 1px solid var(--site-border, rgba(36, 30, 25, 0.1));
 }
 
 .acc-tab {
@@ -126,16 +171,20 @@ html[data-page="account"] #deepfocus-shell {
   border-radius: 7px;
   padding: 8px 14px;
   font: 600 13px/1 "Plus Jakarta Sans", system-ui, sans-serif;
-  color: #5a4e43;
+  color: var(--site-muted, #5a4e43);
   background: transparent;
   cursor: pointer;
   white-space: nowrap;
 }
 
+.acc-tab:hover {
+  color: var(--site-text, #241e19);
+}
+
 .acc-tab.is-active {
-  background: #fffaf0;
-  color: #241e19;
-  box-shadow: 0 2px 6px rgba(36, 30, 25, 0.08);
+  background: var(--site-tab-active-bg, #fffaf0);
+  color: var(--site-text, #241e19);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 .acc-overview-strip {
@@ -145,46 +194,20 @@ html[data-page="account"] #deepfocus-shell {
 }
 
 .acc-overview-cell {
-  background: #fffaf0;
-  border: 1px solid rgba(36, 30, 25, 0.13);
+  background: var(--site-surface, #fffaf0);
+  border: 1px solid var(--site-border, rgba(36, 30, 25, 0.13));
   border-radius: 12px;
   padding: 12px 15px;
   display: grid;
   gap: 3px;
 }
 
-.acc-feature-preview-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.acc-feature-preview-box {
-  border-radius: 10px;
-  border: 1px solid rgba(36, 30, 25, 0.11);
-  background: #ffffff;
-  padding: 12px 14px;
-  display: grid;
-  gap: 4px;
-}
-
-.acc-feature-preview-box strong {
-  font-size: 13.5px;
-  color: #241e19;
-}
-
-.acc-feature-preview-box span {
-  font-size: 12.5px;
-  line-height: 1.45;
-  color: #5c5045;
-}
-
 .acc-notice {
   padding: 11px 14px;
   border-radius: 10px;
-  border: 1px solid rgba(217, 98, 64, 0.35);
-  background: #fff6ed;
-  color: #6b2f1d;
+  border: 1px solid color-mix(in srgb, var(--site-accent, #d96240) 45%, transparent);
+  background: var(--site-notice-bg, #fff6ed);
+  color: var(--site-notice-text, #6b2f1d);
   font-size: 13.5px;
   font-weight: 600;
 }
@@ -204,8 +227,8 @@ html[data-page="account"] #deepfocus-shell {
 }
 
 .acc-card {
-  background: #fffaf0;
-  border: 1px solid rgba(36, 30, 25, 0.14);
+  background: var(--site-surface, #fffaf0);
+  border: 1px solid var(--site-border, rgba(36, 30, 25, 0.14));
   border-radius: 14px;
   padding: 20px;
   display: grid;
@@ -217,16 +240,17 @@ html[data-page="account"] #deepfocus-shell {
   margin: 0;
   font-size: 16px;
   font-weight: 700;
+  color: var(--site-text, #241e19);
 }
 
 .acc-cover-banner {
   height: 128px;
   margin: -20px -20px 0;
   border-radius: 13px 13px 0 0;
-  background: linear-gradient(125deg, #ead7b7 0%, #dfd0bd 48%, #d7c0a5 100%);
+  background: var(--site-banner-grad, linear-gradient(125deg, #ead7b7 0%, #dfd0bd 48%, #d7c0a5 100%));
   background-size: cover;
   background-position: center;
-  border-bottom: 1px solid rgba(36, 30, 25, 0.1);
+  border-bottom: 1px solid var(--site-border, rgba(36, 30, 25, 0.1));
 }
 
 .acc-profile-header-overlap {
@@ -248,8 +272,9 @@ html[data-page="account"] #deepfocus-shell {
   width: 68px;
   height: 68px;
   border-radius: 14px;
-  border: 2px solid #241e19;
-  background: #f5ecda;
+  border: 2px solid var(--site-border-strong, #241e19);
+  background: var(--site-avatar-bg, #f5ecda);
+  color: var(--site-text, #241e19);
   display: grid;
   place-items: center;
   overflow: hidden;
@@ -269,7 +294,7 @@ html[data-page="account"] #deepfocus-shell {
   align-items: center;
   gap: 6px;
   font-size: 12.5px;
-  color: #62564a;
+  color: var(--site-muted, #62564a);
 }
 
 .acc-stat-strip {
@@ -277,7 +302,7 @@ html[data-page="account"] #deepfocus-shell {
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
   padding-top: 12px;
-  border-top: 1px solid rgba(36, 30, 25, 0.1);
+  border-top: 1px solid var(--site-border, rgba(36, 30, 25, 0.1));
 }
 
 .acc-stat-item {
@@ -287,14 +312,14 @@ html[data-page="account"] #deepfocus-shell {
 
 .acc-stat-label {
   font-size: 11px;
-  color: #6b5f53;
+  color: var(--site-muted, #6b5f53);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
 .acc-stat-val {
   font: 700 16px/1.2 "JetBrains Mono", monospace;
-  color: #241e19;
+  color: var(--site-text, #241e19);
 }
 
 .acc-form-grid {
@@ -311,7 +336,7 @@ html[data-page="account"] #deepfocus-shell {
 .acc-label {
   font-size: 12px;
   font-weight: 600;
-  color: #4f4338;
+  color: var(--site-muted, #4f4338);
 }
 
 .acc-input,
@@ -321,9 +346,9 @@ html[data-page="account"] #deepfocus-shell {
   min-height: 38px;
   padding: 8px 11px;
   border-radius: 9px;
-  border: 1px solid rgba(36, 30, 25, 0.2);
-  background: #ffffff;
-  color: #241e19;
+  border: 1px solid var(--site-border-strong, rgba(36, 30, 25, 0.2));
+  background: var(--site-input, #ffffff);
+  color: var(--site-text, #241e19);
   font: 500 13.5px/1.35 "Plus Jakarta Sans", system-ui, sans-serif;
 }
 
@@ -350,12 +375,12 @@ html[data-page="account"] #deepfocus-shell {
 
 .acc-btn-primary {
   border: 0;
-  background: #d96240;
-  color: #fffdf8;
+  background: var(--site-accent, #d96240);
+  color: var(--site-accent-fg, #fffdf8);
 }
 
 .acc-btn-primary:hover:not(:disabled) {
-  background: #c55333;
+  filter: brightness(0.94);
 }
 
 .acc-btn-primary:disabled,
@@ -365,19 +390,19 @@ html[data-page="account"] #deepfocus-shell {
 }
 
 .acc-btn {
-  border: 1px solid rgba(36, 30, 25, 0.2);
-  background: #ffffff;
-  color: #241e19;
+  border: 1px solid var(--site-border-strong, rgba(36, 30, 25, 0.2));
+  background: var(--site-card, #ffffff);
+  color: var(--site-text, #241e19);
 }
 
 .acc-btn:hover:not(:disabled) {
-  background: #f3ead8;
+  background: var(--site-card-alt, #f3ead8);
 }
 
 .acc-btn.is-active {
-  background: #241e19;
-  color: #fffaf0;
-  border-color: #241e19;
+  background: var(--site-accent, #241e19);
+  color: var(--site-accent-fg, #fffaf0);
+  border-color: var(--site-accent, #241e19);
 }
 
 .acc-btn-link {
@@ -385,7 +410,7 @@ html[data-page="account"] #deepfocus-shell {
   background: transparent;
   padding: 0;
   min-height: auto;
-  color: #241e19;
+  color: var(--site-text, #241e19);
   text-align: left;
 }
 
@@ -406,14 +431,13 @@ html[data-page="account"] #deepfocus-shell {
   gap: 12px;
   padding: 12px 14px;
   border-radius: 11px;
-  border: 1px solid rgba(36, 30, 25, 0.12);
-  background: #ffffff;
+  border: 1px solid var(--site-border, rgba(36, 30, 25, 0.12));
+  background: var(--site-card, #ffffff);
   transition: border-color 140ms ease;
 }
 
 .acc-friend-row.is-selected {
-  border-color: #d96240;
-  background: #fff9f4;
+  border-color: var(--site-accent, #d96240);
 }
 
 .acc-friend-left {
@@ -451,8 +475,8 @@ html[data-page="account"] #deepfocus-shell {
 
 /* Social Feed Post Card */
 .acc-post-card {
-  background: #ffffff;
-  border: 1px solid rgba(36, 30, 25, 0.13);
+  background: var(--site-card, #ffffff);
+  border: 1px solid var(--site-border, rgba(36, 30, 25, 0.13));
   border-radius: 13px;
   padding: 16px 18px;
   display: grid;
@@ -477,7 +501,7 @@ html[data-page="account"] #deepfocus-shell {
   margin: 0;
   font-size: 14px;
   line-height: 1.55;
-  color: #241e19;
+  color: var(--site-text, #241e19);
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -487,7 +511,7 @@ html[data-page="account"] #deepfocus-shell {
   align-items: center;
   gap: 14px;
   padding-top: 8px;
-  border-top: 1px solid rgba(36, 30, 25, 0.08);
+  border-top: 1px solid var(--site-border, rgba(36, 30, 25, 0.08));
 }
 
 .acc-post-action-btn {
@@ -497,7 +521,7 @@ html[data-page="account"] #deepfocus-shell {
   padding: 4px 6px;
   border-radius: 6px;
   font: 600 12.5px/1 "Plus Jakarta Sans", system-ui, sans-serif;
-  color: #5c5045;
+  color: var(--site-muted, #5c5045);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -505,17 +529,17 @@ html[data-page="account"] #deepfocus-shell {
 }
 
 .acc-post-action-btn:hover {
-  background: rgba(36, 30, 25, 0.06);
-  color: #241e19;
+  background: var(--site-tabs-bg, rgba(36, 30, 25, 0.06));
+  color: var(--site-text, #241e19);
 }
 
 .acc-post-action-btn.is-liked {
-  color: #d96240;
+  color: var(--site-accent, #d96240);
 }
 
 .acc-comments-box {
   padding-top: 10px;
-  border-top: 1px solid rgba(36, 30, 25, 0.08);
+  border-top: 1px solid var(--site-border, rgba(36, 30, 25, 0.08));
   display: grid;
   gap: 8px;
 }
@@ -523,7 +547,7 @@ html[data-page="account"] #deepfocus-shell {
 .acc-comment-row {
   padding: 8px 10px;
   border-radius: 8px;
-  background: #faf4e8;
+  background: var(--site-card-alt, #faf4e8);
   font-size: 13px;
   display: grid;
   gap: 3px;
@@ -532,10 +556,10 @@ html[data-page="account"] #deepfocus-shell {
 .acc-room-lock-box {
   padding: 12px 14px;
   border-radius: 10px;
-  border: 1px solid rgba(36, 30, 25, 0.14);
-  background: #f8f1e4;
+  border: 1px solid var(--site-border, rgba(36, 30, 25, 0.14));
+  background: var(--site-card-alt, #f8f1e4);
   font-size: 13px;
-  color: #4f4338;
+  color: var(--site-muted, #4f4338);
   display: grid;
   gap: 4px;
 }
@@ -548,10 +572,10 @@ html[data-page="account"] #deepfocus-shell {
 
 .acc-privacy-opt {
   appearance: none;
-  border: 1px solid rgba(36, 30, 25, 0.18);
+  border: 1px solid var(--site-border-strong, rgba(36, 30, 25, 0.18));
   border-radius: 10px;
-  background: #ffffff;
-  color: #241e19;
+  background: var(--site-card, #ffffff);
+  color: var(--site-text, #241e19);
   padding: 10px;
   text-align: left;
   cursor: pointer;
@@ -565,12 +589,12 @@ html[data-page="account"] #deepfocus-shell {
 
 .acc-privacy-opt span {
   font-size: 11.5px;
-  color: #62564a;
+  color: var(--site-muted, #62564a);
 }
 
 .acc-privacy-opt.is-active {
-  border-color: #d96240;
-  background: #fff5ee;
+  border-color: var(--site-accent, #d96240);
+  background: var(--site-notice-bg, #fff5ee);
 }
 
 .acc-chat-log {
@@ -584,31 +608,119 @@ html[data-page="account"] #deepfocus-shell {
 .acc-chat-msg {
   padding: 9px 12px;
   border-radius: 10px;
-  background: #ffffff;
-  border: 1px solid rgba(36, 30, 25, 0.1);
+  background: var(--site-card, #ffffff);
+  border: 1px solid var(--site-border, rgba(36, 30, 25, 0.1));
   display: grid;
   gap: 3px;
 }
 
 .acc-chat-msg.is-announcement {
-  background: #fff6ed;
-  border-color: rgba(217, 98, 64, 0.3);
+  background: var(--site-notice-bg, #fff6ed);
+  border-color: color-mix(in srgb, var(--site-accent, #d96240) 35%, transparent);
 }
 
-@media (max-width: 920px) {
+/* Themes Tab */
+.acc-themes-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.acc-themes-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.acc-theme-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.acc-theme-card {
+  background: var(--site-card, #ffffff);
+  border: 1px solid var(--site-border, rgba(36, 30, 25, 0.14));
+  border-radius: 13px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  transition: border-color 140ms ease;
+}
+
+.acc-theme-card.is-active {
+  border-color: var(--site-accent, #d96240);
+  box-shadow: 0 0 0 1px var(--site-accent, #d96240);
+}
+
+.acc-theme-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.acc-theme-thumb {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+}
+
+.acc-theme-thumb .sprk-shop-thumb {
+  width: 56px;
+  height: 56px;
+}
+
+.acc-theme-swatches {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 5px;
+}
+
+.acc-theme-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  border: 1px solid var(--site-border-strong, rgba(0, 0, 0, 0.25));
+}
+
+.acc-theme-desc {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--site-muted, #5d5146);
+}
+
+.acc-theme-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--site-border, rgba(36, 30, 25, 0.08));
+}
+
+@media (max-width: 960px) {
   .acc-grid-2,
   .acc-grid-feed,
   .acc-form-grid,
-  .acc-privacy-segment,
-  .acc-feature-preview-grid {
+  .acc-privacy-segment {
     grid-template-columns: 1fr;
+  }
+  .acc-theme-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .acc-overview-strip {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 560px) {
+@media (max-width: 600px) {
   .acc-topbar {
     padding: 12px 16px;
   }
@@ -619,7 +731,8 @@ html[data-page="account"] #deepfocus-shell {
     flex-direction: column;
     align-items: flex-start;
   }
-  .acc-overview-strip {
+  .acc-overview-strip,
+  .acc-theme-grid {
     grid-template-columns: 1fr;
   }
 }

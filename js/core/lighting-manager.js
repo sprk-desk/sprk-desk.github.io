@@ -161,13 +161,15 @@ class LightingManager {
     root.dataset.lowPerformance = String(Boolean(prefs.lowPerformance));
     root.dataset.reducedMotion = String(Boolean(prefs.reducedMotion));
 
+    const isDarkColorMode = root.dataset.colorMode === "dark";
     const roomBrightness = (Number(lighting.roomBrightness ?? 100) / 100).toFixed(2);
     const windowBrightness = (Number(lighting.windowBrightness ?? 100) / 100).toFixed(2);
-    const darknessPct = Math.min(72, Math.max(0, Number(lighting.ambientDarkness ?? profile.defaultDarkness)));
+    const baseDarkness = Number(lighting.ambientDarkness ?? profile.defaultDarkness);
+    const darknessPct = Math.min(72, Math.max(isDarkColorMode ? 28 : 0, baseDarkness));
     const darknessAlpha = (darknessPct / 100 * 0.68).toFixed(3);
     const lampAlpha = !effectiveLampOn
       ? "0"
-      : ((Number(lighting.lampIntensity ?? 70) / 100) * (phase === "night" || phase === "sunset" || autoDuskActive ? 0.55 : 0.22)).toFixed(3);
+      : ((Number(lighting.lampIntensity ?? 70) / 100) * (phase === "night" || phase === "sunset" || autoDuskActive || isDarkColorMode ? 0.55 : 0.22)).toFixed(3);
     const warmthAlpha = ((Number(lighting.warmth ?? 35) / 100) * 0.24).toFixed(3);
     const lampKelvin = autoDuskActive && !lighting.lampKelvin
       ? 2700

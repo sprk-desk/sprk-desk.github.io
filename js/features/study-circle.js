@@ -127,7 +127,7 @@ export function initStudyCircle() {
             <path d="M16 3.13a3.5 3.5 0 0 1 0 6.74"/>
           </svg>
         </span>
-        <span class="sprk-study-online-text tabular-nums"><strong>${onlineCount}</strong> online</span>
+        <span class="sprk-study-online-text tabular-nums"><strong>${onlineCount}</strong> online · <strong>${signedIn ? (summary.studyingCount || 0) : 0}</strong> focussing</span>
         <span class="sprk-study-caret ${isExpanded ? "is-open" : ""}" aria-hidden="true">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="18 15 12 9 6 15"/>

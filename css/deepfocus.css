@@ -1,10 +1,14 @@
-/* DeepFocus Studio — Distraction-Free Glassmorphic Workspace, Modals & Mode Switcher */
+/* Deep Focus Studio — Distraction-Free Glassmorphic Workspace, Modals & Mode Switcher */
 
 .sprk-mode-switcher {
   position: fixed;
   top: 18px;
   left: 20px;
   z-index: 45;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
   transition: opacity 160ms ease;
 }
 
@@ -17,115 +21,72 @@
   opacity: 1;
 }
 
-html[data-page="cozy"] .sprk-mode-switcher {
-  top: 16px;
-  right: 18px;
-  bottom: auto;
-  left: auto;
-  transform: none;
-}
-
 html.df-overlay-active .sprk-mode-switcher {
   opacity: 0.22;
   pointer-events: none;
   z-index: 39;
 }
 
-.sprk-mode-switch {
+.sprk-mode-switch,
+.sprk-color-mode-switch {
   display: inline-flex;
   align-items: center;
   gap: 3px;
   padding: 4px;
   border-radius: 11px;
-  border: 1.5px solid var(--ink, #342c25);
-  background: var(--wall-light, #fff8e9);
-  box-shadow: 2px 3px 0 rgba(35, 28, 22, 0.24);
+  border: 1.5px solid var(--site-border-strong, var(--ink, #342c25));
+  background: var(--site-surface, var(--wall-light, #fff8e9));
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.16);
 }
 
-.sprk-mode-switch-btn {
+.sprk-color-mode-switch {
+  padding: 3px;
+  border-radius: 9px;
+}
+
+.sprk-mode-switch-btn,
+.sprk-color-mode-btn {
   appearance: none;
   border: 0;
   border-radius: 7px;
   padding: 6px 12px;
   min-height: 28px;
   font: 700 12px/1 "Plus Jakarta Sans", system-ui, sans-serif;
-  color: var(--muted, #6e6152);
+  color: var(--site-muted, var(--muted, #6e6152));
   background: transparent;
   cursor: pointer;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   transition: background-color 140ms ease, color 140ms ease;
 }
 
-.sprk-mode-switch-btn:hover {
-  color: var(--ink, #342c25);
+.sprk-color-mode-btn {
+  padding: 4px 9px;
+  min-height: 24px;
+  font-size: 11px;
+  border-radius: 6px;
 }
 
-.sprk-mode-switch-btn.is-active {
-  background: var(--accent, #e76d50);
-  color: #fffdf8;
+.sprk-mode-switch-btn:hover,
+.sprk-color-mode-btn:hover {
+  color: var(--site-text, var(--ink, #342c25));
 }
 
-.sprk-mode-switch-btn:focus-visible {
-  outline: 2px solid var(--accent, #e76d50);
+.sprk-mode-switch-btn.is-active,
+.sprk-color-mode-btn.is-active {
+  background: var(--site-accent, var(--accent, #e76d50));
+  color: var(--site-accent-fg, #fffdf8);
+}
+
+.sprk-mode-switch-btn:focus-visible,
+.sprk-color-mode-btn:focus-visible {
+  outline: 2px solid var(--site-accent, #e76d50);
   outline-offset: 2px;
 }
 
-/* Switcher adapts automatically to active main theme inside DeepFocus */
-html[data-page="deepfocus"] .sprk-mode-switch {
-  border: 1.5px solid var(--ink, #342c25);
-  background: var(--wall-light, #fff8e9);
-  box-shadow: 2px 3px 0 rgba(35, 28, 22, 0.22);
-}
-
-html[data-page="deepfocus"] .sprk-mode-switch-btn {
-  color: var(--muted, #6e6152);
-}
-
-html[data-page="deepfocus"] .sprk-mode-switch-btn:hover {
-  color: var(--ink, #342c25);
-}
-
-html[data-page="deepfocus"] .sprk-mode-switch-btn.is-active {
-  background: var(--accent, #e76d50);
-  color: #fffdf8;
-}
-
-html[data-page="deepfocus"][data-theme="space"] .sprk-mode-switch,
-html[data-page="deepfocus"][data-theme="midnight"] .sprk-mode-switch,
-html[data-page="deepfocus"][data-theme="alchemy"] .sprk-mode-switch,
-html[data-page="deepfocus"][data-theme="noir"] .sprk-mode-switch {
-  border-color: color-mix(in srgb, var(--wall-light) 30%, var(--wall-shadow));
-  background: color-mix(in srgb, var(--wall) 92%, #070b14);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.42);
-}
-
-html[data-page="deepfocus"][data-theme="space"] .sprk-mode-switch-btn,
-html[data-page="deepfocus"][data-theme="midnight"] .sprk-mode-switch-btn,
-html[data-page="deepfocus"][data-theme="alchemy"] .sprk-mode-switch-btn,
-html[data-page="deepfocus"][data-theme="noir"] .sprk-mode-switch-btn {
-  color: color-mix(in srgb, var(--wall-light) 74%, var(--wall));
-}
-
-html[data-page="deepfocus"][data-theme="space"] .sprk-mode-switch-btn:hover,
-html[data-page="deepfocus"][data-theme="midnight"] .sprk-mode-switch-btn:hover,
-html[data-page="deepfocus"][data-theme="alchemy"] .sprk-mode-switch-btn:hover,
-html[data-page="deepfocus"][data-theme="noir"] .sprk-mode-switch-btn:hover {
-  color: var(--wall-light);
-}
-
-html[data-page="deepfocus"][data-theme="space"] .sprk-mode-switch-btn.is-active,
-html[data-page="deepfocus"][data-theme="midnight"] .sprk-mode-switch-btn.is-active,
-html[data-page="deepfocus"][data-theme="alchemy"] .sprk-mode-switch-btn.is-active {
-  background: var(--accent);
-  color: #0e1420;
-}
-
-html[data-page="deepfocus"][data-theme="noir"] .sprk-mode-switch-btn.is-active {
-  background: #f5f5f2;
-  color: #0d0d0d;
-}
-
-/* Hide Cozy Study Room elements cleanly when on DeepFocus page */
+/* Hide Cozy Study Room elements cleanly when on Deep Focus page */
 html[data-page="deepfocus"] .room-screen,
 html[data-page="deepfocus"] #room-active-whisper,
 html[data-page="deepfocus"] #sprk-study-circle-root {
@@ -153,22 +114,22 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   height: 0;
 }
 
-/* DeepFocus Full-Viewport Shell — Uses Active App Theme Colors & Main-Site Tactile Styling */
+/* Deep Focus Full-Viewport Shell — Synced to Global Theme & Light/Dark Color Mode */
 .deepfocus-shell {
-  --df-accent: var(--accent, #e76d50);
-  --df-accent-fg: #fffdf8;
-  --df-accent-soft: color-mix(in srgb, var(--df-accent) 16%, var(--wall-light, #fff8e9));
-  --df-surface: color-mix(in srgb, var(--wall-light, #fff8e9) 93%, transparent);
-  --df-surface-solid: var(--wall-light, #fff8e9);
-  --df-panel-bg: var(--wall, #f7eedb);
-  --df-card-bg: #ffffff;
-  --df-input-bg: #ffffff;
-  --df-border: color-mix(in srgb, var(--ink, #342c25) 26%, transparent);
-  --df-border-strong: var(--ink, #342c25);
-  --df-text: var(--ink, #342c25);
-  --df-muted: var(--muted, #6e6152);
-  --df-card-shadow: 3px 4px 0 rgba(52, 44, 37, 0.2), 0 18px 48px rgba(15, 12, 8, 0.24);
-  --df-btn-shadow: 1.5px 2px 0 var(--ink, #342c25);
+  --df-accent: var(--site-accent, var(--accent, #e76d50));
+  --df-accent-fg: var(--site-accent-fg, #fffdf8);
+  --df-accent-soft: color-mix(in srgb, var(--df-accent) 18%, var(--site-surface, var(--wall-light, #fff8e9)));
+  --df-surface: color-mix(in srgb, var(--site-surface, var(--wall-light, #fff8e9)) 93%, transparent);
+  --df-surface-solid: var(--site-surface, var(--wall-light, #fff8e9));
+  --df-panel-bg: var(--site-card-alt, var(--wall, #f7eedb));
+  --df-card-bg: var(--site-card, #ffffff);
+  --df-input-bg: var(--site-input, #ffffff);
+  --df-border: var(--site-border, color-mix(in srgb, var(--ink, #342c25) 22%, transparent));
+  --df-border-strong: var(--site-border-strong, var(--ink, #342c25));
+  --df-text: var(--site-text, var(--ink, #342c25));
+  --df-muted: var(--site-muted, var(--muted, #6e6152));
+  --df-card-shadow: 0 18px 48px rgba(15, 12, 8, 0.24);
+  --df-btn-shadow: 1.5px 2px 0 rgba(15, 12, 8, 0.22);
 
   position: fixed;
   inset: 0;
@@ -176,33 +137,12 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   overflow: hidden;
   color: var(--df-text);
   font-family: "Plus Jakarta Sans", system-ui, sans-serif;
-  background: var(--wall-shadow, #0b1120);
+  background: var(--site-bg, #0b1120);
 }
 
-html[data-theme="space"] .deepfocus-shell,
-html[data-theme="midnight"] .deepfocus-shell,
-html[data-theme="alchemy"] .deepfocus-shell,
-html[data-theme="noir"] .deepfocus-shell {
-  --df-accent: var(--accent, #3194ad);
-  --df-accent-fg: #0b111c;
-  --df-accent-soft: color-mix(in srgb, var(--df-accent) 22%, var(--wall));
-  --df-surface: color-mix(in srgb, var(--wall) 92%, #070b14);
-  --df-surface-solid: color-mix(in srgb, var(--wall) 97%, #070b14);
-  --df-panel-bg: var(--wall-shadow);
-  --df-card-bg: color-mix(in srgb, var(--wall-light) 7%, var(--wall));
-  --df-input-bg: color-mix(in srgb, var(--wall-shadow) 85%, #060910);
-  --df-border: color-mix(in srgb, var(--wall-light) 18%, transparent);
-  --df-border-strong: color-mix(in srgb, var(--wall-light) 34%, var(--wall-shadow));
-  --df-text: var(--wall-light);
-  --df-muted: color-mix(in srgb, var(--wall-light) 72%, var(--wall));
+html[data-color-mode="dark"] .deepfocus-shell {
   --df-card-shadow: 0 22px 58px rgba(0, 0, 0, 0.56);
-  --df-btn-shadow: 1.5px 2px 0 rgba(0, 0, 0, 0.5);
-}
-
-html[data-theme="noir"] .deepfocus-shell {
-  --df-accent: #f5f5f2;
-  --df-accent-fg: #0d0d0d;
-  --df-accent-soft: rgba(245, 245, 242, 0.16);
+  --df-btn-shadow: 1.5px 2px 0 rgba(0, 0, 0, 0.45);
 }
 
 .deepfocus-shell[hidden] {
@@ -1968,12 +1908,12 @@ html[data-theme="noir"] .deepfocus-shell {
   background: var(--df-accent);
 }
 
-/* Command Palette Theme Harmonization on DeepFocus Page */
+/* Command Palette Theme Harmonization on Deep Focus Page */
 html[data-page="deepfocus"] .sprk-cmd-dialog {
-  background: var(--wall-light, #fff8e9);
-  color: var(--ink, #342c25);
-  border: 2px solid var(--ink, #342c25);
-  box-shadow: 3px 4px 0 rgba(35, 28, 22, 0.28), 0 24px 64px rgba(0, 0, 0, 0.42);
+  background: var(--site-surface);
+  color: var(--site-text);
+  border: 1.5px solid var(--site-border-strong);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.42);
 }
 
 html[data-page="deepfocus"] .sprk-cmd-dialog::backdrop {
@@ -1981,27 +1921,284 @@ html[data-page="deepfocus"] .sprk-cmd-dialog::backdrop {
   backdrop-filter: blur(8px);
 }
 
-html[data-page="deepfocus"][data-theme="space"] .sprk-cmd-dialog,
-html[data-page="deepfocus"][data-theme="midnight"] .sprk-cmd-dialog,
-html[data-page="deepfocus"][data-theme="alchemy"] .sprk-cmd-dialog,
-html[data-page="deepfocus"][data-theme="noir"] .sprk-cmd-dialog {
-  background: var(--wall);
-  color: var(--wall-light);
-  border-color: color-mix(in srgb, var(--wall-light) 30%, var(--wall-shadow));
-  --wall-light: var(--wall);
-  --ink: #f8fafc;
-  --muted: #cbd5e1;
+html[data-page="deepfocus"] .sprk-cmd-item {
+  background: var(--site-card);
+  color: var(--site-text);
 }
 
-html[data-page="deepfocus"][data-theme="space"] .sprk-cmd-item,
-html[data-page="deepfocus"][data-theme="midnight"] .sprk-cmd-item,
-html[data-page="deepfocus"][data-theme="alchemy"] .sprk-cmd-item,
-html[data-page="deepfocus"][data-theme="noir"] .sprk-cmd-item {
-  background: rgba(255, 255, 255, 0.06);
-  color: #f8fafc;
+/* Deep Focus Stacked Theme & Catalog Preview Dialog */
+.dfm-preview-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 64;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(6, 10, 18, 0.68);
+  backdrop-filter: blur(8px);
 }
 
-/* Responsive DeepFocus Layout */
+.dfm-preview-dialog {
+  width: min(640px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--df-surface-solid);
+  color: var(--df-text);
+  border: 1.5px solid var(--df-border-strong);
+  border-radius: 16px;
+  box-shadow: 0 28px 72px rgba(0, 0, 0, 0.55);
+  display: grid;
+  gap: 14px;
+  padding: 18px 20px 20px;
+}
+
+.dfm-preview-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dfm-preview-eyebrow {
+  font: 700 10.5px/1.2 "JetBrains Mono", monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--df-muted);
+}
+
+.dfm-preview-title {
+  margin: 4px 0 0;
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 21px;
+  line-height: 1.15;
+}
+
+.df-theme-preview-stage {
+  --prev-bg: var(--site-bg);
+  --prev-surface: var(--site-surface);
+  --prev-card: var(--site-card);
+  --prev-text: var(--site-text);
+  --prev-muted: var(--site-muted);
+  --prev-border: var(--site-border-strong);
+  --prev-accent: var(--site-accent);
+  --prev-accent-fg: var(--site-accent-fg);
+
+  position: relative;
+  height: 290px;
+  border-radius: 13px;
+  overflow: hidden;
+  border: 1.5px solid var(--df-border-strong);
+  background: #0b1120;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 12px;
+}
+
+.df-theme-preview-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(78%) contrast(104%);
+}
+
+.df-theme-preview-scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 48%, rgba(8, 13, 24, 0.14) 0%, rgba(8, 13, 24, 0.58) 100%),
+    linear-gradient(180deg, rgba(8, 13, 24, 0.36) 0%, rgba(8, 13, 24, 0.12) 45%, rgba(8, 13, 24, 0.52) 100%);
+}
+
+.df-theme-preview-particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.72;
+}
+
+.df-preview-dot {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.65);
+}
+
+.df-preview-hud-top {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.df-preview-mini-switch {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 8px;
+  background: var(--prev-surface);
+  border: 1px solid var(--prev-border);
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--prev-muted);
+}
+
+.df-preview-mini-switch span {
+  padding: 3px 7px;
+  border-radius: 5px;
+}
+
+.df-preview-mini-switch span.is-on {
+  background: var(--prev-accent);
+  color: var(--prev-accent-fg);
+}
+
+.df-preview-mini-orb {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--prev-surface);
+  border: 1.5px solid var(--prev-border);
+  color: var(--prev-text);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.df-preview-mini-card {
+  position: relative;
+  z-index: 2;
+  align-self: center;
+  width: min(300px, 86%);
+  background: color-mix(in srgb, var(--prev-surface) 92%, transparent);
+  backdrop-filter: blur(12px);
+  border: 1.5px solid var(--prev-border);
+  border-radius: 13px;
+  padding: 12px 14px;
+  text-align: center;
+  color: var(--prev-text);
+  display: grid;
+  gap: 8px;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.34);
+}
+
+.df-preview-mini-tabs {
+  display: inline-flex;
+  justify-content: center;
+  gap: 4px;
+  margin: 0 auto;
+  padding: 2px;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--prev-text) 7%, transparent);
+  font-size: 9.5px;
+  font-weight: 600;
+  color: var(--prev-muted);
+}
+
+.df-preview-mini-tabs span {
+  padding: 3px 7px;
+  border-radius: 5px;
+}
+
+.df-preview-mini-tabs span.is-on {
+  background: var(--prev-card);
+  color: var(--prev-text);
+}
+
+.df-preview-mini-clock {
+  font: 700 32px/1 "JetBrains Mono", monospace;
+  letter-spacing: -0.03em;
+  color: var(--prev-text);
+}
+
+.df-preview-mini-btn {
+  margin: 0 auto;
+  padding: 5px 16px;
+  border-radius: 8px;
+  background: var(--prev-accent);
+  color: var(--prev-accent-fg);
+  font: 700 11px/1.2 "Plus Jakarta Sans", system-ui, sans-serif;
+}
+
+.df-preview-hud-bot {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.df-preview-mini-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  border-radius: 8px;
+  background: var(--prev-surface);
+  border: 1px solid var(--prev-border);
+  color: var(--prev-text);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.df-preview-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.df-preview-meta-cell {
+  background: var(--df-card-bg);
+  border: 1px solid var(--df-border);
+  border-radius: 10px;
+  padding: 9px 11px;
+  display: grid;
+  gap: 3px;
+}
+
+.df-preview-meta-cell span {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--df-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.df-preview-meta-cell strong {
+  font-size: 12.5px;
+  color: var(--df-text);
+}
+
+.df-preview-swatches {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.df-preview-swatch-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  border: 1px solid var(--df-border-strong);
+}
+
+.dfm-preview-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 8px;
+  border-top: 1px solid var(--df-border);
+}
+
+/* Responsive Deep Focus Layout */
 @media (max-width: 1120px) {
   .df-layout.has-drawer .df-stage {
     padding-right: 20px;
@@ -2020,20 +2217,14 @@ html[data-page="deepfocus"][data-theme="noir"] .sprk-cmd-item {
   }
   .df-kboard,
   .df-list-grid-2,
-  .df-list-grid-3 {
+  .df-list-grid-3,
+  .df-preview-meta-grid {
     grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 640px) {
-  html[data-page="cozy"] .sprk-mode-switcher {
-    top: 12px;
-    right: 12px;
-    bottom: auto;
-    left: auto;
-    transform: none;
-  }
-  html[data-page="deepfocus"] .sprk-mode-switcher {
+  .sprk-mode-switcher {
     top: 14px;
     left: 12px;
   }

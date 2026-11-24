@@ -48,6 +48,10 @@ class ThemeManager {
 
     document.documentElement.dataset.theme = theme.id;
     document.documentElement.dataset.customSpriteTheme = String(hasCustomSpritePack(theme.id));
+    if (!state.preferences.colorMode) {
+      document.documentElement.dataset.colorMode =
+        ["space", "alchemy", "midnight", "noir"].includes(theme.id) ? "dark" : "light";
+    }
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute("content", theme.metaColor);
 

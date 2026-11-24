@@ -1,7 +1,7 @@
-// DeepFocus Studio Modals — Purpose-Built Glassmorphic Dialogs (Zero Cozy Skin Chrome, 100% Feature Parity)
+// Deep Focus Studio Modals — Purpose-Built Glassmorphic Dialogs
 import { state, savePreferences, persistLocalCollection } from "../state.js";
 import { audioManager, AUDIO_CHANNELS } from "../core/audio-manager.js";
-import { isStrictFocusLockActive, setAppMode } from "../core/settings-manager.js";
+import { isStrictFocusLockActive, setAppMode, getEffectiveColorMode } from "../core/settings-manager.js";
 import { navigateToPage, PAGE_ROUTES } from "../router.js";
 import { supabase } from "../services/supabase.js";
 import { presenceService } from "../services/presence-service.js";
@@ -31,13 +31,15 @@ import {
 } from "../services/database-service.js";
 import { canUserVisitRoom, getRelationshipStatus } from "../utils/privacy-scope.js";
 import { equipShopItem, isShopItemEquipped } from "./shop.js";
-import { SHOP_CATALOG } from "../utils/shop-catalog.js";
-import { renderMiniThumbnail, renderPreviewStage } from "../utils/shop-preview.js";
-import { themeManager } from "../core/theme-manager.js";
-import { lightingManager } from "../core/lighting-manager.js";
+import { SHOP_CATALOG, THEME_PALETTES } from "../utils/shop-catalog.js";
+import { renderMiniThumbnail } from "../utils/shop-preview.js";
+import { ROOM_THEMES } from "../core/theme-manager.js";
 import { computeVisualizerBars } from "../utils/dialog-objects.js";
 import { partitionMusicDiscs } from "../utils/audio-loops.js";
 import {
+  DEEPFOCUS_SCENES,
+  DEEPFOCUS_PARTICLES,
+  THEME_DEEPFOCUS_MAP,
   groupTasksForKanban,
   moveTaskToKanbanColumn,
   computeDeepFocusAnalytics
@@ -60,9 +62,27 @@ import {
   getDueFlashcards,
   validateBackupPayload
 } from "../utils/study-tools.js";
-import { isThemeAccessibleInMode, isThemeFreeInMode } from "../utils/room-settings.js";
+import { isThemeAccessibleInMode, isThemeFreeInMode, DARK_THEME_IDS } from "../utils/room-settings.js";
 import { sanitizeAvatarUrl } from "../utils/profile-helpers.js";
 import { downloadFile, escapeHtml, formatDuration, formatMinutesLabel, todayIsoDate, generateId } from "../utils/dom.js";
+
+function computeDeepFocusPreviewStyleVars(themeId, colorMode) {
+  const pal = THEME_PALETTES[themeId] || THEME_PALETTES.comic;
+  const isDarkWall = DARK_THEME_IDS.has(themeId);
+  if (colorMode === "dark") {
+    const surface = isDarkWall ? pal.wall : "#181e29";
+    const card = isDarkWall ? pal.caseBack : "#222938";
+    const isMono = themeId === "editorial" || themeId === "noir";
+    const accent = isMono ? "#f0f0ec" : pal.accent;
+    const accentFg = isMono ? "#111111" : "#ffffff";
+    return `--prev-bg:${surface};--prev-surface:${surface};--prev-card:${card};--prev-text:#f3f1ec;--prev-muted:#b8b3aa;--prev-border:rgba(255,255,255,0.28);--prev-accent:${accent};--prev-accent-fg:${accentFg};`;
+  }
+  if (isDarkWall) {
+    const accent = themeId === "noir" ? "#181818" : pal.accent;
+    return `--prev-bg:#f4f7fb;--prev-surface:#ffffff;--prev-card:#ffffff;--prev-text:#111827;--prev-muted:#4b5563;--prev-border:rgba(15,23,42,0.22);--prev-accent:${accent};--prev-accent-fg:#ffffff;`;
+  }
+  return `--prev-bg:${pal.wall};--prev-surface:${pal.wallLight};--prev-card:#ffffff;--prev-text:${pal.ink};--prev-muted:${pal.ink};--prev-border:${pal.ink};--prev-accent:${pal.accent};--prev-accent-fg:#ffffff;`;
+}
 
 export function createDeepFocusModalController({
   shellEl,
@@ -103,7 +123,6 @@ export function createDeepFocusModalController({
   // Catalog state
   let catalogCat = "all"; // all | theme | particles | ambience | music | cosmetics
   let previewingCatalogItemId = null;
-  let themeBeforePreview = null;
 
   const clearTimers = () => {
     if (visInterval) {
@@ -132,19 +151,18 @@ export function createDeepFocusModalController({
     previewingDiscId = null;
   };
 
-  const restoreCatalogPreview = () => {
-    if (themeBeforePreview) {
-      themeManager.apply(themeBeforePreview, { persist: false });
-      lightingManager.apply();
-      themeBeforePreview = null;
-    }
+  const closePreview = () => {
+    restoreAudioPreview();
     previewingCatalogItemId = null;
+    onWorkspaceMutated?.();
   };
+
+  const hasPreviewOpen = () => Boolean(previewingCatalogItemId);
 
   const close = () => {
     clearTimers();
     restoreAudioPreview();
-    restoreCatalogPreview();
+    previewingCatalogItemId = null;
     activeModal = null;
     statusMsg = "";
     onWorkspaceMutated?.();
@@ -153,7 +171,7 @@ export function createDeepFocusModalController({
   const open = (modalName, preferredTab = "") => {
     clearTimers();
     restoreAudioPreview();
-    restoreCatalogPreview();
+    previewingCatalogItemId = null;
     activeModal = modalName;
     statusMsg = "";
     const defaults = {
@@ -1158,9 +1176,6 @@ export function createDeepFocusModalController({
     const seriousMode = Boolean(state.preferences?.seriousMode);
     const signedIn = Boolean(state.user?.id);
     const activeThemeId = state.preferences?.theme || "comic";
-    const previewItem = previewingCatalogItemId
-      ? dfItems.find((i) => i.id === previewingCatalogItemId) || null
-      : null;
 
     return `
       <div class="df-sec-head">
@@ -1180,38 +1195,6 @@ export function createDeepFocusModalController({
       </div>
 
       ${locked ? `<div class="df-notice">Strict Focus Lock is active while the focus timer runs. Pause or finish to equip or buy items.</div>` : ""}
-
-      ${previewItem ? (() => {
-        const actuallyOwned = (state.ownedItemIds || []).includes(previewItem.id);
-        const freeViaSerious = Boolean(
-          seriousMode && previewItem.category === "theme" && isThemeFreeInMode(previewItem.themeId, seriousMode) && !actuallyOwned && previewItem.price > 0
-        );
-        const owned = previewItem.category === "theme"
-          ? isThemeAccessibleInMode(previewItem.themeId, { ownedItemIds: state.ownedItemIds, seriousMode })
-          : actuallyOwned;
-        const equipped = isShopItemEquipped(previewItem);
-        const isAudioSample = previewItem.category === "music" && previewingDiscId === previewItem.id && audioManager.isPlaying;
-        return `
-          <section class="df-catalog-preview-panel" aria-label="Item preview stage">
-            <div class="df-sec-head" style="margin-bottom:8px;">
-              <div>
-                <strong style="font-size:14px;">Preview · ${escapeHtml(previewItem.name)}</strong>
-                <div class="df-muted">${escapeHtml(previewItem.description || previewItem.category)}</div>
-              </div>
-              <button type="button" class="df-btn-subtle" id="dfm-stop-catalog-preview">Stop Preview</button>
-            </div>
-            ${renderPreviewStage(previewItem, { currentThemeId: activeThemeId, isPlayingSample: isAudioSample })}
-            <div class="df-sec-head" style="margin-top:8px;">
-              <span class="df-muted tabular-nums">
-                ${previewItem.category === "theme" ? "Live workspace colors previewed across DeepFocus" : freeViaSerious ? "Unlocked in Serious Mode" : previewItem.price === 0 ? "Included Starter" : `${previewItem.price} SC`}
-              </span>
-              ${owned
-                ? `<button type="button" class="${equipped ? "df-btn-subtle" : "df-btn-accent"}" data-dfm-equip="${escapeHtml(previewItem.id)}" ${equipped || locked ? "disabled" : ""}>${equipped ? "Equipped" : "Equip Now"}</button>`
-                : `<button type="button" class="df-btn-accent" data-dfm-buy-item="${escapeHtml(previewItem.id)}" ${!signedIn || locked ? "disabled" : ""}>Unlock · ${previewItem.price} SC</button>`}
-            </div>
-          </section>
-        `;
-      })() : ""}
 
       <div class="df-list-grid-2">
         ${filtered.map((item) => {
@@ -1236,7 +1219,7 @@ export function createDeepFocusModalController({
                 </div>
               </div>
               <div class="df-item-card-acts">
-                <button type="button" class="df-btn-subtle ${isPreviewing ? "is-accent" : ""}" data-dfm-preview-item="${escapeHtml(item.id)}">${isPreviewing ? "Active" : "Preview"}</button>
+                <button type="button" class="df-btn-subtle ${isPreviewing ? "is-accent" : ""}" data-dfm-preview-item="${escapeHtml(item.id)}">Preview</button>
                 ${owned
                   ? `<button type="button" class="${equipped ? "df-btn-subtle" : "df-btn-accent"}" data-dfm-equip="${escapeHtml(item.id)}" ${equipped || locked ? "disabled" : ""}>${equipped ? "Equipped" : "Equip"}</button>`
                   : `<button type="button" class="df-btn-accent" data-dfm-buy-item="${escapeHtml(item.id)}" ${!signedIn || locked ? "disabled" : ""}>Buy · ${item.price} SC</button>`}
@@ -1244,6 +1227,177 @@ export function createDeepFocusModalController({
             </article>
           `;
         }).join("")}
+      </div>
+    `;
+  };
+
+  const renderStackedPreviewDialogHtml = () => {
+    if (activeModal !== "catalog" || !previewingCatalogItemId) return "";
+    const item = SHOP_CATALOG.find((i) => i.id === previewingCatalogItemId);
+    if (!item) return "";
+
+    const locked = isStrictFocusLockActive();
+    const seriousMode = Boolean(state.preferences?.seriousMode);
+    const signedIn = Boolean(state.user?.id);
+    const activeThemeId = state.preferences?.theme || "comic";
+    const colorMode = getEffectiveColorMode();
+    const actuallyOwned = (state.ownedItemIds || []).includes(item.id);
+    const freeViaSerious = Boolean(
+      seriousMode && item.category === "theme" && isThemeFreeInMode(item.themeId, seriousMode) && !actuallyOwned && item.price > 0
+    );
+    const owned = item.category === "theme"
+      ? isThemeAccessibleInMode(item.themeId, { ownedItemIds: state.ownedItemIds, seriousMode })
+      : actuallyOwned;
+    const equipped = isShopItemEquipped(item);
+
+    let stageHtml = "";
+    let metaGridHtml = "";
+    let eyebrowText = "Deep Focus Preview";
+
+    if (item.category === "theme" && item.themeId) {
+      eyebrowText = `Deep Focus Theme Preview · ${colorMode === "dark" ? "Dark" : "Light"} Mode`;
+      const themeMeta = ROOM_THEMES.find((t) => t.id === item.themeId) || ROOM_THEMES[0];
+      const dfMap = THEME_DEEPFOCUS_MAP[item.themeId] || THEME_DEEPFOCUS_MAP.comic;
+      const scene = DEEPFOCUS_SCENES.find((s) => s.id === dfMap.sceneId) || DEEPFOCUS_SCENES[0];
+      const particle = DEEPFOCUS_PARTICLES.find((p) => p.id === dfMap.particleId) || DEEPFOCUS_PARTICLES[0];
+      const prevVars = computeDeepFocusPreviewStyleVars(item.themeId, colorMode);
+      const swatches = themeMeta?.swatch || [item.swatch || "#e76d50"];
+
+      stageHtml = `
+        <div class="df-theme-preview-stage" style="${prevVars}">
+          <img class="df-theme-preview-bg" src="${escapeHtml(scene.url)}" alt="${escapeHtml(scene.name)}" referrerpolicy="no-referrer" />
+          <div class="df-theme-preview-scrim" aria-hidden="true"></div>
+          ${particle.id !== "none" ? `
+            <div class="df-theme-preview-particles" aria-hidden="true">
+              ${[
+                [14, 22], [28, 64], [42, 18], [58, 72], [72, 28], [84, 56], [22, 82], [66, 44]
+              ].map(([left, top]) => `
+                <span class="df-preview-dot" style="left:${left}%;top:${top}%;background:${escapeHtml(particle.swatch || "#ffffff")};box-shadow:0 0 8px ${escapeHtml(particle.swatch || "#ffffff")};"></span>
+              `).join("")}
+            </div>
+          ` : ""}
+          <div class="df-preview-hud-top">
+            <div class="df-preview-mini-switch">
+              <span>Cozy Study</span>
+              <span class="is-on">Deep Focus</span>
+            </div>
+            <div class="df-preview-mini-orb" aria-hidden="true">✦</div>
+          </div>
+          <div class="df-preview-mini-card">
+            <div class="df-preview-mini-tabs">
+              <span class="is-on">Pomodoro</span>
+              <span>Timer</span>
+              <span>Stopwatch</span>
+            </div>
+            <div class="df-preview-mini-clock tabular-nums">25:00</div>
+            <div class="df-preview-mini-btn">▶ Start</div>
+          </div>
+          <div class="df-preview-hud-bot">
+            <div class="df-preview-mini-pill">0 online</div>
+          </div>
+        </div>
+      `;
+
+      metaGridHtml = `
+        <div class="df-preview-meta-grid">
+          <div class="df-preview-meta-cell">
+            <span>Backdrop Scene</span>
+            <strong>${escapeHtml(scene.name)}</strong>
+          </div>
+          <div class="df-preview-meta-cell">
+            <span>Particles</span>
+            <strong>${escapeHtml(particle.name)}</strong>
+          </div>
+          <div class="df-preview-meta-cell">
+            <span>Palette (${escapeHtml(colorMode)})</span>
+            <div class="df-preview-swatches">
+              ${swatches.map((hex) => `<span class="df-preview-swatch-dot" style="background:${escapeHtml(hex)};"></span>`).join("")}
+            </div>
+          </div>
+        </div>
+      `;
+    } else if (item.category === "particles" || item.category === "ambience") {
+      eyebrowText = item.category === "particles" ? "Atmospheric Particle Preview" : "Ambience Mood Preview";
+      const currentScene = DEEPFOCUS_SCENES.find((s) => s.id === (THEME_DEEPFOCUS_MAP[activeThemeId]?.sceneId || "ocean_coast")) || DEEPFOCUS_SCENES[0];
+      const dotColor = item.swatch || "#ffffff";
+      const prevVars = computeDeepFocusPreviewStyleVars(activeThemeId, colorMode);
+
+      stageHtml = `
+        <div class="df-theme-preview-stage" style="${prevVars}">
+          <img class="df-theme-preview-bg" src="${escapeHtml(currentScene.url)}" alt="" referrerpolicy="no-referrer" />
+          <div class="df-theme-preview-scrim" aria-hidden="true"></div>
+          <div class="df-theme-preview-particles" aria-hidden="true">
+            ${[
+              [12, 24], [24, 52], [36, 30], [48, 70], [60, 22], [74, 62], [86, 36], [30, 82], [68, 84], [82, 18]
+            ].map(([left, top]) => `
+              <span class="df-preview-dot" style="left:${left}%;top:${top}%;width:5px;height:5px;background:${escapeHtml(dotColor)};box-shadow:0 0 10px ${escapeHtml(dotColor)};"></span>
+            `).join("")}
+          </div>
+          <div class="df-preview-hud-top">
+            <div class="df-preview-mini-switch">
+              <span>Cozy Study</span>
+              <span class="is-on">Deep Focus</span>
+            </div>
+            <div class="df-preview-mini-orb" aria-hidden="true">✦</div>
+          </div>
+          <div class="df-preview-mini-card">
+            <div class="df-preview-mini-clock tabular-nums">25:00</div>
+            <div style="font-size:11px;color:var(--prev-muted);">${escapeHtml(item.name)}</div>
+          </div>
+          <div class="df-preview-hud-bot">
+            <div class="df-preview-mini-pill">Live Studio Stage</div>
+          </div>
+        </div>
+      `;
+    } else {
+      const isMusic = item.category === "music";
+      const isPlayingSample = isMusic && previewingDiscId === item.id && audioManager.isPlaying;
+      eyebrowText = isMusic ? "Music Disc Sound Preview" : "Studio Cosmetic Preview";
+      stageHtml = `
+        <div class="df-item-card" style="padding:16px;align-items:center;">
+          <div class="df-item-card-info" style="gap:14px;">
+            <div class="df-cat-thumb-wrap" aria-hidden="true">${renderMiniThumbnail(item, activeThemeId)}</div>
+            <div style="min-width:0;">
+              <strong style="font-size:15px;">${escapeHtml(item.name)}</strong>
+              <div class="df-muted" style="margin-top:4px;">${escapeHtml(item.description || item.category)}</div>
+            </div>
+          </div>
+          ${isMusic ? `
+            <button type="button" class="${isPlayingSample ? "df-btn-accent" : "df-btn-subtle"}" id="sprk-preview-audio-btn">
+              ${isPlayingSample ? "⏹ Stop Sample" : "▶ Listen Sample"}
+            </button>
+          ` : ""}
+        </div>
+      `;
+    }
+
+    return `
+      <div class="dfm-preview-backdrop" id="dfm-preview-backdrop" role="dialog" aria-modal="true" aria-labelledby="dfm-preview-title">
+        <div class="dfm-preview-dialog">
+          <div class="dfm-preview-head">
+            <div>
+              <div class="dfm-preview-eyebrow">${escapeHtml(eyebrowText)}</div>
+              <h3 class="dfm-preview-title" id="dfm-preview-title">${escapeHtml(item.name)}</h3>
+              <p class="df-muted" style="margin:4px 0 0;">${escapeHtml(item.description || "")}</p>
+            </div>
+            <button type="button" class="df-icon-btn" id="dfm-close-preview-dialog" aria-label="Close preview">×</button>
+          </div>
+
+          ${stageHtml}
+          ${metaGridHtml}
+
+          <div class="dfm-preview-foot">
+            <span class="df-muted tabular-nums">
+              ${freeViaSerious ? "Unlocked in Serious Mode" : item.price === 0 ? "Included Starter" : `${item.price} Study Credits`}
+            </span>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button type="button" class="df-btn-subtle" id="dfm-stop-catalog-preview">Close</button>
+              ${owned
+                ? `<button type="button" class="${equipped ? "df-btn-subtle" : "df-btn-accent"}" data-dfm-equip="${escapeHtml(item.id)}" ${equipped || locked ? "disabled" : ""}>${equipped ? "Equipped" : "Apply Theme"}</button>`
+                : `<button type="button" class="df-btn-accent" data-dfm-buy-item="${escapeHtml(item.id)}" ${!signedIn || locked ? "disabled" : ""}>Unlock · ${item.price} SC</button>`}
+            </div>
+          </div>
+        </div>
       </div>
     `;
   };
@@ -1318,6 +1472,7 @@ export function createDeepFocusModalController({
           ${statusMsg ? `<div class="df-notice" role="status">${escapeHtml(statusMsg)}</div>` : ""}
           <div class="df-modal-body">${bodyHtml}</div>
         </div>
+        ${renderStackedPreviewDialogHtml()}
       </div>
     `;
   };
@@ -2171,11 +2326,14 @@ export function createDeepFocusModalController({
         });
       });
 
-      backdrop.querySelector("#dfm-stop-catalog-preview")?.addEventListener("click", () => {
-        restoreAudioPreview();
-        restoreCatalogPreview();
-        onWorkspaceMutated?.();
-      });
+      const prevBackdrop = backdrop.querySelector("#dfm-preview-backdrop");
+      if (prevBackdrop) {
+        prevBackdrop.addEventListener("click", (e) => {
+          if (e.target === prevBackdrop) closePreview();
+        });
+      }
+      backdrop.querySelector("#dfm-close-preview-dialog")?.addEventListener("click", closePreview);
+      backdrop.querySelector("#dfm-stop-catalog-preview")?.addEventListener("click", closePreview);
 
       backdrop.querySelector("#sprk-preview-audio-btn")?.addEventListener("click", async () => {
         const item = SHOP_CATALOG.find((i) => i.id === previewingCatalogItemId);
@@ -2202,21 +2360,10 @@ export function createDeepFocusModalController({
           const item = SHOP_CATALOG.find((i) => i.id === id);
           if (!item) return;
 
-          if (previewingCatalogItemId === id) {
-            restoreAudioPreview();
-            restoreCatalogPreview();
-            onWorkspaceMutated?.();
-            return;
-          }
-
           restoreAudioPreview();
-          restoreCatalogPreview();
           previewingCatalogItemId = id;
 
-          if (item.category === "theme" && item.themeId) {
-            themeBeforePreview = state.preferences?.theme || "comic";
-            themeManager.apply(item.themeId, { persist: false });
-          } else if (item.category === "music" && item.audioMix) {
+          if (item.category === "music" && item.audioMix) {
             previewSnapshot = { wasPlaying: audioManager.isPlaying, levels: { ...audioManager.levels } };
             for (const ch of AUDIO_CHANNELS) {
               audioManager.setChannelLevel(ch.id, Number(item.audioMix[ch.id] || 0));
@@ -2233,12 +2380,21 @@ export function createDeepFocusModalController({
           if (isStrictFocusLockActive()) return;
           const item = SHOP_CATALOG.find((i) => i.id === btn.dataset.dfmEquip);
           if (!item) return;
-          if (item.category === "theme") {
-            themeBeforePreview = null;
-          } else {
-            restoreCatalogPreview();
-          }
+          restoreAudioPreview();
+          previewingCatalogItemId = null;
           if (equipShopItem(item)) {
+            if (item.category === "theme" && item.themeId) {
+              const mapped = THEME_DEEPFOCUS_MAP[item.themeId];
+              if (mapped) {
+                savePreferences({
+                  deepFocus: {
+                    followThemeScene: true,
+                    sceneId: mapped.sceneId,
+                    followThemeParticle: true
+                  }
+                });
+              }
+            }
             statusMsg = `Equipped "${item.name}".`;
             onWorkspaceMutated?.();
           }
@@ -2252,10 +2408,23 @@ export function createDeepFocusModalController({
           const res = await purchaseShopItem(id);
           if (res.ok) {
             const item = SHOP_CATALOG.find((i) => i.id === id);
-            if (item?.category === "theme") {
-              themeBeforePreview = null;
+            restoreAudioPreview();
+            previewingCatalogItemId = null;
+            if (item) {
+              equipShopItem(item);
+              if (item.category === "theme" && item.themeId) {
+                const mapped = THEME_DEEPFOCUS_MAP[item.themeId];
+                if (mapped) {
+                  savePreferences({
+                    deepFocus: {
+                      followThemeScene: true,
+                      sceneId: mapped.sceneId,
+                      followThemeParticle: true
+                    }
+                  });
+                }
+              }
             }
-            if (item) equipShopItem(item);
             statusMsg = `Unlocked "${item?.name || "item"}".`;
           } else {
             statusMsg = res.error || "Purchase failed.";
@@ -2312,6 +2481,8 @@ export function createDeepFocusModalController({
   return {
     open,
     close,
+    closePreview,
+    hasPreviewOpen,
     getActiveModal,
     renderModalHtml,
     bindModalEvents

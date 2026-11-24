@@ -50,6 +50,7 @@ export const state = {
     return {
       appMode: cleanSaved.appMode === "deepfocus" ? "deepfocus" : APP_CONFIG.defaults.appMode,
       theme: APP_CONFIG.defaults.theme,
+      colorMode: cleanSaved.colorMode === "dark" || cleanSaved.colorMode === "light" ? cleanSaved.colorMode : null,
       timeOfDay: APP_CONFIG.defaults.timeOfDay,
       weather: APP_CONFIG.defaults.weather,
       seriousMode: APP_CONFIG.defaults.seriousMode,

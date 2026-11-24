@@ -14,11 +14,7 @@ import {
   initRouter,
   parseHashRoute,
   parseCurrentPage,
-  navigateToPage,
   recordWorkspaceVisit,
-  getMostVisitedWorkspace,
-  isExplicitHomeStay,
-  shouldAutoRedirectHomeToWorkspace,
   PAGE_ROUTES
 } from "./router.js";
 import { restoreSession } from "./services/auth-service.js";
@@ -238,21 +234,7 @@ async function bootstrap() {
     }
   });
 
-  const maybeRedirectHomeForSignedInUser = () => {
-    const { page } = parseCurrentPage();
-    const ok = shouldAutoRedirectHomeToWorkspace({
-      isLoggedIn: Boolean(state.user?.id),
-      currentPage: page,
-      search: window.location.search,
-      explicitHomeStay: isExplicitHomeStay()
-    });
-    if (!ok) return false;
-    const preferredMode = getMostVisitedWorkspace(state.preferences?.appMode || "cozy");
-    const targetPage = preferredMode === "deepfocus" ? PAGE_ROUTES.DEEPFOCUS : PAGE_ROUTES.COZY;
-    setAppMode(preferredMode, { syncUrl: false });
-    navigateToPage(targetPage, { replace: true });
-    return true;
-  };
+  // Home (/) directly renders the unified Social Study & Theme website without auto-redirecting.
 
   // Global keyboard shortcuts: Ctrl/Cmd+K (Command Palette) & Shift+F (Focus View)
   window.addEventListener("keydown", (event) => {
@@ -311,29 +293,16 @@ async function bootstrap() {
 
   initFocusBackgroundLoop();
 
-  let startupSyncPending = Boolean(state.supabaseConfigured);
-
-  bus.on("auth:changed", () => {
-    if (!startupSyncPending && state.user?.id) maybeRedirectHomeForSignedInUser();
-  });
-
   bus.on("sync:completed", () => {
     audioManager.setLowPassFilter(state.preferences?.lowPassHz || 18000);
     applyRoomSettingsToDocument();
   });
 
   if (state.supabaseConfigured) {
-    try {
-      const user = await restoreSession();
-      if (user) {
-        await syncAuthenticatedUserData();
-        maybeRedirectHomeForSignedInUser();
-      }
-    } finally {
-      startupSyncPending = false;
+    const user = await restoreSession();
+    if (user) {
+      await syncAuthenticatedUserData();
     }
-  } else {
-    maybeRedirectHomeForSignedInUser();
   }
 }
 

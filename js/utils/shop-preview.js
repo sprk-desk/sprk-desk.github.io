@@ -426,7 +426,7 @@ export function renderPreviewStage(item, { currentThemeId = "comic", isPlayingSa
           </div>
         </div>
         <div class="sprk-preview-caption">
-          <span>DeepFocus Backdrop Particles · Adjustable Speed, Opacity &amp; Density</span>
+          <span>Deep Focus Backdrop Particles · Adjustable Speed, Opacity &amp; Density</span>
           <span class="sprk-swatch-row" aria-hidden="true">
             <span style="background:${escapeHtml(desc.swatch)};"></span>
           </span>

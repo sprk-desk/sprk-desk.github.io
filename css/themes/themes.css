@@ -747,3 +747,196 @@ html[data-serious-mode="true"] .sprk-cmd-item.is-selected,
 html[data-serious-mode="true"] .sprk-flashcard-stage {
   background: #ffffff;
 }
+
+/* --- Unified Cross-Section Light / Dark Color Mode Tokens (Main Site, Deep Focus & Cozy UI) --- */
+:root,
+html[data-color-mode="light"] {
+  --site-bg: var(--wall, #f5ecda);
+  --site-surface: var(--wall-light, #fffaf0);
+  --site-card: #ffffff;
+  --site-card-alt: color-mix(in srgb, var(--wall-light, #fffaf0) 76%, var(--wall-shadow, #d7c6a9));
+  --site-topbar: color-mix(in srgb, var(--site-bg) 92%, transparent);
+  --site-input: #ffffff;
+  --site-text: var(--ink, #241e19);
+  --site-muted: var(--muted, #5d5146);
+  --site-border: color-mix(in srgb, var(--ink, #241e19) 14%, transparent);
+  --site-border-strong: color-mix(in srgb, var(--ink, #241e19) 24%, transparent);
+  --site-tabs-bg: color-mix(in srgb, var(--ink, #241e19) 6%, transparent);
+  --site-tab-active-bg: #ffffff;
+  --site-accent: var(--accent, #d96240);
+  --site-accent-fg: #ffffff;
+  --site-notice-bg: color-mix(in srgb, var(--site-accent) 11%, var(--site-card));
+  --site-notice-text: var(--site-text);
+  --site-avatar-bg: var(--wall, #f5ecda);
+  --site-banner-grad: linear-gradient(
+    125deg,
+    color-mix(in srgb, var(--site-accent) 22%, var(--site-surface)) 0%,
+    var(--wall-shadow, #dfd0bd) 100%
+  );
+}
+
+/* Dark-walled themes switched to Light Mode stay bright & tinted with their accent */
+html[data-color-mode="light"][data-theme="space"],
+html[data-color-mode="light"][data-theme="midnight"],
+html[data-color-mode="light"][data-theme="alchemy"],
+html[data-color-mode="light"][data-theme="noir"] {
+  --site-bg: color-mix(in srgb, var(--accent) 8%, #f4f7fb);
+  --site-surface: #ffffff;
+  --site-card: #ffffff;
+  --site-card-alt: #f1f5f9;
+  --site-topbar: rgba(255, 255, 255, 0.92);
+  --site-text: #111827;
+  --site-muted: #4b5563;
+  --site-border: rgba(15, 23, 42, 0.12);
+  --site-border-strong: rgba(15, 23, 42, 0.22);
+  --site-tabs-bg: rgba(15, 23, 42, 0.06);
+  --site-tab-active-bg: #ffffff;
+  --site-avatar-bg: #e2e8f0;
+}
+
+html[data-color-mode="light"][data-theme="noir"] {
+  --site-bg: #f3f3f0;
+  --site-accent: #181818;
+  --site-accent-fg: #ffffff;
+}
+
+/* Dark Mode across all 16 themes */
+html[data-color-mode="dark"] {
+  color-scheme: dark;
+  --site-bg: color-mix(in srgb, var(--ink, #241e19) 76%, #0b0e14);
+  --site-surface: color-mix(in srgb, var(--ink, #241e19) 56%, #161b24);
+  --site-card: color-mix(in srgb, var(--ink, #241e19) 42%, #202633);
+  --site-card-alt: rgba(255, 255, 255, 0.05);
+  --site-topbar: color-mix(in srgb, var(--site-bg) 90%, transparent);
+  --site-input: rgba(8, 11, 17, 0.62);
+  --site-text: #f3f1ec;
+  --site-muted: #b8b3aa;
+  --site-border: rgba(255, 255, 255, 0.14);
+  --site-border-strong: rgba(255, 255, 255, 0.28);
+  --site-tabs-bg: rgba(255, 255, 255, 0.08);
+  --site-tab-active-bg: rgba(255, 255, 255, 0.16);
+  --site-accent: var(--accent, #e76d50);
+  --site-accent-fg: #ffffff;
+  --site-notice-bg: color-mix(in srgb, var(--site-accent) 18%, var(--site-card));
+  --site-notice-text: #f8fafc;
+  --site-avatar-bg: rgba(255, 255, 255, 0.09);
+  --site-banner-grad: linear-gradient(
+    125deg,
+    color-mix(in srgb, var(--site-accent) 26%, var(--site-surface)) 0%,
+    color-mix(in srgb, var(--site-bg) 70%, #000000) 100%
+  );
+}
+
+html[data-color-mode="dark"][data-theme="space"],
+html[data-color-mode="dark"][data-theme="midnight"],
+html[data-color-mode="dark"][data-theme="alchemy"],
+html[data-color-mode="dark"][data-theme="noir"] {
+  --site-bg: var(--wall);
+  --site-surface: color-mix(in srgb, var(--wall) 84%, #ffffff);
+  --site-card: color-mix(in srgb, var(--wall) 74%, #ffffff);
+  --site-topbar: color-mix(in srgb, var(--wall) 90%, transparent);
+}
+
+html[data-color-mode="dark"][data-theme="editorial"],
+html[data-color-mode="dark"][data-theme="noir"] {
+  --site-accent: #f0f0ec;
+  --site-accent-fg: #111111;
+}
+
+/* Cozy Study Dark Mode UI Harmonization (dialogs, widgets & pills stay readable without distorting room SVG ink strokes) */
+html[data-color-mode="dark"] .sprk-dialog,
+html[data-color-mode="dark"] .sprk-preview-dialog,
+html[data-color-mode="dark"] .sprk-cmd-dialog {
+  background: var(--site-surface);
+  color: var(--site-text);
+  border-color: var(--site-border-strong);
+}
+
+html[data-color-mode="dark"] .sprk-dialog-header,
+html[data-color-mode="dark"] .sprk-preview-header,
+html[data-color-mode="dark"] .sprk-dialog-modebar {
+  background: var(--site-card);
+  border-color: var(--site-border);
+  color: var(--site-text);
+}
+
+html[data-color-mode="dark"] .sprk-dialog-eyebrow,
+html[data-color-mode="dark"] .sprk-meta,
+html[data-color-mode="dark"] .sprk-label,
+html[data-color-mode="dark"] .sprk-empty,
+html[data-color-mode="dark"] .sprk-shop-wallet-note {
+  color: var(--site-muted);
+}
+
+html[data-color-mode="dark"] .sprk-dialog-close,
+html[data-color-mode="dark"] .sprk-lock-btn {
+  background: var(--site-card-alt);
+  color: var(--site-text);
+  border-color: var(--site-border-strong);
+}
+
+html[data-color-mode="dark"] .sprk-tabs,
+html[data-color-mode="dark"] .sprk-modebar-tabs,
+html[data-color-mode="dark"] .sprk-shop-roof-tabs {
+  background: var(--site-tabs-bg);
+  border-color: var(--site-border);
+}
+
+html[data-color-mode="dark"] .sprk-tab,
+html[data-color-mode="dark"] .sprk-mode-tab {
+  color: var(--site-muted);
+}
+
+html[data-color-mode="dark"] .sprk-tab.is-active,
+html[data-color-mode="dark"] .sprk-mode-tab.is-active {
+  background: var(--site-tab-active-bg);
+  color: var(--site-text);
+}
+
+html[data-color-mode="dark"] .sprk-card,
+html[data-color-mode="dark"] .sprk-shop-wallet-strip,
+html[data-color-mode="dark"] .sprk-notice,
+html[data-color-mode="dark"] .sprk-cmd-item,
+html[data-color-mode="dark"] .cal-cell,
+html[data-color-mode="dark"] .sprk-shop-dept-card,
+html[data-color-mode="dark"] .sprk-shop-roof-tab {
+  background: var(--site-card);
+  color: var(--site-text);
+  border-color: var(--site-border);
+}
+
+html[data-color-mode="dark"] .sprk-btn {
+  background: var(--site-card);
+  color: var(--site-text);
+  border-color: var(--site-border-strong);
+}
+
+html[data-color-mode="dark"] .sprk-btn-primary {
+  background: var(--site-accent);
+  color: var(--site-accent-fg);
+  border-color: var(--site-accent);
+}
+
+html[data-color-mode="dark"] .sprk-input,
+html[data-color-mode="dark"] .sprk-select,
+html[data-color-mode="dark"] .sprk-textarea {
+  background: var(--site-input);
+  color: var(--site-text);
+  border-color: var(--site-border-strong);
+}
+
+html[data-color-mode="dark"] .room-active-whisper,
+html[data-color-mode="dark"] .sprk-sc-toggle,
+html[data-color-mode="dark"] .sprk-sc-panel {
+  background: var(--site-surface);
+  color: var(--site-text);
+  border-color: var(--site-border-strong);
+}
+
+html[data-color-mode="dark"] .sprk-sc-friend-row,
+html[data-color-mode="dark"] .sprk-sc-visit-btn {
+  background: var(--site-card);
+  color: var(--site-text);
+  border-color: var(--site-border);
+}
+
