@@ -6,12 +6,17 @@
   <title>SPRK Desk</title>
   <link rel="icon" type="image/svg+xml" href="./assets/icon.svg">
   <script>
-    // GitHub Pages subpath-safe fallback redirect preserving hash route
-    const target = "./" + (window.location.hash || "#/");
-    window.location.replace(target);
+    // Preserve clean SPA path (/cozy-study, /deep-focus, /account) across GitHub Pages 404 fallback
+    try {
+      const fullPath = window.location.pathname + window.location.search + window.location.hash;
+      sessionStorage.setItem("sprk_spa_redirect", fullPath);
+    } catch {
+      // ignore storage errors
+    }
+    window.location.replace("/" + (window.location.hash || ""));
   </script>
 </head>
 <body>
-  <p>Returning to <a href="./">SPRK Desk</a>...</p>
+  <p>Returning to <a href="/">SPRK Desk</a>...</p>
 </body>
 </html>

@@ -9,8 +9,8 @@ import { layoutManager } from "./core/layout-manager.js";
 import { decorationManager } from "./core/decoration-manager.js";
 import { dialogManager } from "./core/dialog-manager.js";
 import { audioManager } from "./core/audio-manager.js";
-import { applyRoomSettingsToDocument } from "./core/settings-manager.js";
-import { initRouter, parseHashRoute } from "./router.js";
+import { applyRoomSettingsToDocument, setAppMode } from "./core/settings-manager.js";
+import { initRouter, parseHashRoute, parseCurrentPage, PAGE_ROUTES } from "./router.js";
 import { restoreSession } from "./services/auth-service.js";
 import {
   syncAuthenticatedUserData,
@@ -44,6 +44,8 @@ import { initCommandPalette, openCommandPalette } from "./features/command-palet
 import { presenceService } from "./services/presence-service.js";
 import { initStudyCircle } from "./features/study-circle.js";
 import { initDeepFocusWorkspace } from "./features/deepfocus.js";
+import { initLandingPage } from "./features/landing.js";
+import { initAccountPage } from "./features/account-page.js";
 
 const FEATURE_OBJECT_MAP = [
   [".desk-clock", "focus"],
@@ -73,6 +75,14 @@ async function bootstrap() {
   themeManager.registerObjects(roomObjects);
   skinManager.registerObjects(roomObjects);
 
+  // Align persisted workspace mode if user navigated directly to /cozy-study or /deep-focus
+  const initialPageInfo = parseCurrentPage();
+  if (initialPageInfo.page === PAGE_ROUTES.COZY && state.preferences.appMode !== "cozy") {
+    savePreferences({ appMode: "cozy" });
+  } else if (initialPageInfo.page === PAGE_ROUTES.DEEPFOCUS && state.preferences.appMode !== "deepfocus") {
+    savePreferences({ appMode: "deepfocus" });
+  }
+
   // Apply saved theme, skins, fixed decorations, custom prop, study modes, and layered lighting
   themeManager.apply(state.preferences.theme || "comic", { persist: false });
   skinManager.applySavedSkins();
@@ -84,9 +94,11 @@ async function bootstrap() {
   initCommandPalette();
   presenceService.init();
   initStudyCircle();
+  initLandingPage();
+  initAccountPage();
   initDeepFocusWorkspace();
 
-  // Register all object-launched dialogs
+  // Register all object-launched Cozy dialogs
   dialogManager.register("focus", focusFeature);
   dialogManager.register("register", registerFeature);
   dialogManager.register("calendar", calendarFeature);
@@ -136,7 +148,7 @@ async function bootstrap() {
       exitSpectatorRoom();
       return;
     }
-    if (state.activeSession) {
+    if (state.activeSession && parseCurrentPage().page === PAGE_ROUTES.COZY) {
       dialogManager.open("focus");
     }
   });
@@ -192,6 +204,20 @@ async function bootstrap() {
     scheduleCloudLayoutSync(layoutName, layout);
   });
 
+  // Multi-page route change coordination
+  bus.on("page:changed", ({ page }) => {
+    if (page !== PAGE_ROUTES.COZY && dialogManager.dialog?.open) {
+      dialogManager.close({ syncHash: false });
+    }
+    if (page === PAGE_ROUTES.COZY && state.preferences.appMode !== "cozy") {
+      setAppMode("cozy", { syncUrl: false });
+    } else if (page === PAGE_ROUTES.DEEPFOCUS && state.preferences.appMode !== "deepfocus") {
+      setAppMode("deepfocus", { syncUrl: false });
+    }
+    applyRoomSettingsToDocument();
+    lightingManager.apply();
+  });
+
   // Global keyboard shortcuts: Ctrl/Cmd+K (Command Palette) & Shift+F (Focus View)
   window.addEventListener("keydown", (event) => {
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
@@ -204,6 +230,13 @@ async function bootstrap() {
     if (tag === "input" || tag === "textarea" || tag === "select" || event.target?.isContentEditable) {
       return;
     }
+    const page = parseCurrentPage().page;
+    if (page === PAGE_ROUTES.DEEPFOCUS) {
+      event.preventDefault();
+      bus.emit("deepfocus:open", { modal: "settings" });
+      return;
+    }
+    if (page !== PAGE_ROUTES.COZY) return;
     event.preventDefault();
     if (dialogManager.dialog?.open && dialogManager.activeFeature === "settings" && dialogManager.activeParam === "focus") {
       dialogManager.close();
@@ -212,9 +245,10 @@ async function bootstrap() {
     }
   });
 
-  // Hash navigation sync
+  // Hash navigation sync for Cozy Study Room dialogs
   initRouter();
   bus.on("route:changed", ({ feature, param }) => {
+    if (parseCurrentPage().page !== PAGE_ROUTES.COZY) return;
     if (feature === "room") {
       dialogManager.close({ syncHash: false });
     } else if (feature === "ops" && state.user?.role !== "admin") {
@@ -225,7 +259,7 @@ async function bootstrap() {
   });
 
   const initialRoute = parseHashRoute();
-  if (initialRoute.feature !== "room") {
+  if (initialPageInfo.page === PAGE_ROUTES.COZY && initialRoute.feature !== "room") {
     if (!(initialRoute.feature === "ops" && state.user?.role !== "admin")) {
       dialogManager.open(initialRoute.feature, null, initialRoute.param, { syncHash: false });
     }

@@ -1,5 +1,6 @@
-// Command Palette (Ctrl/Cmd + K) -> Fast Keyboard Navigation, Focus Sprints, Modes & Profiles
+// Command Palette (Ctrl/Cmd + K) -> Route-Aware Fast Keyboard Navigation Across /, /cozy-study, /deep-focus & /account
 import { state, savePreferences, persistLocalCollection } from "../state.js";
+import { bus } from "../core/event-bus.js";
 import { dialogManager } from "../core/dialog-manager.js";
 import { lightingManager } from "../core/lighting-manager.js";
 import {
@@ -9,6 +10,7 @@ import {
   toggleStrictFocusLock,
   applyWorkspaceProfile
 } from "../core/settings-manager.js";
+import { parseCurrentPage, navigateToPage, PAGE_ROUTES } from "../router.js";
 import { BUILTIN_WORKSPACE_PROFILES } from "../utils/study-tools.js";
 import { createFocusSession } from "../utils/timer-math.js";
 import { escapeHtml, generateId } from "../utils/dom.js";
@@ -30,32 +32,74 @@ function startQuickFocus(minutes, subject = "Deep Focus") {
     });
     persistLocalCollection("activeSession", newSess);
   }
-  dialogManager.open("focus", document.querySelector(".desk-clock"));
+  const currentPage = parseCurrentPage().page;
+  if (currentPage === PAGE_ROUTES.COZY) {
+    dialogManager.open("focus", document.querySelector(".desk-clock"));
+  } else if (currentPage !== PAGE_ROUTES.DEEPFOCUS) {
+    setAppMode("deepfocus", { syncUrl: false });
+    navigateToPage(PAGE_ROUTES.DEEPFOCUS);
+  }
+}
+
+function openWorkspaceTool(cozyFeature, cozySelector, cozyParam, dfModal, dfSubTab = "") {
+  const page = parseCurrentPage().page;
+  if (page === PAGE_ROUTES.DEEPFOCUS) {
+    bus.emit("deepfocus:open", { modal: dfModal, subTab: dfSubTab });
+    return;
+  }
+  if (page !== PAGE_ROUTES.COZY) {
+    setAppMode("cozy", { syncUrl: false });
+    navigateToPage(PAGE_ROUTES.COZY);
+  }
+  const triggerEl = cozySelector ? document.querySelector(cozySelector) : null;
+  dialogManager.open(cozyFeature, triggerEl, cozyParam);
 }
 
 function getCommands() {
   const prefs = state.preferences || {};
   const serious = Boolean(prefs.seriousMode);
   const profiles = [...BUILTIN_WORKSPACE_PROFILES, ...(state.localWorkspaceProfiles || [])];
+  const currentPage = parseCurrentPage().page;
+  const isDeepFocus = currentPage === PAGE_ROUTES.DEEPFOCUS;
 
-  const isDeepFocus = prefs.appMode === "deepfocus";
-
-  const baseCommands = [
+  return [
     {
-      id: "cmd_app_mode",
-      group: "Modes",
-      label: isDeepFocus ? "Switch to Cozy Study Room" : "Switch to DeepFocus Mode",
-      hint: isDeepFocus ? "Cozy Room" : "Pro Focus",
-      keywords: "deepfocus deep focus cozy room mode switch pro",
-      run: () => setAppMode(isDeepFocus ? "cozy" : "deepfocus")
+      id: "nav_home",
+      group: "Pages",
+      label: "Open Main Website (/)",
+      hint: "Landing",
+      keywords: "home landing website main about",
+      run: () => navigateToPage(PAGE_ROUTES.HOME)
     },
     {
-      id: "cmd_focus_view",
-      group: "Quick Actions",
-      label: "Open Focus View Dashboard",
-      hint: "Shift+F",
-      keywords: "dashboard focus shift+f sprint",
-      run: () => dialogManager.open("settings", document.querySelector(".settings-panel"), "focus")
+      id: "nav_cozy",
+      group: "Pages",
+      label: "Open Cozy Study Room (/cozy-study)",
+      hint: "Cozy",
+      keywords: "cozy study room desk gamified",
+      run: () => {
+        setAppMode("cozy", { syncUrl: false });
+        navigateToPage(PAGE_ROUTES.COZY);
+      }
+    },
+    {
+      id: "nav_deepfocus",
+      group: "Pages",
+      label: "Open Deep Focus Studio (/deep-focus)",
+      hint: "DeepFocus",
+      keywords: "deep focus studio minimal distraction free",
+      run: () => {
+        setAppMode("deepfocus", { syncUrl: false });
+        navigateToPage(PAGE_ROUTES.DEEPFOCUS);
+      }
+    },
+    {
+      id: "nav_account",
+      group: "Pages",
+      label: "Open Account, Profile & Friends (/account)",
+      hint: "Account",
+      keywords: "account login register profile friends visit room",
+      run: () => navigateToPage(PAGE_ROUTES.ACCOUNT)
     },
     {
       id: "cmd_start_25",
@@ -117,104 +161,102 @@ function getCommands() {
       run: () => applyWorkspaceProfile(p)
     })),
     {
-      id: "obj_library",
-      group: "Room Objects",
-      label: "Desk Reference · Guides & Flashcards",
-      hint: "Bookshelf",
-      keywords: "bookshelf flashcards srs spaced repetition guides library",
-      run: () => dialogManager.open("library", document.querySelector(".bookshelf"))
+      id: "tool_tasks",
+      group: "Study Tools",
+      label: "Plan & Execute · Draggable Kanban, Goals & Exams",
+      hint: isDeepFocus ? "Plan" : "Pinboard",
+      keywords: "pinboard tasks todo kanban goals budgets exams",
+      run: () => openWorkspaceTool("tasks", ".pinboard", null, "plan", "kanban")
     },
     {
-      id: "obj_diary",
-      group: "Room Objects",
-      label: "Study Notes · Markdown Notebook & Export",
-      hint: "Notebook",
+      id: "tool_diary",
+      group: "Study Tools",
+      label: "Notes & Diary · Markdown Journal & Export",
+      hint: isDeepFocus ? "Knowledge" : "Notebook",
       keywords: "diary notes markdown export journal",
-      run: () => dialogManager.open("diary", document.querySelector(".desk-notebook"))
+      run: () => openWorkspaceTool("diary", ".desk-notebook", null, "knowledge", "notes")
     },
     {
-      id: "obj_calendar",
-      group: "Room Objects",
-      label: "Wall Calendar · Streaks, Budgets & Exams",
-      hint: "Analytics",
-      keywords: "calendar streaks budgets weekly exams countdown",
-      run: () => dialogManager.open("calendar", document.querySelector(".wall-calendar"))
+      id: "tool_library",
+      group: "Study Tools",
+      label: "Flashcards & Guides · Spaced Repetition & Library",
+      hint: isDeepFocus ? "Knowledge" : "Bookshelf",
+      keywords: "bookshelf flashcards srs spaced repetition guides library",
+      run: () => openWorkspaceTool("library", ".bookshelf", null, "knowledge", "flashcards")
     },
     {
-      id: "obj_register",
-      group: "Room Objects",
-      label: "Session Log · History & CSV/Markdown Export",
-      hint: "Hourglass",
-      keywords: "hourglass register history csv export quality",
-      run: () => dialogManager.open("register", document.querySelector(".desk-hourglass"))
+      id: "tool_audio",
+      group: "Study Tools",
+      label: "Music Studio · Sound Discs & 8-Channel Mixer",
+      hint: isDeepFocus ? "Music" : "Headphones",
+      keywords: "headphones audio music brown pink noise lofi low-pass warmth mixer",
+      run: () => openWorkspaceTool("audio", ".desk-headphones", null, "music", "discs")
     },
     {
-      id: "obj_community",
-      group: "Room Objects",
-      label: "Workstation · Silent Body-Doubling & Rooms",
-      hint: "Computer",
-      keywords: "computer body doubling synced pomodoro community groups",
-      run: () => dialogManager.open("community", document.querySelector(".desk-computer"))
+      id: "tool_calendar",
+      group: "Study Tools",
+      label: "Analytics & Calendar · Streaks, Heatmap & Insights",
+      hint: isDeepFocus ? "Insights" : "Calendar",
+      keywords: "calendar streaks heatmap analytics budgets",
+      run: () => openWorkspaceTool("calendar", ".wall-calendar", null, "insights", "analytics")
     },
     {
-      id: "obj_audio",
-      group: "Room Objects",
-      label: "Audio Monitor · Brown Noise & Low-Pass Mixer",
-      hint: "Headphones",
-      keywords: "headphones audio brown pink noise lofi low-pass warmth",
-      run: () => dialogManager.open("audio", document.querySelector(".desk-headphones"))
+      id: "tool_register",
+      group: "Study Tools",
+      label: "Session Register · History & CSV/Markdown Export",
+      hint: isDeepFocus ? "Insights" : "Hourglass",
+      keywords: "hourglass register history csv markdown export quality",
+      run: () => openWorkspaceTool("register", ".desk-hourglass", null, "insights", "register")
     },
     {
-      id: "obj_env",
-      group: "Room Objects",
-      label: "Window · Sky, Weather & Lamp Color Temp",
-      hint: "Environment",
-      keywords: "window weather sky dusk kelvin lighting",
-      run: () => dialogManager.open("environment", document.querySelector(".window-frame-btn"))
+      id: "tool_milestones",
+      group: "Study Tools",
+      label: "Focus Milestones & Study Passport",
+      hint: isDeepFocus ? "Insights" : "Trophy",
+      keywords: "achievements trophy milestones passport streaks",
+      run: () => openWorkspaceTool("achievements", ".trophy", null, "insights", "milestones")
     },
     {
-      id: "obj_tasks",
-      group: "Room Objects",
-      label: "Planning Board · Tasks & Goals",
-      hint: "Pinboard",
-      keywords: "pinboard tasks todo goals checklist",
-      run: () => dialogManager.open("tasks", document.querySelector(".pinboard"))
-    },
-    {
-      id: "obj_cabinet",
-      group: "Room Objects",
-      label: "Personal Archive · Inventory & JSON Backup",
-      hint: "Cabinet",
+      id: "tool_cabinet",
+      group: "Study Tools",
+      label: "Archive & JSON Backup / Restore",
+      hint: isDeepFocus ? "Insights" : "Cabinet",
       keywords: "cabinet drawer inventory backup json restore",
-      run: () => dialogManager.open("cabinet", document.querySelector(".cabinet-drawer"))
+      run: () => openWorkspaceTool("cabinet", ".cabinet-drawer", null, "insights", "archive")
     },
     {
-      id: "obj_settings",
-      group: "Room Objects",
-      label: "Control Panel · Modes, Profiles & Preferences",
-      hint: "Switchboard",
-      keywords: "settings control panel serious strict lock",
-      run: () => dialogManager.open("settings", document.querySelector(".settings-panel"))
+      id: "tool_community",
+      group: "Study Tools",
+      label: "Silent Body-Doubling Halls, Friends & Rooms",
+      hint: isDeepFocus ? "Rooms" : "Computer",
+      keywords: "computer body doubling synced pomodoro community groups friends",
+      run: () => openWorkspaceTool("community", ".desk-computer", null, "community", "halls")
     },
     {
-      id: "obj_shop",
-      group: "Room Objects",
-      label: "Supply Catalog · Themes, Audio & Decor",
-      hint: "Merchant",
-      keywords: "shop catalog buy themes items",
-      run: () => dialogManager.open("shop", document.querySelector(".merchant-bird"))
+      id: "tool_shop",
+      group: "Study Tools",
+      label: "Catalog · Scenes, Particles, Music Discs & Themes",
+      hint: isDeepFocus ? "Catalog" : "Merchant",
+      keywords: "shop catalog buy themes particles music items",
+      run: () => openWorkspaceTool("shop", ".merchant-bird", null, "catalog", "all")
     },
     {
-      id: "obj_custom",
-      group: "Room Objects",
-      label: "Desk Plant · Theme & Skin Studio",
-      hint: "Studio",
-      keywords: "plant studio themes skins layout",
-      run: () => dialogManager.open("customization", document.querySelector(".desk-plant"))
+      id: "tool_break",
+      group: "Study Tools",
+      label: "Recovery & 20-20-20 Eye Rest Break",
+      hint: isDeepFocus ? "Break" : "Coffee",
+      keywords: "coffee mug break rest eye timer",
+      run: () => openWorkspaceTool("coffee", ".coffee-mug", null, "break", "rest")
+    },
+    {
+      id: "tool_settings",
+      group: "Study Tools",
+      label: "Workspace Settings, Scenes & Focus Controls",
+      hint: "Settings",
+      keywords: "settings control panel serious strict lock backdrop particles",
+      run: () => openWorkspaceTool("settings", ".settings-panel", null, "settings", "")
     }
   ];
-
-  return baseCommands;
 }
 
 function renderList() {

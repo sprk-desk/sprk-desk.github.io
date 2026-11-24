@@ -8,6 +8,22 @@
   <meta name="description" content="An interactive, customizable virtual study room where every physical object opens your focus timer, diary, tasks, ambient audio, study community, and desk shop.">
   <meta property="og:title" content="SPRK Desk — Cozy Virtual Study Room">
   <meta property="og:description" content="An interactive, customizable virtual study room for focused study, cozy ambience, and community.">
+  <script>
+    // Restore GitHub Pages 404 redirect & strip trailing slash so ./ relative assets resolve from root
+    (function () {
+      try {
+        var saved = sessionStorage.getItem("sprk_spa_redirect");
+        if (saved) {
+          sessionStorage.removeItem("sprk_spa_redirect");
+          window.history.replaceState(null, "", saved);
+        }
+      } catch (e) {}
+      var p = window.location.pathname;
+      if (p.length > 1 && p.endsWith("/")) {
+        window.history.replaceState(null, "", p.replace(/\/+$/, "") + window.location.search + window.location.hash);
+      }
+    })();
+  </script>
   <link rel="icon" type="image/svg+xml" href="./assets/icon.svg">
   <link rel="apple-touch-icon" href="./assets/icon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,9 +36,13 @@
   <link rel="stylesheet" href="./css/components.css">
   <link rel="stylesheet" href="./css/responsive.css">
   <link rel="stylesheet" href="./css/deepfocus.css">
+  <link rel="stylesheet" href="./css/landing.css">
+  <link rel="stylesheet" href="./css/account.css">
 </head>
 <body>
   <div id="sprk-mode-switcher" class="sprk-mode-switcher"></div>
+  <div id="sprk-home-shell" class="sprk-home-shell" hidden></div>
+  <div id="sprk-account-shell" class="sprk-account-shell" hidden></div>
   <div id="deepfocus-shell" class="deepfocus-shell" hidden></div>
   <main class="room-screen" aria-label="SPRK Desk virtual study room">
     <div class="back-wall" aria-hidden="true">

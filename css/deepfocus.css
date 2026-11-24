@@ -1,10 +1,10 @@
-/* DeepFocus Mode — Distraction-Free Glassmorphic Workspace & Top-Left Mode Switcher */
+/* DeepFocus Studio — Distraction-Free Glassmorphic Workspace, Modals & Mode Switcher */
 
 .sprk-mode-switcher {
   position: fixed;
   top: 12px;
   left: 16px;
-  z-index: 60;
+  z-index: 45;
 }
 
 .sprk-mode-switch {
@@ -48,38 +48,59 @@
 }
 
 /* Switcher adapts automatically in DeepFocus dark glass aesthetic */
-html[data-app-mode="deepfocus"] .sprk-mode-switch {
+html[data-page="deepfocus"] .sprk-mode-switch {
   border-color: rgba(255, 255, 255, 0.14);
   background: rgba(15, 23, 38, 0.72);
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
 }
 
-html[data-app-mode="deepfocus"] .sprk-mode-switch-btn {
+html[data-page="deepfocus"] .sprk-mode-switch-btn {
   color: rgba(226, 232, 240, 0.72);
 }
 
-html[data-app-mode="deepfocus"] .sprk-mode-switch-btn:hover {
+html[data-page="deepfocus"] .sprk-mode-switch-btn:hover {
   color: #f8fafc;
 }
 
-html[data-app-mode="deepfocus"] .sprk-mode-switch-btn.is-active {
+html[data-page="deepfocus"] .sprk-mode-switch-btn.is-active {
   background: var(--df-accent, #38bdf8);
   color: #09111e;
 }
 
-/* Hide Cozy Study Room elements cleanly when DeepFocus Mode is active */
-html[data-app-mode="deepfocus"] .room-screen,
-html[data-app-mode="deepfocus"] #room-active-whisper,
-html[data-app-mode="deepfocus"] #sprk-study-circle-root {
+/* Hide Cozy Study Room elements cleanly when on DeepFocus page */
+html[data-page="deepfocus"] .room-screen,
+html[data-page="deepfocus"] #room-active-whisper,
+html[data-page="deepfocus"] #sprk-study-circle-root {
   display: none !important;
+}
+
+/* Zero visible scrollbars across DeepFocus Studio */
+html[data-page="deepfocus"],
+html[data-page="deepfocus"] body,
+.deepfocus-shell,
+.deepfocus-shell *,
+.df-modal-body,
+.df-settings-scroll,
+.df-kcol-list,
+.df-stage {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html[data-page="deepfocus"]::-webkit-scrollbar,
+html[data-page="deepfocus"] body::-webkit-scrollbar,
+.deepfocus-shell *::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 /* DeepFocus Full-Viewport Shell */
 .deepfocus-shell {
   --df-accent: #38bdf8;
   --df-accent-soft: rgba(56, 189, 248, 0.16);
-  --df-surface: rgba(15, 23, 38, 0.76);
-  --df-surface-solid: rgba(16, 24, 40, 0.94);
+  --df-surface: rgba(15, 23, 38, 0.78);
+  --df-surface-solid: rgba(14, 21, 36, 0.96);
   --df-border: rgba(255, 255, 255, 0.11);
   --df-text: #f1f5f9;
   --df-muted: #94a3b8;
@@ -149,7 +170,7 @@ html[data-app-mode="deepfocus"] #sprk-study-circle-root {
   gap: 20px;
   height: 58px;
   padding: 0 22px;
-  background: rgba(10, 16, 28, 0.54);
+  background: rgba(10, 16, 28, 0.56);
   backdrop-filter: blur(18px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   flex-shrink: 0;
@@ -158,7 +179,7 @@ html[data-app-mode="deepfocus"] #sprk-study-circle-root {
 .df-top-left {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
   min-width: 0;
   flex-shrink: 0;
 }
@@ -168,17 +189,25 @@ html[data-app-mode="deepfocus"] #sprk-study-circle-root {
   flex-shrink: 0;
 }
 
-.df-brand {
-  font: 700 14px/1 "Plus Jakarta Sans", system-ui, sans-serif;
-  letter-spacing: 0.01em;
-  color: #f8fafc;
+.df-brand-link {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 4px 2px;
+  font: 600 13px/1 "Plus Jakarta Sans", system-ui, sans-serif;
+  color: rgba(241, 245, 249, 0.84);
+  cursor: pointer;
   white-space: nowrap;
+  transition: color 140ms ease;
 }
 
-.df-top-meta {
-  font: 600 12.5px/1 "JetBrains Mono", monospace;
-  color: var(--df-muted);
-  white-space: nowrap;
+.df-brand-link:hover {
+  color: #ffffff;
+}
+
+.df-top-sep {
+  color: rgba(148, 163, 184, 0.45);
+  font-size: 12px;
 }
 
 /* Clean Typographic Center Nav */
@@ -283,7 +312,7 @@ html[data-app-mode="deepfocus"] #sprk-study-circle-root {
   align-items: center;
   justify-content: safe center;
   gap: 14px;
-  padding: 24px 20px 92px;
+  padding: 20px 20px 88px;
   overflow-y: auto;
 }
 
@@ -292,13 +321,13 @@ html[data-app-mode="deepfocus"] #sprk-study-circle-root {
 }
 
 .df-layout.has-drawer .df-sound-dock {
-  left: calc((100vw - 440px) / 2);
+  left: calc((100vw - 390px) / 2);
 }
 
 .df-timer-card {
   width: 100%;
   max-width: 456px;
-  padding: 28px 28px 24px;
+  padding: 26px 26px 22px;
   border-radius: 24px;
   background: var(--df-surface);
   backdrop-filter: blur(24px);
@@ -307,7 +336,7 @@ html[data-app-mode="deepfocus"] #sprk-study-circle-root {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
 }
 
 .df-segmented {
@@ -392,13 +421,13 @@ html[data-app-mode="deepfocus"] #sprk-study-circle-root {
 
 .df-clock-wrap {
   text-align: center;
-  padding: 8px 0 4px;
+  padding: 6px 0 2px;
 }
 
 .df-clock-readout {
   font-family: "JetBrains Mono", monospace;
   font-weight: 700;
-  font-size: clamp(3.35rem, 6.2vw, 4.75rem);
+  font-size: clamp(3.35rem, 6vw, 4.65rem);
   line-height: 1;
   letter-spacing: -0.02em;
   color: #ffffff;
@@ -515,13 +544,13 @@ html[data-app-mode="deepfocus"] #sprk-study-circle-root {
   font-weight: 600;
 }
 
-/* Live Friends Studying Widget (Bottom-Left on desktop, inline stacked below timer on tablet/mobile) */
+/* Live Friends Studying Widget */
 .df-friends-panel {
   position: fixed;
   left: 20px;
   bottom: 84px;
   z-index: 15;
-  width: 312px;
+  width: 326px;
   border-radius: 16px;
   background: var(--df-surface);
   backdrop-filter: blur(20px);
@@ -534,7 +563,7 @@ html[data-app-mode="deepfocus"] #sprk-study-circle-root {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
   padding: 10px 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
@@ -551,6 +580,7 @@ html[data-app-mode="deepfocus"] #sprk-study-circle-root {
   font-weight: 700;
   white-space: nowrap;
   min-width: 0;
+  flex: 1;
 }
 
 .df-live-indicator {
@@ -569,7 +599,8 @@ html[data-app-mode="deepfocus"] #sprk-study-circle-root {
 .df-friends-head-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
+  flex-shrink: 0;
 }
 
 .df-friends-body {
@@ -672,8 +703,11 @@ html[data-app-mode="deepfocus"] #sprk-study-circle-root {
   white-space: nowrap;
 }
 
-.df-dock-mixer-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
+.df-dock-mixer-btn:hover,
+.df-dock-mixer-btn.is-active {
+  background: var(--df-accent-soft);
+  border-color: color-mix(in srgb, var(--df-accent) 45%, transparent);
+  color: #ffffff;
 }
 
 .df-dock-sliders {
@@ -706,7 +740,7 @@ html[data-app-mode="deepfocus"] #sprk-study-circle-root {
 
 .df-dock-disc-select {
   min-height: 32px;
-  max-width: 170px;
+  max-width: 175px;
   padding: 4px 8px;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -733,7 +767,7 @@ html[data-app-mode="deepfocus"] #sprk-study-circle-root {
   color: #09111e;
 }
 
-/* Right Slide-Over Drawers (Kanban Tasks & Workspace Settings) */
+/* Right Slide-Over Settings Drawer */
 .df-drawer {
   position: fixed;
   top: 58px;
@@ -750,175 +784,22 @@ html[data-app-mode="deepfocus"] #sprk-study-circle-root {
   flex-direction: column;
 }
 
-.df-drawer-kanban {
-  width: 440px;
-}
-
 .df-drawer-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 16px 18px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
 }
 
 .df-drawer-head h2 {
   margin: 0;
   font-size: 14px;
   font-weight: 700;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
 }
 
-.df-icon-btn {
-  appearance: none;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.05);
-  color: #cbd5e1;
-  border-radius: 8px;
-  min-width: 28px;
-  min-height: 28px;
-  padding: 0 8px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.df-icon-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
-}
-
-/* Kanban Board inside Drawer */
-.df-task-form {
-  padding: 14px 18px;
-  display: grid;
-  gap: 8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.df-task-form-row {
-  display: grid;
-  grid-template-columns: 1fr 96px auto;
-  gap: 8px;
-}
-
-.df-kanban-board {
-  flex: 1;
-  overflow-y: auto;
-  padding: 14px 18px 24px;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  align-items: start;
-}
-
-.df-kanban-col {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  padding: 10px 8px;
-  min-height: 220px;
-}
-
-.df-kanban-col-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  color: #cbd5e1;
-  margin-bottom: 8px;
-  padding: 0 2px;
-}
-
-.df-kanban-col-list {
-  display: grid;
-  gap: 8px;
-}
-
-.df-kanban-empty {
-  font-size: 11.5px;
-  color: var(--df-muted);
-  text-align: center;
-  padding: 18px 6px;
-}
-
-.df-kanban-card {
-  background: rgba(15, 23, 38, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 10px;
-  padding: 8px;
-  display: grid;
-  gap: 6px;
-}
-
-.df-kanban-card.is-selected {
-  border-color: var(--df-accent);
-}
-
-.df-kanban-card-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 6px;
-}
-
-.df-kanban-card-title {
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1.35;
-  word-break: break-word;
-}
-
-.df-card-x {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  color: var(--df-muted);
-  font-size: 15px;
-  line-height: 1;
-  cursor: pointer;
-  padding: 0 2px;
-}
-
-.df-card-x:hover {
-  color: #f87171;
-}
-
-.df-kanban-card-meta {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 10.5px;
-  color: var(--df-muted);
-}
-
-.df-kanban-card-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.df-mini-act {
-  appearance: none;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
-  color: #cbd5e1;
-  border-radius: 6px;
-  padding: 3px 6px;
-  font-size: 10.5px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.df-mini-act.is-accent {
-  border-color: color-mix(in srgb, var(--df-accent) 55%, transparent);
-  background: var(--df-accent-soft);
-  color: var(--df-accent);
-}
-
-/* Settings Drawer Controls */
 .df-settings-scroll {
   flex: 1;
   overflow-y: auto;
@@ -954,6 +835,12 @@ html[data-app-mode="deepfocus"] #sprk-study-circle-root {
   gap: 8px;
 }
 
+.df-profile-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .df-link-btn {
   appearance: none;
   border: 0;
@@ -974,18 +861,6 @@ html[data-app-mode="deepfocus"] #sprk-study-circle-root {
   gap: 5px;
   font-size: 12px;
   color: #cbd5e1;
-}
-
-.df-input,
-.df-select {
-  width: 100%;
-  min-height: 36px;
-  padding: 6px 10px;
-  border-radius: 9px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(9, 14, 25, 0.72);
-  color: #f8fafc;
-  font: 500 12.5px/1.2 "Plus Jakarta Sans", system-ui, sans-serif;
 }
 
 .df-custom-bg-row {
@@ -1034,6 +909,24 @@ html[data-app-mode="deepfocus"] #sprk-study-circle-root {
   gap: 4px;
 }
 
+.df-mini-act {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: #cbd5e1;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.df-mini-act.is-accent {
+  border-color: color-mix(in srgb, var(--df-accent) 55%, transparent);
+  background: var(--df-accent-soft);
+  color: var(--df-accent);
+}
+
 .df-check-row {
   display: flex;
   align-items: center;
@@ -1041,6 +934,45 @@ html[data-app-mode="deepfocus"] #sprk-study-circle-root {
   font-size: 12.5px;
   color: #cbd5e1;
   cursor: pointer;
+}
+
+/* Shared Glassmorphic Controls */
+.df-icon-btn {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: #cbd5e1;
+  border-radius: 8px;
+  min-width: 30px;
+  min-height: 30px;
+  padding: 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.df-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.df-input,
+.df-select,
+.df-textarea {
+  width: 100%;
+  min-height: 36px;
+  padding: 7px 10px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(9, 14, 25, 0.72);
+  color: #f8fafc;
+  font: 500 12.5px/1.35 "Plus Jakarta Sans", system-ui, sans-serif;
+}
+
+.df-textarea {
+  min-height: 110px;
+  resize: vertical;
+  line-height: 1.5;
 }
 
 .df-btn-accent {
@@ -1056,6 +988,16 @@ html[data-app-mode="deepfocus"] #sprk-study-circle-root {
   white-space: nowrap;
 }
 
+.df-btn-accent:hover:not(:disabled) {
+  filter: brightness(1.07);
+}
+
+.df-btn-accent:disabled,
+.df-btn-subtle:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
 .df-btn-subtle {
   appearance: none;
   border: 1px solid rgba(255, 255, 255, 0.14);
@@ -1069,30 +1011,42 @@ html[data-app-mode="deepfocus"] #sprk-study-circle-root {
   white-space: nowrap;
 }
 
-.df-btn-subtle:hover {
+.df-btn-subtle:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.12);
 }
 
+.df-btn-subtle.is-accent {
+  background: var(--df-accent-soft);
+  border-color: color-mix(in srgb, var(--df-accent) 55%, transparent);
+  color: var(--df-accent);
+}
+
 .df-notice {
-  padding: 9px 11px;
+  padding: 9px 12px;
   border-radius: 9px;
   border: 1px solid color-mix(in srgb, var(--df-accent) 45%, transparent);
   background: var(--df-accent-soft);
   color: #f8fafc;
-  font-size: 12px;
+  font-size: 12.5px;
 }
 
 .df-muted {
   color: var(--df-muted);
+  font-size: 12px;
 }
 
-/* Performance Intelligence Modal */
+.is-accent-text {
+  color: var(--df-accent);
+  font-weight: 700;
+}
+
+/* DeepFocus Studio Modals (#dfm-backdrop) */
 .df-modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 50;
-  background: rgba(7, 11, 20, 0.72);
-  backdrop-filter: blur(10px);
+  z-index: 55;
+  background: rgba(6, 10, 18, 0.74);
+  backdrop-filter: blur(12px);
   display: grid;
   place-items: center;
   padding: 20px;
@@ -1100,29 +1054,506 @@ html[data-app-mode="deepfocus"] #sprk-study-circle-root {
 
 .df-modal-card {
   width: 100%;
-  max-width: 540px;
-  border-radius: 20px;
+  max-width: 620px;
+  max-height: 86vh;
+  border-radius: 22px;
   background: var(--df-surface-solid);
-  border: 1px solid var(--df-border);
-  box-shadow: 0 28px 72px rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  box-shadow: 0 32px 84px rgba(0, 0, 0, 0.62);
   padding: 20px 22px;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 14px;
+  overflow: hidden;
+}
+
+.df-modal-card.is-wide {
+  max-width: 860px;
 }
 
 .df-modal-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
 }
 
 .df-modal-head h2 {
   margin: 0;
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
+  font: 700 17px/1.2 "Fraunces", Georgia, serif;
+  color: #f8fafc;
 }
 
+.df-modal-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+
+.df-modal-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 4px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.df-mtab {
+  appearance: none;
+  border: 0;
+  border-radius: 8px;
+  padding: 7px 12px;
+  min-height: 32px;
+  background: transparent;
+  color: var(--df-muted);
+  font: 600 12.5px/1 "Plus Jakarta Sans", system-ui, sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.df-mtab:hover {
+  color: #f8fafc;
+}
+
+.df-mtab.is-active {
+  background: var(--df-accent-soft);
+  color: var(--df-accent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--df-accent) 42%, transparent);
+}
+
+.df-modal-sec {
+  display: grid;
+  gap: 10px;
+}
+
+.df-modal-sec h3 {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.df-sec-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.df-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.df-list-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.df-list-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.df-item-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 11px 13px;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  font-size: 12.5px;
+}
+
+.df-item-card.is-active {
+  border-color: color-mix(in srgb, var(--df-accent) 55%, transparent);
+  background: rgba(56, 189, 248, 0.08);
+}
+
+.df-item-card-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.df-item-card-info strong {
+  display: block;
+  font-size: 13px;
+  line-height: 1.3;
+  color: #f8fafc;
+}
+
+.df-item-card-acts {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.df-item-card-acts .df-btn-accent,
+.df-item-card-acts .df-btn-subtle {
+  min-height: 30px;
+  padding: 4px 10px;
+  font-size: 11.5px;
+}
+
+.df-empty-box {
+  padding: 20px 16px;
+  border-radius: 13px;
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--df-muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+.df-inline-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Music Studio Turntable & Visualiser */
+.df-turntable {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.df-platter {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: #080d18;
+  border: 2px solid rgba(255, 255, 255, 0.14);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.df-vinyl {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background:
+    repeating-radial-gradient(circle, #182235 0 3px, #0d1424 3px 6px);
+  display: grid;
+  place-items: center;
+}
+
+.df-turntable.is-playing .df-vinyl {
+  animation: dfVinylSpin 3.4s linear infinite;
+}
+
+@keyframes dfVinylSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.df-vinyl-core {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.7);
+}
+
+.df-turntable-main {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.df-turntable-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.df-turntable-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.df-vol-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.df-vol-wrap input[type="range"] {
+  width: 96px;
+  accent-color: var(--df-accent);
+}
+
+.df-vis-bars {
+  height: 30px;
+  display: grid;
+  grid-template-columns: repeat(18, 1fr);
+  align-items: end;
+  gap: 4px;
+}
+
+.df-vis-bar {
+  width: 100%;
+  min-height: 4px;
+  border-radius: 3px 3px 0 0;
+  transition: height 90ms linear;
+}
+
+.df-disc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: 8px;
+}
+
+.df-disc-card {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 9px 12px;
+  border-radius: 11px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: #e2e8f0;
+  font: 600 12.5px/1.25 "Plus Jakarta Sans", system-ui, sans-serif;
+  cursor: pointer;
+  text-align: left;
+}
+
+.df-disc-card:hover {
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.df-disc-card.is-active {
+  background: var(--df-accent-soft);
+  border-color: color-mix(in srgb, var(--df-accent) 55%, transparent);
+  color: #ffffff;
+}
+
+.df-disc-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+/* Draggable Kanban Board (Plan Modal) */
+.df-kboard {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.df-kcol {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 14px;
+  padding: 12px 10px;
+  min-height: 250px;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  transition: border-color 140ms ease, background-color 140ms ease;
+}
+
+.df-kcol.is-drop-target {
+  border-color: var(--df-accent);
+  background: color-mix(in srgb, var(--df-accent) 10%, rgba(15, 23, 38, 0.8));
+}
+
+.df-kcol-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 700;
+  color: #e2e8f0;
+  padding: 0 2px;
+}
+
+.df-kcol-list {
+  display: grid;
+  gap: 8px;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.df-kcol-empty {
+  padding: 26px 8px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--df-muted);
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+.df-kcard {
+  background: rgba(15, 23, 38, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 11px;
+  padding: 10px;
+  display: grid;
+  gap: 7px;
+  cursor: grab;
+  transition: transform 120ms ease, border-color 140ms ease, opacity 140ms ease;
+}
+
+.df-kcard:hover {
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+.df-kcard.is-dragging {
+  opacity: 0.45;
+  cursor: grabbing;
+}
+
+.df-kcard.is-selected {
+  border-color: var(--df-accent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--df-accent) 35%, transparent);
+}
+
+.df-kcard-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+}
+
+.df-drag-grip {
+  color: var(--df-muted);
+  font-size: 13px;
+  line-height: 1.1;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.df-kcard-title {
+  flex: 1;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: #f8fafc;
+  word-break: break-word;
+}
+
+.df-card-x {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--df-muted);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.df-card-x:hover {
+  color: #f87171;
+}
+
+.df-kcard-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.df-pin-act {
+  appearance: none;
+  border: 1px solid color-mix(in srgb, var(--df-accent) 48%, transparent);
+  background: var(--df-accent-soft);
+  color: var(--df-accent);
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Knowledge: Markdown Preview & Flashcards */
+.df-md-box {
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(9, 14, 25, 0.65);
+  color: #e2e8f0;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.df-md-inline {
+  margin-top: 6px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #cbd5e1;
+}
+
+.df-md-box h1, .df-md-box h2, .df-md-box h3,
+.df-md-inline h1, .df-md-inline h2, .df-md-inline h3 {
+  margin: 6px 0 4px;
+  font-size: 14px;
+  color: #f8fafc;
+}
+
+.df-md-box code,
+.df-md-inline code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11.5px;
+}
+
+.df-flashcard-box {
+  padding: 18px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  display: grid;
+  gap: 12px;
+}
+
+.df-fc-front {
+  font: 700 18px/1.35 "Fraunces", Georgia, serif;
+  color: #ffffff;
+}
+
+.df-fc-back {
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: #cbd5e1;
+}
+
+/* Insights: KPIs, Heatmap, Calendar & Bars */
 .df-kpi-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1188,6 +1619,52 @@ html[data-app-mode="deepfocus"] #sprk-study-circle-root {
 .df-heat-cell.level-3 { background: color-mix(in srgb, var(--df-accent) 75%, #0f172a); }
 .df-heat-cell.level-4 { background: var(--df-accent); }
 
+.df-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.df-cal-cell {
+  min-height: 36px;
+  padding: 3px 4px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 10.5px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: #cbd5e1;
+}
+
+.df-cal-cell.is-pad {
+  background: transparent;
+  border-color: transparent;
+}
+
+.df-cal-cell.has-study {
+  background: color-mix(in srgb, var(--df-accent) 22%, #0f172a);
+  border-color: color-mix(in srgb, var(--df-accent) 45%, transparent);
+  color: #ffffff;
+}
+
+.df-cal-cell.is-today {
+  box-shadow: inset 0 0 0 1px var(--df-accent);
+}
+
+.df-cal-mins {
+  font-size: 9.5px;
+  color: var(--df-accent);
+  font-weight: 700;
+}
+
+.df-cal-exam {
+  font-size: 9px;
+  color: #fbbf24;
+  font-weight: 700;
+}
+
 .df-subject-bars {
   display: grid;
   gap: 8px;
@@ -1212,215 +1689,45 @@ html[data-app-mode="deepfocus"] #sprk-study-circle-root {
   background: var(--df-accent);
 }
 
-.df-analytics-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: flex-end;
-}
-
-/* Native Shared Dialogs Dark Frosted Styling in DeepFocus Mode */
-html[data-app-mode="deepfocus"] .sprk-dialog,
-html[data-app-mode="deepfocus"] .sprk-dialog[data-dialog-skin="diary"],
-html[data-app-mode="deepfocus"] .sprk-dialog[data-dialog-skin="tasks"],
-html[data-app-mode="deepfocus"] .sprk-dialog[data-dialog-skin="community"],
-html[data-app-mode="deepfocus"] .sprk-dialog[data-dialog-skin="friends"],
-html[data-app-mode="deepfocus"] .sprk-dialog[data-dialog-skin="shop"],
-html[data-app-mode="deepfocus"] .sprk-dialog[data-dialog-skin="audio"],
-html[data-app-mode="deepfocus"] .sprk-dialog[data-dialog-skin="calendar"],
-html[data-app-mode="deepfocus"] .sprk-preview-dialog,
-html[data-app-mode="deepfocus"] .sprk-cmd-dialog {
+/* Command Palette Dark Frosted Styling on DeepFocus Page */
+html[data-page="deepfocus"] .sprk-cmd-dialog {
   background: #0f172a;
-  background-image: none;
   color: #f1f5f9;
   border: 1px solid rgba(255, 255, 255, 0.14);
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.65);
   --wall: #0f172a;
-  --wall-light: #1e293b;
   --ink: #f1f5f9;
   --muted: #94a3b8;
   --accent: #38bdf8;
 }
 
-html[data-app-mode="deepfocus"] .sprk-dialog::backdrop,
-html[data-app-mode="deepfocus"] .sprk-preview-dialog::backdrop {
+html[data-page="deepfocus"] .sprk-cmd-dialog::backdrop {
   background: rgba(6, 10, 18, 0.72);
   backdrop-filter: blur(8px);
 }
 
-html[data-app-mode="deepfocus"] .sprk-dialog-header,
-html[data-app-mode="deepfocus"] .sprk-dialog[data-dialog-skin="diary"] .sprk-dialog-header,
-html[data-app-mode="deepfocus"] .sprk-dialog[data-dialog-skin="calendar"] .sprk-dialog-header,
-html[data-app-mode="deepfocus"] .sprk-dialog[data-dialog-skin="tasks"] .sprk-dialog-header,
-html[data-app-mode="deepfocus"] .sprk-dialog[data-dialog-skin="community"] .sprk-dialog-header,
-html[data-app-mode="deepfocus"] .sprk-dialog[data-dialog-skin="friends"] .sprk-dialog-header,
-html[data-app-mode="deepfocus"] .sprk-dialog[data-dialog-skin="shop"] .sprk-dialog-header,
-html[data-app-mode="deepfocus"] .sprk-dialog[data-dialog-skin="audio"] .sprk-dialog-header,
-html[data-app-mode="deepfocus"] .sprk-preview-header,
-html[data-app-mode="deepfocus"] .sprk-cmd-search-row {
+html[data-page="deepfocus"] .sprk-cmd-search-row {
   background: #131f36;
   color: #f1f5f9;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-html[data-app-mode="deepfocus"] .sprk-dialog[data-dialog-skin="diary"] .sprk-dialog-header,
-html[data-app-mode="deepfocus"] .sprk-dialog[data-dialog-skin="diary"] .sprk-dialog-body {
-  padding-left: 22px;
-}
-
-html[data-app-mode="deepfocus"] .sprk-dialog[data-dialog-skin="shop"] .sprk-dialog-title-wrap {
-  background: transparent;
-  border: 0;
-  padding: 0;
-}
-
-html[data-app-mode="deepfocus"] .sprk-dialog-object-pic {
-  display: none;
-}
-
-html[data-app-mode="deepfocus"] .sprk-dialog-eyebrow {
-  color: #94a3b8;
-}
-
-html[data-app-mode="deepfocus"] .sprk-dialog-close {
-  border-color: rgba(255, 255, 255, 0.16);
-  background: rgba(255, 255, 255, 0.06);
-  color: #f1f5f9;
-}
-
-html[data-app-mode="deepfocus"] .sprk-dialog-modebar {
-  background: #111b30;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-html[data-app-mode="deepfocus"] .sprk-modebar-tabs,
-html[data-app-mode="deepfocus"] .sprk-tabs,
-html[data-app-mode="deepfocus"] .sprk-tabs-notebook,
-html[data-app-mode="deepfocus"] .sprk-tabs-pinboard,
-html[data-app-mode="deepfocus"] .sprk-tabs-folder,
-html[data-app-mode="deepfocus"] .sprk-tabs-bookshelf,
-html[data-app-mode="deepfocus"] .sprk-tabs-cassette,
-html[data-app-mode="deepfocus"] .sprk-tabs-window,
-html[data-app-mode="deepfocus"] .sprk-tabs-plant {
-  background: rgba(9, 14, 26, 0.72);
-  border-color: rgba(255, 255, 255, 0.12);
-}
-
-html[data-app-mode="deepfocus"] .sprk-mode-tab,
-html[data-app-mode="deepfocus"] .sprk-tab {
-  color: #94a3b8;
-  background: transparent;
-  border-color: transparent;
-}
-
-html[data-app-mode="deepfocus"] .sprk-mode-tab.is-active,
-html[data-app-mode="deepfocus"] .sprk-tab.is-active {
-  background: rgba(56, 189, 248, 0.18);
-  color: #38bdf8;
-  border-color: rgba(56, 189, 248, 0.45);
-  box-shadow: none;
-}
-
-html[data-app-mode="deepfocus"] .sprk-lock-btn {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(255, 255, 255, 0.16);
-  color: #e2e8f0;
-}
-
-html[data-app-mode="deepfocus"] .sprk-card,
-html[data-app-mode="deepfocus"] .sprk-input,
-html[data-app-mode="deepfocus"] .sprk-select,
-html[data-app-mode="deepfocus"] .sprk-textarea,
-html[data-app-mode="deepfocus"] .sprk-btn,
-html[data-app-mode="deepfocus"] .sprk-shop-wallet-strip,
-html[data-app-mode="deepfocus"] .sprk-shop-dept-card,
-html[data-app-mode="deepfocus"] .sprk-disc-tile,
-html[data-app-mode="deepfocus"] .sprk-skin-tile,
-html[data-app-mode="deepfocus"] .sprk-env-tile,
-html[data-app-mode="deepfocus"] .sprk-sticky-note,
-html[data-app-mode="deepfocus"] .sprk-flashcard-stage,
-html[data-app-mode="deepfocus"] .sprk-cmd-item,
-html[data-app-mode="deepfocus"] .cal-cell {
+html[data-page="deepfocus"] .sprk-cmd-item {
   background: #17233a;
   color: #f1f5f9;
   border-color: rgba(255, 255, 255, 0.14);
-  box-shadow: none;
 }
 
-html[data-app-mode="deepfocus"] .sprk-cmd-item:hover,
-html[data-app-mode="deepfocus"] .sprk-cmd-item.is-selected,
-html[data-app-mode="deepfocus"] .sprk-disc-tile.is-active,
-html[data-app-mode="deepfocus"] .sprk-skin-tile.is-active,
-html[data-app-mode="deepfocus"] .sprk-env-tile.is-active {
-  background: rgba(56, 189, 248, 0.14);
+html[data-page="deepfocus"] .sprk-cmd-item:hover,
+html[data-page="deepfocus"] .sprk-cmd-item.is-selected {
+  background: rgba(56, 189, 248, 0.16);
   border-color: rgba(56, 189, 248, 0.6);
-  box-shadow: none;
 }
 
-html[data-app-mode="deepfocus"] .sprk-cmd-kbd {
+html[data-page="deepfocus"] .sprk-cmd-kbd {
   background: #0b1322;
   color: #94a3b8;
   border-color: rgba(255, 255, 255, 0.16);
-}
-
-html[data-app-mode="deepfocus"] .sprk-badge-chip,
-html[data-app-mode="deepfocus"] .sprk-notice {
-  background: rgba(56, 189, 248, 0.12);
-  color: #e2e8f0;
-  border-color: rgba(56, 189, 248, 0.35);
-}
-
-html[data-app-mode="deepfocus"] .sprk-shop-roof-tabs {
-  background: #131f36;
-  border-color: rgba(255, 255, 255, 0.14);
-  box-shadow: none;
-}
-
-html[data-app-mode="deepfocus"] .sprk-shop-roof-tabs::before {
-  display: none;
-}
-
-html[data-app-mode="deepfocus"] .sprk-shop-roof-tab {
-  background: rgba(255, 255, 255, 0.05);
-  color: #e2e8f0;
-  border-color: rgba(255, 255, 255, 0.12);
-  padding-top: 10px;
-}
-
-html[data-app-mode="deepfocus"] .sprk-shop-roof-tab::before,
-html[data-app-mode="deepfocus"] .sprk-shop-roof-tab::after {
-  display: none;
-}
-
-html[data-app-mode="deepfocus"] .sprk-shop-roof-tab.is-active {
-  background: rgba(56, 189, 248, 0.18);
-  color: #38bdf8;
-  border-color: rgba(56, 189, 248, 0.55);
-  transform: none;
-  box-shadow: none;
-}
-
-html[data-app-mode="deepfocus"] .sprk-object-stage,
-html[data-app-mode="deepfocus"] .sprk-skin-tile-visual {
-  background: radial-gradient(circle at 50% 42%, #1e293b 0%, #0f172a 100%);
-  border-color: rgba(255, 255, 255, 0.14);
-}
-
-html[data-app-mode="deepfocus"] .sprk-btn-primary {
-  background: var(--accent, #38bdf8);
-  color: #09111e;
-  border-color: transparent;
-}
-
-html[data-app-mode="deepfocus"] .sprk-btn-danger {
-  background: #dc2626;
-  color: #ffffff;
-  border-color: transparent;
-}
-
-html[data-app-mode="deepfocus"] .cal-cell.has-study {
-  background: rgba(34, 197, 94, 0.22);
-  border-color: rgba(34, 197, 94, 0.5);
 }
 
 /* Responsive DeepFocus Layout */
@@ -1463,7 +1770,7 @@ html[data-app-mode="deepfocus"] .cal-cell.has-study {
     padding-top: 2px;
   }
   .df-stage {
-    padding: 14px 14px 86px;
+    padding: 14px 14px 84px;
   }
   .df-timer-card {
     padding: 22px 16px 18px;
@@ -1473,12 +1780,13 @@ html[data-app-mode="deepfocus"] .cal-cell.has-study {
     padding: 8px 12px;
     gap: 10px;
   }
-  .df-drawer,
-  .df-drawer-kanban {
+  .df-drawer {
     top: 0;
     width: 100vw;
   }
-  .df-kanban-board {
+  .df-kboard,
+  .df-list-grid-2,
+  .df-list-grid-3 {
     grid-template-columns: 1fr;
   }
 }
@@ -1495,8 +1803,8 @@ html[data-app-mode="deepfocus"] .cal-cell.has-study {
   .df-topbar {
     padding: 10px 10px 8px;
   }
-  .df-brand,
-  .df-top-meta,
+  .df-brand-link,
+  .df-top-sep,
   #df-btn-palette {
     display: none;
   }
@@ -1514,10 +1822,12 @@ html[data-app-mode="deepfocus"] .cal-cell.has-study {
   .df-util-btn.is-icon {
     width: 30px;
   }
-  .df-task-bind-row {
-    grid-template-columns: 1fr;
-  }
+  .df-task-bind-row,
   .df-kpi-grid {
     grid-template-columns: 1fr;
+  }
+  .df-turntable {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }

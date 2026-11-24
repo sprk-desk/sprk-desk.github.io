@@ -10,6 +10,7 @@ import {
   isParticleOwned,
   resolveDeepFocusAppearance,
   groupTasksForKanban,
+  moveTaskToKanbanColumn,
   computeDeepFocusAnalytics
 } from "./deepfocus-config.js";
 import { SHOP_CATALOG } from "./shop-catalog.js";
@@ -88,6 +89,32 @@ test("groupTasksForKanban separates todo, in-progress, and done tasks cleanly", 
   assert.deepEqual(grouped.todo.map((t) => t.id), ["1"]);
   assert.deepEqual(grouped.progress.map((t) => t.id), ["2"]);
   assert.deepEqual(grouped.done.map((t) => t.id), ["3", "4"]);
+});
+
+test("moveTaskToKanbanColumn moves tasks between todo, progress, and done via drag-and-drop", () => {
+  const initial = [
+    { id: "t1", title: "Read Ch. 4", completed: false, kanbanStatus: "todo" },
+    { id: "t2", title: "Quiz Prep", completed: true, kanbanStatus: "done" }
+  ];
+
+  const step1 = moveTaskToKanbanColumn(initial, "t1", "progress");
+  assert.equal(step1.changed, true);
+  assert.equal(step1.updatedTask.kanbanStatus, "progress");
+  assert.equal(step1.updatedTask.completed, false);
+
+  const step2 = moveTaskToKanbanColumn(step1.tasks, "t1", "done");
+  assert.equal(step2.changed, true);
+  assert.equal(step2.updatedTask.kanbanStatus, "done");
+  assert.equal(step2.updatedTask.completed, true);
+
+  const step3 = moveTaskToKanbanColumn(step2.tasks, "t2", "todo");
+  assert.equal(step3.changed, true);
+  assert.equal(step3.updatedTask.kanbanStatus, "todo");
+  assert.equal(step3.updatedTask.completed, false);
+
+  const invalid = moveTaskToKanbanColumn(step3.tasks, "t2", "archived");
+  assert.equal(invalid.changed, false);
+  assert.equal(invalid.updatedTask, null);
 });
 
 test("computeDeepFocusAnalytics produces 28-day matrix, streak, and subject percentages", () => {

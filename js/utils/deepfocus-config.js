@@ -269,6 +269,32 @@ export function groupTasksForKanban(tasks = []) {
   return { todo, progress, done };
 }
 
+const VALID_KANBAN_COLUMNS = new Set(["todo", "progress", "done"]);
+
+export function moveTaskToKanbanColumn(tasks = [], taskId, targetCol) {
+  if (!taskId || !VALID_KANBAN_COLUMNS.has(targetCol)) {
+    return { tasks: Array.isArray(tasks) ? [...tasks] : [], updatedTask: null, changed: false };
+  }
+  let updatedTask = null;
+  let changed = false;
+  const nextTasks = (tasks || []).map((t) => {
+    if (t.id !== taskId) return t;
+    const prevCol = getTaskKanbanStatus(t);
+    if (prevCol === targetCol && Boolean(t.completed) === (targetCol === "done")) {
+      updatedTask = t;
+      return t;
+    }
+    changed = true;
+    updatedTask = {
+      ...t,
+      kanbanStatus: targetCol,
+      completed: targetCol === "done"
+    };
+    return updatedTask;
+  });
+  return { tasks: nextTasks, updatedTask, changed };
+}
+
 export function computeDeepFocusAnalytics(records = [], todayStr = new Date().toISOString().slice(0, 10)) {
   const focusRecords = (records || []).filter((r) => (r.mode || "focus") === "focus");
   const totalSeconds = focusRecords.reduce((sum, r) => sum + Math.max(0, Number(r.durationSeconds || 0)), 0);

@@ -1,8 +1,7 @@
-// DeepFocus Mode — Distraction-Free Glassmorphic Workspace Sharing Full State with Cozy Study Room
+// DeepFocus Studio — Distraction-Free Glassmorphic Workspace Sharing Full Database with Cozy Study Room
 import { APP_CONFIG } from "../../config.js";
 import { state, savePreferences, persistLocalCollection } from "../state.js";
 import { bus } from "../core/event-bus.js";
-import { dialogManager } from "../core/dialog-manager.js";
 import { themeManager, ROOM_THEMES } from "../core/theme-manager.js";
 import { audioManager, AUDIO_CHANNELS } from "../core/audio-manager.js";
 import { deepFocusParticles } from "../core/deepfocus-particles.js";
@@ -12,13 +11,16 @@ import {
   toggleStrictFocusLock,
   toggleAutoCycleBreaks,
   setSeriousMode,
-  setDefaultFocusMinutes
+  setDefaultFocusMinutes,
+  applyWorkspaceProfile
 } from "../core/settings-manager.js";
+import { parseCurrentPage, navigateToPage, PAGE_ROUTES } from "../router.js";
 import { openCommandPalette } from "./command-palette.js";
+import { createDeepFocusModalController } from "./deepfocus-modals.js";
 import { finishActiveFocusSession } from "./focus.js";
 import { presenceService } from "../services/presence-service.js";
 import { supabase } from "../services/supabase.js";
-import { visitFriendRoom, syncTaskUpsert, syncTaskDelete } from "../services/database-service.js";
+import { visitFriendRoom } from "../services/database-service.js";
 import {
   DEEPFOCUS_SCENES,
   DEEPFOCUS_PARTICLES,
@@ -26,14 +28,12 @@ import {
   DEFAULT_DEEPFOCUS_PREFS,
   resolveDeepFocusAppearance,
   isParticleOwned,
-  sanitizeBackdropUrl,
-  groupTasksForKanban,
-  computeDeepFocusAnalytics
+  sanitizeBackdropUrl
 } from "../utils/deepfocus-config.js";
 import { isThemeAccessibleInMode } from "../utils/room-settings.js";
 import { SHOP_CATALOG } from "../utils/shop-catalog.js";
 import { partitionMusicDiscs } from "../utils/audio-loops.js";
-import { formatStudyRecordsCsv } from "../utils/study-tools.js";
+import { BUILTIN_WORKSPACE_PROFILES } from "../utils/study-tools.js";
 import { sanitizeAvatarUrl } from "../utils/profile-helpers.js";
 import {
   createFocusSession,
@@ -50,25 +50,12 @@ const BUILTIN_DISCS = [
   { id: "disc_keys", name: "Lo-Fi Keys", mix: { lofi: 0.6, whiteNoise: 0.2 } }
 ];
 
-function triggerTextDownload(filename, content, mime = "text/plain;charset=utf-8") {
-  const blob = new Blob([content], { type: mime });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
-
 export function initDeepFocusWorkspace() {
   const modeSwitcherEl = document.getElementById("sprk-mode-switcher");
   const shellEl = document.getElementById("deepfocus-shell");
   if (!modeSwitcherEl || !shellEl) return;
 
-  let activeDrawer = null; // null | "tasks" | "settings"
-  let analyticsOpen = false;
+  let activeDrawer = null; // null | "settings"
   let timerTab = state.preferences?.deepFocus?.timerTab || "pomodoro";
   let pomodoroPhase = "focus"; // focus | short_break | long_break
   let selectedCustomMins = Number(state.preferences?.defaultFocusMinutes || 25);
@@ -79,15 +66,35 @@ export function initDeepFocusWorkspace() {
   let friendsCollapsed = false;
   let settingsNotice = "";
 
-  const isDeepFocusActive = () => state.preferences?.appMode === "deepfocus";
+  const isDeepFocusActive = () => parseCurrentPage().page === PAGE_ROUTES.DEEPFOCUS;
+
+  let renderShell = () => {};
+
+  const modals = createDeepFocusModalController({
+    shellEl,
+    getSelectedTaskId: () => selectedTaskId,
+    onSelectFocusTask: (taskId) => {
+      selectedTaskId = taskId;
+      const task = (state.localTasks || []).find((x) => x.id === taskId);
+      if (task?.subject && task.subject !== "General") {
+        selectedSubject = task.subject;
+      }
+      renderShell();
+    },
+    onWorkspaceMutated: () => renderShell()
+  });
 
   const renderModeSwitcher = () => {
-    const mode = isDeepFocusActive() ? "deepfocus" : "cozy";
+    const page = parseCurrentPage().page;
+    const isWorkspacePage = page === PAGE_ROUTES.COZY || page === PAGE_ROUTES.DEEPFOCUS;
     const isSpectating = Boolean(state.spectatingRoom);
-    if (isSpectating) {
+
+    if (!isWorkspacePage || isSpectating) {
       modeSwitcherEl.hidden = true;
       return;
     }
+
+    const mode = page === PAGE_ROUTES.DEEPFOCUS ? "deepfocus" : "cozy";
     modeSwitcherEl.hidden = false;
     modeSwitcherEl.innerHTML = `
       <div class="sprk-mode-switch" role="group" aria-label="Workspace mode">
@@ -99,7 +106,8 @@ export function initDeepFocusWorkspace() {
       btn.addEventListener("click", () => {
         const nextMode = btn.dataset.switchMode;
         if (nextMode !== mode) {
-          setAppMode(nextMode);
+          setAppMode(nextMode, { syncUrl: false });
+          navigateToPage(nextMode === "deepfocus" ? PAGE_ROUTES.DEEPFOCUS : PAGE_ROUTES.COZY);
         }
       });
     });
@@ -206,7 +214,7 @@ export function initDeepFocusWorkspace() {
   const syncParticlesAndBackdrop = () => {
     if (!isDeepFocusActive()) {
       deepFocusParticles.stop();
-      return;
+      return null;
     }
     const appearance = resolveDeepFocusAppearance({
       themeId: state.preferences?.theme || "comic",
@@ -263,7 +271,7 @@ export function initDeepFocusWorkspace() {
             ${!signedIn ? `
               <div class="df-friends-empty">
                 <p>Sign in to see friends studying in real time alongside your session.</p>
-                <button type="button" class="df-btn-subtle" id="df-friends-signin">Sign In</button>
+                <button type="button" class="df-btn-subtle" id="df-friends-signin">Sign In via /account</button>
               </div>
             ` : entries.length === 0 ? `
               <div class="df-friends-empty">
@@ -276,7 +284,7 @@ export function initDeepFocusWorkspace() {
               </div>
             ` : `
               <div class="df-friends-list">
-                ${(studyingList.length > 0 ? studyingList : activeFriends).slice(0, 5).map((friend) => {
+                ${(studyingList.length > 0 ? studyingList : activeFriends).slice(0, 4).map((friend) => {
                   const safeAvatar = sanitizeAvatarUrl(friend.avatarUrl || "");
                   return `
                     <div class="df-friend-row">
@@ -304,65 +312,29 @@ export function initDeepFocusWorkspace() {
     `;
   };
 
-  const renderKanbanDrawerHtml = () => {
-    const tasks = state.localTasks || [];
-    const { todo, progress, done } = groupTasksForKanban(tasks);
-
-    const renderCol = (title, colKey, list) => `
-      <section class="df-kanban-col" aria-label="${escapeHtml(title)} tasks">
-        <header class="df-kanban-col-head">
-          <span>${escapeHtml(title)}</span>
-          <span class="tabular-nums df-muted">${list.length}</span>
-        </header>
-        <div class="df-kanban-col-list">
-          ${list.length === 0 ? `<div class="df-kanban-empty">Empty</div>` : list.map((t) => `
-            <article class="df-kanban-card ${selectedTaskId === t.id ? "is-selected" : ""}">
-              <div class="df-kanban-card-top">
-                <span class="df-kanban-card-title">${escapeHtml(t.title)}</span>
-                <button type="button" class="df-card-x" data-df-del-task="${escapeHtml(t.id)}" aria-label="Delete task ${escapeHtml(t.title)}">×</button>
-              </div>
-              <div class="df-kanban-card-meta">
-                <span>${escapeHtml(t.subject || "General")}</span>
-                <span aria-hidden="true">·</span>
-                <span>${escapeHtml(t.priority || "medium")}</span>
-              </div>
-              <div class="df-kanban-card-actions">
-                ${colKey !== "todo" ? `<button type="button" class="df-mini-act" data-df-move="${escapeHtml(t.id)}|todo">To Do</button>` : ""}
-                ${colKey !== "progress" ? `<button type="button" class="df-mini-act" data-df-move="${escapeHtml(t.id)}|progress">Progress</button>` : ""}
-                ${colKey !== "done" ? `<button type="button" class="df-mini-act" data-df-move="${escapeHtml(t.id)}|done">Done</button>` : ""}
-                ${colKey !== "done" ? `<button type="button" class="df-mini-act is-accent" data-df-focus-task="${escapeHtml(t.id)}">Focus</button>` : ""}
-              </div>
-            </article>
-          `).join("")}
-        </div>
-      </section>
-    `;
-
-    return `
-      <aside class="df-drawer df-drawer-kanban" aria-label="Kanban tasks">
-        <header class="df-drawer-head">
-          <h2>Kanban Tasks</h2>
-          <button type="button" class="df-icon-btn" id="df-close-drawer" aria-label="Close tasks drawer">×</button>
-        </header>
-        <form id="df-task-form" class="df-task-form">
-          <input id="df-new-task-title" class="df-input" type="text" maxlength="100" required placeholder="Add task (e.g., Problem Set 4)..." />
-          <div class="df-task-form-row">
-            <input id="df-new-task-subject" class="df-input" type="text" maxlength="40" value="General" aria-label="Subject" />
-            <select id="df-new-task-priority" class="df-select" aria-label="Priority">
-              <option value="low">Low</option>
-              <option value="medium" selected>Medium</option>
-              <option value="high">High</option>
-            </select>
-            <button type="submit" class="df-btn-accent">Add</button>
-          </div>
-        </form>
-        <div class="df-kanban-board">
-          ${renderCol("To Do", "todo", todo)}
-          ${renderCol("In Progress", "progress", progress)}
-          ${renderCol("Done", "done", done)}
-        </div>
-      </aside>
-    `;
+  const bindFriendsWidgetEvents = () => {
+    shellEl.querySelector("#df-friends-collapse")?.addEventListener("click", () => {
+      friendsCollapsed = !friendsCollapsed;
+      renderShell();
+    });
+    shellEl.querySelector("#df-friends-manage")?.addEventListener("click", () => {
+      modals.open("community", "friends");
+    });
+    shellEl.querySelector("#df-friends-find")?.addEventListener("click", () => {
+      modals.open("community", "friends");
+    });
+    shellEl.querySelector("#df-friends-signin")?.addEventListener("click", () => {
+      navigateToPage(PAGE_ROUTES.ACCOUNT);
+    });
+    shellEl.querySelectorAll("[data-df-visit]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const { error } = await visitFriendRoom(btn.dataset.dfVisit);
+        if (!error) {
+          setAppMode("cozy", { syncUrl: false });
+          navigateToPage(PAGE_ROUTES.COZY);
+        }
+      });
+    });
   };
 
   const renderSettingsDrawerHtml = (appearance) => {
@@ -372,6 +344,7 @@ export function initDeepFocusWorkspace() {
     const currentTheme = state.preferences?.theme || "comic";
     const locked = isStrictFocusLockActive();
     const unownedParticles = DEEPFOCUS_PARTICLES.filter((p) => p.shopItemId && !isParticleOwned(p.id, ownedIds));
+    const profiles = [...BUILTIN_WORKSPACE_PROFILES, ...(state.localWorkspaceProfiles || [])];
 
     return `
       <aside class="df-drawer df-drawer-settings" aria-label="Workspace settings">
@@ -385,8 +358,25 @@ export function initDeepFocusWorkspace() {
 
           <section class="df-settings-group">
             <div class="df-settings-label-row">
+              <h3>Workspace Profiles</h3>
+            </div>
+            <div class="df-profile-chips">
+              ${profiles.map((prof) => `
+                <button type="button" class="df-btn-subtle" data-df-profile-id="${escapeHtml(prof.id)}" title="${escapeHtml(prof.description || "")}">
+                  ${escapeHtml(prof.name)}
+                </button>
+              `).join("")}
+            </div>
+            <form id="df-save-profile-form" class="df-custom-bg-row">
+              <input id="df-new-profile-name" class="df-input" type="text" maxlength="32" placeholder="Save current setup as preset..." aria-label="New workspace preset name" />
+              <button type="submit" class="df-btn-accent">Save</button>
+            </form>
+          </section>
+
+          <section class="df-settings-group">
+            <div class="df-settings-label-row">
               <h3>Theme &amp; Ambient Scene</h3>
-              <button type="button" class="df-link-btn" id="df-open-themes-shop">Shop</button>
+              <button type="button" class="df-link-btn" id="df-open-themes-shop">Catalog</button>
             </div>
             <label class="df-field">
               <span>Color &amp; Theme Preset</span>
@@ -394,7 +384,7 @@ export function initDeepFocusWorkspace() {
                 ${ROOM_THEMES.map((t) => {
                   const accessible = isThemeAccessibleInMode(t.id, { ownedItemIds: ownedIds, seriousMode });
                   const item = SHOP_CATALOG.find((i) => i.category === "theme" && i.themeId === t.id);
-                  const suffix = accessible ? "" : ` (Shop · ${item?.price || 30} SC)`;
+                  const suffix = accessible ? "" : ` (Catalog · ${item?.price || 30} SC)`;
                   return `<option value="${escapeHtml(t.id)}" ${currentTheme === t.id ? "selected" : ""}>${escapeHtml(t.name)}${suffix}</option>`;
                 }).join("")}
               </select>
@@ -441,7 +431,7 @@ export function initDeepFocusWorkspace() {
           <section class="df-settings-group">
             <div class="df-settings-label-row">
               <h3>Atmospheric Particle Engine</h3>
-              <button type="button" class="df-link-btn" id="df-open-particles-shop">Particle Shop</button>
+              <button type="button" class="df-link-btn" id="df-open-particles-shop">Catalog</button>
             </div>
 
             <label class="df-field">
@@ -451,14 +441,14 @@ export function initDeepFocusWorkspace() {
                 ${DEEPFOCUS_PARTICLES.map((p) => {
                   const owned = isParticleOwned(p.id, ownedIds);
                   const selected = !s.followThemeParticle && s.particleId === p.id;
-                  return `<option value="${escapeHtml(p.id)}" ${selected ? "selected" : ""}>${escapeHtml(p.name)}${owned ? "" : ` (Shop · ${p.price} SC)`}</option>`;
+                  return `<option value="${escapeHtml(p.id)}" ${selected ? "selected" : ""}>${escapeHtml(p.name)}${owned ? "" : ` (${p.price} SC)`}</option>`;
                 }).join("")}
               </select>
             </label>
 
             ${unownedParticles.length > 0 ? `
               <div class="df-shop-hint-row">
-                <span>${unownedParticles.length} particle effects available in Shop</span>
+                <span>${unownedParticles.length} particle packs available</span>
                 <button type="button" class="df-btn-subtle" id="df-buy-particles-btn">Browse Particles</button>
               </div>
             ` : ""}
@@ -510,7 +500,7 @@ export function initDeepFocusWorkspace() {
 
             <label class="df-check-row">
               <input type="checkbox" id="df-strict-lock" ${state.preferences?.strictFocusLock ? "checked" : ""} />
-              <span>Strict Focus Lock (tab audit &amp; shop guard)</span>
+              <span>Strict Focus Lock (tab audit &amp; catalog guard)</span>
             </label>
 
             <label class="df-check-row">
@@ -528,70 +518,7 @@ export function initDeepFocusWorkspace() {
     `;
   };
 
-  const renderAnalyticsModalHtml = () => {
-    const analytics = computeDeepFocusAnalytics(state.localStudyRecords || [], todayIsoDate());
-    return `
-      <div class="df-modal-backdrop" id="df-analytics-backdrop" role="dialog" aria-modal="true" aria-labelledby="df-analytics-title">
-        <div class="df-modal-card">
-          <header class="df-modal-head">
-            <h2 id="df-analytics-title">Performance Intelligence</h2>
-            <button type="button" class="df-icon-btn" id="df-close-analytics" aria-label="Close analytics">×</button>
-          </header>
-
-          <div class="df-kpi-grid">
-            <div class="df-kpi-box">
-              <span class="df-kpi-label">Total Focus</span>
-              <strong class="df-kpi-val tabular-nums">${analytics.totalMinutes}m</strong>
-            </div>
-            <div class="df-kpi-box">
-              <span class="df-kpi-label">Sessions</span>
-              <strong class="df-kpi-val tabular-nums">${analytics.sessionCount}</strong>
-            </div>
-            <div class="df-kpi-box">
-              <span class="df-kpi-label">Current Streak</span>
-              <strong class="df-kpi-val tabular-nums is-amber">${analytics.currentStreak} Days</strong>
-            </div>
-          </div>
-
-          <section class="df-analytics-panel">
-            <h3>28-Day Focus Heatmap Matrix</h3>
-            <div class="df-heatmap-grid" aria-label="28-day study activity matrix">
-              ${analytics.heatmapDays.map((d) => `
-                <div class="df-heat-cell level-${d.level}" title="${escapeHtml(d.date)}: ${d.minutes}m"></div>
-              `).join("")}
-            </div>
-          </section>
-
-          <section class="df-analytics-panel">
-            <h3>Subject Time Allocation</h3>
-            ${analytics.subjectAllocation.length === 0
-              ? `<p class="df-muted" style="margin:6px 0 0;font-size:13px;">No focus sessions recorded yet.</p>`
-              : `<div class="df-subject-bars">
-                  ${analytics.subjectAllocation.map((row) => `
-                    <div class="df-subj-row">
-                      <div class="df-subj-head">
-                        <span>${escapeHtml(row.subject)}</span>
-                        <span class="tabular-nums df-muted">${row.minutes}m · ${row.pct}%</span>
-                      </div>
-                      <div class="df-subj-track"><div class="df-subj-fill" style="width:${row.pct}%;"></div></div>
-                    </div>
-                  `).join("")}
-                </div>`}
-          </section>
-
-          <footer class="df-analytics-actions">
-            <button type="button" class="df-btn-subtle" id="df-an-register">Study Register</button>
-            <button type="button" class="df-btn-subtle" id="df-an-calendar">Calendar &amp; Goals</button>
-            <button type="button" class="df-btn-subtle" id="df-an-csv">Export CSV</button>
-            <button type="button" class="df-btn-subtle" id="df-an-backup">Backup JSON</button>
-            <button type="button" class="df-btn-subtle" id="df-an-restore">Restore</button>
-          </footer>
-        </div>
-      </div>
-    `;
-  };
-
-  const renderShell = () => {
+  renderShell = () => {
     renderModeSwitcher();
     const active = isDeepFocusActive();
     shellEl.hidden = !active;
@@ -627,8 +554,8 @@ export function initDeepFocusWorkspace() {
       ? (state.localStudyRecords || []).find((r) => r.id === state.pendingCheckInRecordId)
       : null;
 
-    const userLabel = state.user ? (state.user.displayName || "Account") : "Sign In";
-    const creditLabel = state.user ? `${state.wallet?.balance || 0} SC` : "Local";
+    const activeModal = modals.getActiveModal();
+    const userLabel = state.user ? (state.user.displayName || "Account") : "Account";
 
     shellEl.innerHTML = `
       <div class="df-backdrop-wrap" aria-hidden="true">
@@ -644,22 +571,23 @@ export function initDeepFocusWorkspace() {
           <header class="df-topbar">
             <div class="df-top-left">
               <div class="df-mode-slot-spacer" aria-hidden="true"></div>
-              <span class="df-brand">SPRK Focus</span>
-              <span class="df-top-meta tabular-nums" id="df-wallet-summary">${escapeHtml(creditLabel)}</span>
+              <button type="button" class="df-brand-link" id="df-go-home" title="Main SPRK Desk Website">Home</button>
+              <span class="df-top-sep" aria-hidden="true">/</span>
+              <button type="button" class="df-brand-link" id="df-go-account" title="Profile, Friends & Room Visits">${escapeHtml(userLabel)}</button>
             </div>
 
-            <nav class="df-nav" aria-label="DeepFocus navigation">
-              <button type="button" class="df-nav-link ${activeDrawer === "tasks" ? "is-active" : ""}" id="df-nav-tasks">Tasks (${openTasks.length})</button>
-              <button type="button" class="df-nav-link ${analyticsOpen ? "is-active" : ""}" id="df-nav-analytics">Analytics</button>
-              <button type="button" class="df-nav-link" id="df-nav-notes">Notes</button>
-              <button type="button" class="df-nav-link" id="df-nav-groups">Groups</button>
-              <button type="button" class="df-nav-link" id="df-nav-shop">Shop</button>
+            <nav class="df-nav" aria-label="DeepFocus Studio navigation">
+              <button type="button" class="df-nav-link ${activeModal === "plan" ? "is-active" : ""}" data-df-modal="plan">Plan (${openTasks.length})</button>
+              <button type="button" class="df-nav-link ${activeModal === "knowledge" ? "is-active" : ""}" data-df-modal="knowledge">Notes &amp; Cards</button>
+              <button type="button" class="df-nav-link ${activeModal === "insights" ? "is-active" : ""}" data-df-modal="insights">Insights</button>
+              <button type="button" class="df-nav-link ${activeModal === "community" ? "is-active" : ""}" data-df-modal="community">Rooms</button>
+              <button type="button" class="df-nav-link ${activeModal === "catalog" ? "is-active" : ""}" data-df-modal="catalog">Catalog</button>
             </nav>
 
             <div class="df-top-right">
+              <button type="button" class="df-util-btn ${activeModal === "break" ? "is-active" : ""}" data-df-modal="break" title="Eye Rest &amp; Scheduled Break">Break</button>
               <button type="button" class="df-util-btn" id="df-btn-zen" title="Zen Mode (F)">Zen</button>
               <button type="button" class="df-util-btn" id="df-btn-palette" title="Command Palette (Ctrl/Cmd+K)">⌘K</button>
-              <button type="button" class="df-util-btn" id="df-btn-profile">${escapeHtml(userLabel)}</button>
               <button type="button" class="df-util-btn is-icon ${activeDrawer === "settings" ? "is-active" : ""}" id="df-btn-settings" aria-label="Workspace Settings">⚙</button>
             </div>
           </header>
@@ -768,8 +696,8 @@ export function initDeepFocusWorkspace() {
 
         ${zenMode ? "" : `
           <footer class="df-sound-dock" aria-label="Ambient sound mixer dock">
-            <button type="button" class="df-dock-mixer-btn" id="df-open-audio-modal" title="Open Discs &amp; Full Sound Mixer">
-              Mixer &amp; Discs
+            <button type="button" class="df-dock-mixer-btn ${activeModal === "music" ? "is-active" : ""}" id="df-open-audio-modal" title="Open Music Player &amp; 8-Channel Mixer">
+              Music &amp; Mixer
             </button>
             <div class="df-dock-sliders">
               ${["rain", "wind", "fireplace"].map((chId) => {
@@ -789,7 +717,7 @@ export function initDeepFocusWorkspace() {
                 ${ownedDiscs.map((d) => `
                   <option value="${escapeHtml(d.id)}" ${d.id === activeDiscId ? "selected" : ""}>${escapeHtml(d.name)}</option>
                 `).join("")}
-                <option value="__shop__">+ Buy Loop Discs in Shop…</option>
+                <option value="__browse__">+ Browse Music Discs…</option>
               </select>
               <button type="button" class="df-dock-play ${audioManager.isPlaying ? "is-playing" : ""}" id="df-dock-master-play" aria-label="${audioManager.isPlaying ? "Mute audio" : "Play audio"}">
                 ${audioManager.isPlaying ? "⏸" : "▶"}
@@ -798,40 +726,42 @@ export function initDeepFocusWorkspace() {
           </footer>
         `}
 
-        ${!zenMode && activeDrawer === "tasks" ? renderKanbanDrawerHtml() : ""}
         ${!zenMode && activeDrawer === "settings" ? renderSettingsDrawerHtml(appearance) : ""}
       </div>
 
-      ${analyticsOpen ? renderAnalyticsModalHtml() : ""}
+      ${modals.renderModalHtml()}
     `;
 
     syncParticlesAndBackdrop();
     bindShellEvents(ownedDiscs);
+    modals.bindModalEvents();
   };
 
   const bindShellEvents = (ownedDiscs) => {
-    // Top Nav
-    shellEl.querySelector("#df-nav-tasks")?.addEventListener("click", () => {
-      activeDrawer = activeDrawer === "tasks" ? null : "tasks";
-      renderShell();
+    shellEl.querySelector("#df-go-home")?.addEventListener("click", () => {
+      modals.close();
+      navigateToPage(PAGE_ROUTES.HOME);
     });
-    shellEl.querySelector("#df-nav-analytics")?.addEventListener("click", () => {
-      analyticsOpen = true;
-      renderShell();
+    shellEl.querySelector("#df-go-account")?.addEventListener("click", () => {
+      modals.close();
+      navigateToPage(PAGE_ROUTES.ACCOUNT);
     });
-    shellEl.querySelector("#df-nav-notes")?.addEventListener("click", () => {
-      dialogManager.open("diary");
-    });
-    shellEl.querySelector("#df-nav-groups")?.addEventListener("click", () => {
-      dialogManager.open("community");
-    });
-    shellEl.querySelector("#df-nav-shop")?.addEventListener("click", () => {
-      dialogManager.open("shop");
+
+    shellEl.querySelectorAll("[data-df-modal]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const name = btn.dataset.dfModal;
+        if (modals.getActiveModal() === name) {
+          modals.close();
+        } else {
+          modals.open(name);
+        }
+      });
     });
 
     shellEl.querySelector("#df-btn-zen")?.addEventListener("click", () => {
       zenMode = true;
       activeDrawer = null;
+      modals.close();
       savePreferences({ deepFocus: { zenMode: true } });
       renderShell();
     });
@@ -841,14 +771,13 @@ export function initDeepFocusWorkspace() {
       renderShell();
     });
     shellEl.querySelector("#df-btn-palette")?.addEventListener("click", () => openCommandPalette());
-    shellEl.querySelector("#df-btn-profile")?.addEventListener("click", () => dialogManager.open("profile"));
     shellEl.querySelector("#df-btn-settings")?.addEventListener("click", () => {
       activeDrawer = activeDrawer === "settings" ? null : "settings";
       settingsNotice = "";
       renderShell();
     });
 
-    // Timer Card
+    // Timer Card Events
     shellEl.querySelectorAll("[data-df-tab]").forEach((btn) => {
       btn.addEventListener("click", () => {
         timerTab = btn.dataset.dfTab;
@@ -915,20 +844,20 @@ export function initDeepFocusWorkspace() {
       renderShell();
     });
 
-    // Post-session Check-in
+    // Post-Session Check-In
     shellEl.querySelectorAll("[data-df-q]").forEach((btn) => {
       btn.addEventListener("click", () => {
-        selectedCheckInQuality = Number(btn.dataset.dfQ);
+        selectedCheckInQuality = Number(btn.dataset.dfQ) || 4;
         renderShell();
       });
     });
     shellEl.querySelector("#df-checkin-save")?.addEventListener("click", () => {
+      const recId = state.pendingCheckInRecordId;
       const note = shellEl.querySelector("#df-checkin-note")?.value.trim() || "";
-      const targetId = state.pendingCheckInRecordId;
-      const nextRecords = (state.localStudyRecords || []).map((r) =>
-        r.id === targetId ? { ...r, focusQuality: selectedCheckInQuality, reflection: note } : r
+      const next = (state.localStudyRecords || []).map((r) =>
+        r.id === recId ? { ...r, focusQuality: selectedCheckInQuality, reflection: note } : r
       );
-      persistLocalCollection("localStudyRecords", nextRecords);
+      persistLocalCollection("localStudyRecords", next);
       state.pendingCheckInRecordId = null;
       renderShell();
     });
@@ -937,22 +866,14 @@ export function initDeepFocusWorkspace() {
       renderShell();
     });
 
-    // Friends Studying Widget
-    shellEl.querySelector("#df-friends-collapse")?.addEventListener("click", () => {
-      friendsCollapsed = !friendsCollapsed;
-      renderShell();
-    });
-    shellEl.querySelector("#df-friends-manage")?.addEventListener("click", () => dialogManager.open("friends"));
-    shellEl.querySelector("#df-friends-find")?.addEventListener("click", () => dialogManager.open("friends"));
-    shellEl.querySelector("#df-friends-signin")?.addEventListener("click", () => dialogManager.open("profile"));
-    shellEl.querySelectorAll("[data-df-visit]").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        await visitFriendRoom(btn.dataset.dfVisit);
-      });
-    });
+    // Friends Widget
+    bindFriendsWidgetEvents();
 
     // Sound Mixer Dock
-    shellEl.querySelector("#df-open-audio-modal")?.addEventListener("click", () => dialogManager.open("audio"));
+    shellEl.querySelector("#df-open-audio-modal")?.addEventListener("click", () => {
+      modals.open("music", "discs");
+    });
+
     shellEl.querySelectorAll("[data-df-audio-ch]").forEach((slider) => {
       slider.addEventListener("input", async (e) => {
         const chId = e.target.dataset.dfAudioCh;
@@ -973,9 +894,8 @@ export function initDeepFocusWorkspace() {
 
     shellEl.querySelector("#df-disc-select")?.addEventListener("change", async (e) => {
       const val = e.target.value;
-      if (val === "__shop__") {
-        dialogManager.open("audio");
-        renderShell();
+      if (val === "__browse__") {
+        modals.open("music", "discs");
         return;
       }
       const disc = ownedDiscs.find((d) => d.id === val);
@@ -993,79 +913,59 @@ export function initDeepFocusWorkspace() {
       renderShell();
     });
 
-    // Drawers Close
+    // Settings Drawer
     shellEl.querySelector("#df-close-drawer")?.addEventListener("click", () => {
       activeDrawer = null;
       renderShell();
     });
 
-    // Kanban Drawer Events
-    shellEl.querySelector("#df-task-form")?.addEventListener("submit", async (e) => {
+    shellEl.querySelectorAll("[data-df-profile-id]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const profiles = [...BUILTIN_WORKSPACE_PROFILES, ...(state.localWorkspaceProfiles || [])];
+        const found = profiles.find((p) => p.id === btn.dataset.dfProfileId);
+        if (found && applyWorkspaceProfile(found)) {
+          settingsNotice = `Applied "${found.name}" workspace profile.`;
+          renderShell();
+        }
+      });
+    });
+
+    shellEl.querySelector("#df-save-profile-form")?.addEventListener("submit", (e) => {
       e.preventDefault();
-      const title = shellEl.querySelector("#df-new-task-title")?.value.trim();
-      if (!title) return;
-      const subject = shellEl.querySelector("#df-new-task-subject")?.value.trim() || "General";
-      const priority = shellEl.querySelector("#df-new-task-priority")?.value || "medium";
-      const newTask = {
-        id: generateId("task"),
-        title,
-        subject,
-        priority,
-        dueDate: "",
-        completed: false,
-        kanbanStatus: "todo",
-        noteColor: "butter"
+      const name = shellEl.querySelector("#df-new-profile-name")?.value.trim();
+      if (!name) return;
+      const newProf = {
+        id: generateId("prof"),
+        name,
+        description: "Custom Deep Focus preset",
+        settings: {
+          theme: state.preferences?.theme || "comic",
+          seriousMode: Boolean(state.preferences?.seriousMode),
+          hideGamification: Boolean(state.preferences?.hideGamification),
+          strictFocusLock: Boolean(state.preferences?.strictFocusLock),
+          autoCycleBreaks: state.preferences?.autoCycleBreaks !== false,
+          defaultFocusMinutes: Number(state.preferences?.defaultFocusMinutes || 25),
+          lowPassHz: audioManager.lowPassHz,
+          audioMix: { ...audioManager.levels }
+        }
       };
-      persistLocalCollection("localTasks", [newTask, ...(state.localTasks || [])]);
-      await syncTaskUpsert(newTask);
+      persistLocalCollection("localWorkspaceProfiles", [newProf, ...(state.localWorkspaceProfiles || [])]);
+      settingsNotice = `Saved "${name}" preset.`;
       renderShell();
     });
 
-    shellEl.querySelectorAll("[data-df-move]").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        const [taskId, targetCol] = btn.dataset.dfMove.split("|");
-        let updatedTask = null;
-        const nextTasks = (state.localTasks || []).map((t) => {
-          if (t.id !== taskId) return t;
-          updatedTask = {
-            ...t,
-            kanbanStatus: targetCol,
-            completed: targetCol === "done"
-          };
-          return updatedTask;
-        });
-        persistLocalCollection("localTasks", nextTasks);
-        if (updatedTask) await syncTaskUpsert(updatedTask);
-        renderShell();
-      });
+    shellEl.querySelector("#df-open-themes-shop")?.addEventListener("click", () => {
+      activeDrawer = null;
+      modals.open("catalog", "theme");
     });
-
-    shellEl.querySelectorAll("[data-df-focus-task]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const taskId = btn.dataset.dfFocusTask;
-        selectedTaskId = taskId;
-        const task = (state.localTasks || []).find((t) => t.id === taskId);
-        if (task?.subject && task.subject !== "General") {
-          selectedSubject = task.subject;
-        }
-        renderShell();
-      });
+    shellEl.querySelector("#df-open-particles-shop")?.addEventListener("click", () => {
+      activeDrawer = null;
+      modals.open("catalog", "particles");
     });
-
-    shellEl.querySelectorAll("[data-df-del-task]").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        const id = btn.dataset.dfDelTask;
-        if (selectedTaskId === id) selectedTaskId = "";
-        persistLocalCollection("localTasks", (state.localTasks || []).filter((t) => t.id !== id));
-        await syncTaskDelete(id);
-        renderShell();
-      });
+    shellEl.querySelector("#df-buy-particles-btn")?.addEventListener("click", () => {
+      activeDrawer = null;
+      modals.open("catalog", "particles");
     });
-
-    // Settings Drawer Events
-    shellEl.querySelector("#df-open-themes-shop")?.addEventListener("click", () => dialogManager.open("shop", null, "theme"));
-    shellEl.querySelector("#df-open-particles-shop")?.addEventListener("click", () => dialogManager.open("shop", null, "particles"));
-    shellEl.querySelector("#df-buy-particles-btn")?.addEventListener("click", () => dialogManager.open("shop", null, "particles"));
 
     shellEl.querySelector("#df-theme-select")?.addEventListener("change", (e) => {
       const nextTheme = e.target.value;
@@ -1074,9 +974,8 @@ export function initDeepFocusWorkspace() {
         seriousMode: Boolean(state.preferences?.seriousMode)
       });
       if (!accessible) {
-        settingsNotice = "Purchase this theme in the Shop to apply its palette and scene.";
-        renderShell();
-        dialogManager.open("shop", null, "theme");
+        activeDrawer = null;
+        modals.open("catalog", "theme");
         return;
       }
       settingsNotice = "";
@@ -1144,9 +1043,8 @@ export function initDeepFocusWorkspace() {
         return;
       }
       if (!isParticleOwned(val, state.ownedItemIds || [])) {
-        settingsNotice = "Unlock this atmospheric particle pack in the Shop first.";
-        renderShell();
-        dialogManager.open("shop", null, "particles");
+        activeDrawer = null;
+        modals.open("catalog", "particles");
         return;
       }
       settingsNotice = "";
@@ -1203,65 +1101,35 @@ export function initDeepFocusWorkspace() {
       setSeriousMode(e.target.checked);
       renderShell();
     });
-
-    // Analytics Modal Events
-    shellEl.querySelector("#df-close-analytics")?.addEventListener("click", () => {
-      analyticsOpen = false;
-      renderShell();
-    });
-    shellEl.querySelector("#df-analytics-backdrop")?.addEventListener("click", (e) => {
-      if (e.target.id === "df-analytics-backdrop") {
-        analyticsOpen = false;
-        renderShell();
-      }
-    });
-    shellEl.querySelector("#df-an-register")?.addEventListener("click", () => {
-      analyticsOpen = false;
-      renderShell();
-      dialogManager.open("register");
-    });
-    shellEl.querySelector("#df-an-calendar")?.addEventListener("click", () => {
-      analyticsOpen = false;
-      renderShell();
-      dialogManager.open("calendar");
-    });
-    shellEl.querySelector("#df-an-csv")?.addEventListener("click", () => {
-      const csv = formatStudyRecordsCsv(state.localStudyRecords || []);
-      triggerTextDownload(`sprk-study-log-${todayIsoDate()}.csv`, csv, "text/csv;charset=utf-8");
-    });
-    shellEl.querySelector("#df-an-backup")?.addEventListener("click", () => {
-      const payload = {
-        version: 1,
-        exportedAt: new Date().toISOString(),
-        preferences: state.preferences,
-        localTasks: state.localTasks,
-        localGoals: state.localGoals,
-        localDiary: state.localDiary,
-        localStudyRecords: state.localStudyRecords,
-        localSavedResources: state.localSavedResources,
-        localFlashcards: state.localFlashcards,
-        localExams: state.localExams,
-        localSubjectBudgets: state.localSubjectBudgets,
-        localWorkspaceProfiles: state.localWorkspaceProfiles,
-        localAudioPresets: state.localAudioPresets
-      };
-      triggerTextDownload(`sprk-desk-backup-${todayIsoDate()}.json`, JSON.stringify(payload, null, 2), "application/json");
-    });
-    shellEl.querySelector("#df-an-restore")?.addEventListener("click", () => {
-      analyticsOpen = false;
-      renderShell();
-      dialogManager.open("cabinet");
-    });
   };
 
-  // Global DeepFocus keyboard shortcuts (Space, S, R, F) when not typing
+  // Global DeepFocus keyboard shortcuts (Space, S, R, F, Escape)
   window.addEventListener("keydown", (event) => {
     if (!isDeepFocusActive()) return;
-    if (dialogManager.dialog?.open || document.getElementById("sprk-command-dialog")?.open) return;
-    const tag = event.target?.tagName?.toLowerCase();
-    if (tag === "input" || tag === "textarea" || tag === "select" || event.target?.isContentEditable) return;
+    if (document.getElementById("sprk-command-dialog")?.open) return;
 
+    const tag = event.target?.tagName?.toLowerCase();
+    const isTyping = tag === "input" || tag === "textarea" || tag === "select" || event.target?.isContentEditable;
     const key = event.key.toLowerCase();
+
+    if (key === "escape") {
+      if (modals.getActiveModal()) {
+        event.preventDefault();
+        modals.close();
+        return;
+      }
+      if (activeDrawer || zenMode) {
+        event.preventDefault();
+        activeDrawer = null;
+        zenMode = false;
+        savePreferences({ deepFocus: { zenMode: false } });
+        renderShell();
+        return;
+      }
+    }
+
+    if (isTyping || modals.getActiveModal()) return;
+
     if (event.code === "Space") {
       event.preventDefault();
       if (!state.activeSession) {
@@ -1284,57 +1152,66 @@ export function initDeepFocusWorkspace() {
     } else if (key === "f" && !event.shiftKey) {
       event.preventDefault();
       zenMode = !zenMode;
-      if (zenMode) activeDrawer = null;
+      if (zenMode) {
+        activeDrawer = null;
+        modals.close();
+      }
       savePreferences({ deepFocus: { zenMode } });
-      renderShell();
-    } else if (key === "escape" && (activeDrawer || analyticsOpen || zenMode)) {
-      analyticsOpen = false;
-      activeDrawer = null;
-      zenMode = false;
-      savePreferences({ deepFocus: { zenMode: false } });
       renderShell();
     }
   });
 
   renderShell();
 
+  bus.on("page:changed", () => renderShell());
   bus.on("preferences:changed", () => renderShell());
   bus.on("state:activeSession", () => renderShell());
-  bus.on("state:localTasks", () => {
-    if (isDeepFocusActive() && activeDrawer === "tasks") renderShell();
-  });
-  bus.on("state:localStudyRecords", () => {
-    if (isDeepFocusActive() && analyticsOpen) renderShell();
-  });
   bus.on("auth:changed", () => renderShell());
   bus.on("profile:changed", () => renderShell());
   bus.on("economy:updated", () => renderShell());
+  bus.on("spectator:changed", () => renderModeSwitcher());
+
+  bus.on("deepfocus:open", ({ modal, subTab } = {}) => {
+    if (!isDeepFocusActive()) return;
+    if (modal === "settings") {
+      modals.close();
+      activeDrawer = "settings";
+      renderShell();
+    } else if (modal) {
+      activeDrawer = null;
+      modals.open(modal, subTab || "");
+    }
+  });
+
+  for (const ev of [
+    "state:localTasks",
+    "state:localDiary",
+    "state:localFlashcards",
+    "state:localGoals",
+    "state:localExams",
+    "state:localSubjectBudgets",
+    "state:localStudyRecords"
+  ]) {
+    bus.on(ev, () => {
+      if (isDeepFocusActive() && modals.getActiveModal()) {
+        renderShell();
+      }
+    });
+  }
+
   bus.on("studyCircle:changed", () => {
-    if (isDeepFocusActive()) {
-      const widget = shellEl.querySelector(".df-friends-panel");
-      if (widget) {
-        const tmp = document.createElement("div");
-        tmp.innerHTML = renderFriendsWidgetHtml();
-        const fresh = tmp.firstElementChild;
-        if (fresh) {
-          widget.replaceWith(fresh);
-          shellEl.querySelector("#df-friends-collapse")?.addEventListener("click", () => {
-            friendsCollapsed = !friendsCollapsed;
-            renderShell();
-          });
-          shellEl.querySelector("#df-friends-manage")?.addEventListener("click", () => dialogManager.open("friends"));
-          shellEl.querySelector("#df-friends-find")?.addEventListener("click", () => dialogManager.open("friends"));
-          shellEl.querySelector("#df-friends-signin")?.addEventListener("click", () => dialogManager.open("profile"));
-          shellEl.querySelectorAll("[data-df-visit]").forEach((btn) => {
-            btn.addEventListener("click", async () => {
-              await visitFriendRoom(btn.dataset.dfVisit);
-            });
-          });
-        }
+    if (!isDeepFocusActive()) return;
+    const widget = shellEl.querySelector(".df-friends-panel");
+    if (widget) {
+      const tmp = document.createElement("div");
+      tmp.innerHTML = renderFriendsWidgetHtml();
+      const fresh = tmp.firstElementChild;
+      if (fresh) {
+        widget.replaceWith(fresh);
+        bindFriendsWidgetEvents();
       }
     }
   });
-  bus.on("spectator:changed", () => renderModeSwitcher());
 
   window.setInterval(() => {
     if (!isDeepFocusActive()) return;

@@ -1,5 +1,12 @@
-// Hash-based router for GitHub Pages subpath safety & browser back/forward support
+// Multi-page path router (/, /cozy-study, /deep-focus, /account) + Hash sub-router for Cozy Study Room dialogs
 import { bus } from "./core/event-bus.js";
+import {
+  PAGE_ROUTES,
+  parsePageRoute,
+  getPagePath
+} from "./utils/page-routes.js";
+
+export { PAGE_ROUTES, getPagePath };
 
 const VALID_ROUTES = new Set([
   "room",
@@ -21,6 +28,26 @@ const VALID_ROUTES = new Set([
   "settings",
   "ops"
 ]);
+
+export function parseCurrentPage() {
+  return parsePageRoute(window.location.pathname, window.location.search);
+}
+
+export function navigateToPage(page, { replace = false, hash = "", emit = true } = {}) {
+  const targetPath = getPagePath(page);
+  const nextUrl = `${targetPath}${hash || ""}`;
+  const currentFull = `${window.location.pathname}${window.location.hash || ""}`;
+  if (currentFull !== nextUrl) {
+    if (replace) {
+      window.history.replaceState({ page }, "", nextUrl);
+    } else {
+      window.history.pushState({ page }, "", nextUrl);
+    }
+  }
+  if (emit) {
+    bus.emit("page:changed", { page, path: targetPath });
+  }
+}
 
 export function parseHashRoute(hashStr = window.location.hash) {
   const cleaned = String(hashStr || "").replace(/^#\/?/, "").trim();
@@ -57,6 +84,15 @@ export function initRouter() {
     pendingProgrammaticHash = null;
     bus.emit("route:changed", parseHashRoute(current));
   };
+
+  const handlePopState = () => {
+    bus.emit("page:changed", parseCurrentPage());
+  };
+
   window.addEventListener("hashchange", handleHashChange);
-  return () => window.removeEventListener("hashchange", handleHashChange);
+  window.addEventListener("popstate", handlePopState);
+  return () => {
+    window.removeEventListener("hashchange", handleHashChange);
+    window.removeEventListener("popstate", handlePopState);
+  };
 }

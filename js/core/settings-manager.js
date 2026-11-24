@@ -149,8 +149,22 @@ export function applyRoomSettingsToDocument() {
   const prefs = state.preferences || {};
   const root = document.documentElement;
   const seriousMode = Boolean(prefs.seriousMode);
-  const appMode = prefs.appMode === "deepfocus" ? "deepfocus" : "cozy";
+  const currentPath = window.location.pathname.replace(/\/+$/, "") || "/";
+  let currentPage = "home";
+  if (currentPath.endsWith("/cozy-study")) currentPage = "cozy";
+  else if (currentPath.endsWith("/deep-focus")) currentPage = "deepfocus";
+  else if (currentPath.endsWith("/account")) currentPage = "account";
+  else if (window.location.search.includes("page=account")) currentPage = "account";
+  else if (window.location.search.includes("page=cozy")) currentPage = "cozy";
+  else if (window.location.search.includes("page=deepfocus")) currentPage = "deepfocus";
 
+  const appMode = currentPage === "deepfocus"
+    ? "deepfocus"
+    : currentPage === "cozy"
+      ? "cozy"
+      : (prefs.appMode === "deepfocus" ? "deepfocus" : "cozy");
+
+  root.dataset.page = currentPage;
   root.dataset.appMode = appMode;
   root.dataset.seriousMode = String(seriousMode);
   delete root.dataset.deepFocus;
@@ -216,9 +230,15 @@ export function setSeriousPresetTheme(themeId) {
   return themeId;
 }
 
-export function setAppMode(nextMode) {
+export function setAppMode(nextMode, { syncUrl = true } = {}) {
   const mode = nextMode === "deepfocus" ? "deepfocus" : "cozy";
   savePreferences({ appMode: mode });
+  if (syncUrl) {
+    const targetPath = mode === "deepfocus" ? "/deep-focus" : "/cozy-study";
+    if (window.location.pathname !== targetPath) {
+      window.history.pushState({ page: mode === "deepfocus" ? "deepfocus" : "cozy" }, "", targetPath);
+    }
+  }
   applyRoomSettingsToDocument();
   lightingManager.apply();
   return mode;
