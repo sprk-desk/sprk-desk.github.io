@@ -1,4 +1,5 @@
 // Pure utilities for Live Study Circle (Friends Currently Studying With User)
+import { normalizeRoomVisibility } from "./privacy-scope.js";
 
 export function formatElapsedLabel(seconds = 0) {
   const clean = Math.max(0, Math.round(Number(seconds) || 0));
@@ -26,6 +27,7 @@ export function mergeFriendsWithPresence({
 
       const showOnline = friend.privacy?.showOnlineStatus !== false && pres?.showOnlineStatus !== false;
       const showActivity = friend.privacy?.showStudyActivity !== false && pres?.showStudyActivity !== false;
+      const roomVisibility = normalizeRoomVisibility(friend.privacy);
 
       const hasActiveTimer = Boolean(pres?.isStudying) || Boolean(dbSess);
       const isOnline = Boolean(pres) || Boolean(dbSess);
@@ -61,6 +63,7 @@ export function mergeFriendsWithPresence({
         avatarPreset: friend.avatarPreset || "☺",
         avatarUrl: friend.avatarUrl || "",
         courseClass: friend.courseClass || "",
+        roomVisibility,
         status,
         subject,
         mode,

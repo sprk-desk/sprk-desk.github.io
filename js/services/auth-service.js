@@ -94,6 +94,12 @@ export async function signOut() {
   state.user = null;
   state.friends = [];
   state.friendRequests = { incoming: [], outgoing: [] };
+  state.socialFeed = [];
+  state.likedPostIds = [];
+  state.suggestedStudents = [];
+  state.studyGroups = [];
+  state.groupMemberships = {};
+  state.activeGroupWorkspace = null;
   state.wallet = { balance: 0, earned: 0, spent: 0, ledger: [] };
   bus.emit("auth:changed", null);
 }

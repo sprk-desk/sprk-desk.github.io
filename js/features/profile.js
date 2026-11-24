@@ -1,4 +1,4 @@
-// Photo Frame -> Student Profile Card (PFP, Bio, Class/Course, Aim, Fav Subs), Friend List & Room Visits, and Supabase Auth
+// Photo Frame -> Student Profile Card, Room Privacy Controls, Friends & Public Profile Viewer
 import { state } from "../state.js";
 import { supabase } from "../services/supabase.js";
 import { signInWithEmail, signUpWithEmail, sendPasswordRecovery, signOut } from "../services/auth-service.js";
@@ -8,11 +8,22 @@ import {
   syncAuthenticatedUserData,
   loadFriendsAndRequests,
   searchStudentProfiles,
+  fetchUserPublicProfile,
   sendFriendRequest,
+  cancelFriendRequest,
   respondFriendRequest,
+  unfriendUser,
   visitFriendRoom
 } from "../services/database-service.js";
-import { AVATAR_PRESETS, sanitizeAvatarUrl, parseFavoriteSubjects, validateUsernameInput } from "../utils/profile-helpers.js";
+import {
+  AVATAR_PRESETS,
+  sanitizeAvatarUrl,
+  parseFavoriteSubjects,
+  validateUsernameInput,
+  normalizePrivacySettings
+} from "../utils/profile-helpers.js";
+import { canUserVisitRoom, getRelationshipStatus } from "../utils/privacy-scope.js";
+import { navigateToPage, PAGE_ROUTES } from "../router.js";
 import { dialogManager } from "../core/dialog-manager.js";
 import { escapeHtml } from "../utils/dom.js";
 
@@ -35,6 +46,7 @@ export const profileFeature = {
     let authMode = "signin"; // signin | register | recover
     let statusMsg = "";
     let searchResults = null;
+    let inspectedProfile = null;
 
     const getActiveProfile = () => {
       if (state.user) return state.user;
@@ -47,16 +59,59 @@ export const profileFeature = {
         bio: state.localProfile?.bio || "",
         courseClass: state.localProfile?.courseClass || "",
         examAim: state.localProfile?.examAim || "",
-        favoriteSubjects: state.localProfile?.favoriteSubjects || []
+        favoriteSubjects: state.localProfile?.favoriteSubjects || [],
+        privacy: normalizePrivacySettings(state.localProfile?.privacy)
       };
+    };
+
+    const inspectStudent = async (targetId) => {
+      const { data, error } = await fetchUserPublicProfile(targetId);
+      if (error || !data) {
+        statusMsg = error?.message || "Could not load student profile.";
+      } else {
+        inspectedProfile = data;
+      }
+      renderView();
+    };
+
+    const renderRelControls = (targetId, privacy = {}) => {
+      if (!state.user?.id || !targetId) return "";
+      const rel = getRelationshipStatus({
+        viewerId: state.user.id,
+        targetId,
+        friends: state.friends,
+        incoming: state.friendRequests?.incoming,
+        outgoing: state.friendRequests?.outgoing
+      });
+      const access = canUserVisitRoom({
+        targetUserId: targetId,
+        viewerUserId: state.user.id,
+        privacy,
+        isFriend: rel.status === "friends"
+      });
+      const relBtn =
+        rel.status === "friends"
+          ? `<button type="button" class="sprk-btn" data-unfriend="${escapeHtml(targetId)}" style="min-height:32px;padding:4px 10px;">Unfriend</button>`
+          : rel.status === "outgoing"
+            ? `<button type="button" class="sprk-btn" data-cancel-req="${escapeHtml(rel.requestId)}" style="min-height:32px;padding:4px 10px;">Cancel Req</button>`
+            : rel.status === "incoming"
+              ? `<button type="button" class="sprk-btn sprk-btn-primary" data-req-accept="${escapeHtml(rel.requestId)}" style="min-height:32px;padding:4px 10px;">Accept</button>`
+              : `<button type="button" class="sprk-btn sprk-btn-primary" data-add-friend="${escapeHtml(targetId)}" style="min-height:32px;padding:4px 10px;">+ Add</button>`;
+
+      const visitBtn = access.allowed
+        ? `<button type="button" class="sprk-btn" data-visit-room="${escapeHtml(targetId)}" style="min-height:32px;padding:4px 10px;">🚪 Visit</button>`
+        : "";
+      return `${relBtn}${visitBtn}`;
     };
 
     const renderView = () => {
       const user = state.user;
       const prof = getActiveProfile();
+      const privacy = normalizePrivacySettings(prof.privacy);
       const favSubs = Array.isArray(prof.favoriteSubjects) ? prof.favoriteSubjects : [];
       const friends = state.friends || [];
       const incomingReqs = state.friendRequests?.incoming || [];
+      const outgoingReqs = state.friendRequests?.outgoing || [];
 
       container.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
@@ -71,7 +126,10 @@ export const profileFeature = {
               <button type="button" class="sprk-tab ${mainTab === "account" ? "is-active" : ""}" data-pmain="account">⚙ Account</button>
             `}
           </nav>
-          <span class="sprk-badge-chip">${user ? `☁ ${escapeHtml(user.publicId)}` : "💾 Local"}</span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button type="button" class="sprk-btn" id="prof-open-social-hub" style="min-height:30px;padding:3px 10px;font-size:12px;">Open Social Hub →</button>
+            <span class="sprk-meta tabular-nums">${user ? escapeHtml(user.publicId) : "Local"}</span>
+          </div>
         </div>
 
         ${statusMsg ? `<div class="sprk-notice" role="status" style="margin-bottom:12px;">${escapeHtml(statusMsg)}</div>` : ""}
@@ -86,10 +144,12 @@ export const profileFeature = {
                     <strong style="font-size:17px;">${escapeHtml(prof.displayName)}</strong>
                     ${prof.username ? `<span class="sprk-meta">@${escapeHtml(prof.username)}</span>` : ""}
                   </div>
-                  <div class="sprk-badge-row" style="margin-top:6px;">
-                    ${prof.courseClass ? `<span class="sprk-badge-chip">🎓 ${escapeHtml(prof.courseClass)}</span>` : ""}
-                    ${prof.examAim ? `<span class="sprk-badge-chip">🎯 ${escapeHtml(prof.examAim)}</span>` : ""}
-                    ${!prof.courseClass && !prof.examAim ? `<span class="sprk-meta">Add your course & exam aim below</span>` : ""}
+                  <div class="sprk-meta" style="margin-top:4px;">
+                    ${prof.courseClass ? `<span>${escapeHtml(prof.courseClass)}</span>` : ""}
+                    ${prof.courseClass && prof.examAim ? `<span>·</span>` : ""}
+                    ${prof.examAim ? `<span>Aim: ${escapeHtml(prof.examAim)}</span>` : ""}
+                    <span>·</span>
+                    <span>Room: ${privacy.roomVisibility === "public" ? "Public" : privacy.roomVisibility === "private" ? "Private" : "Friends Only"}</span>
                   </div>
                   ${prof.bio ? `<p style="margin:8px 0 0;font-size:13px;color:var(--ink);">${escapeHtml(prof.bio)}</p>` : ""}
                 </div>
@@ -97,9 +157,8 @@ export const profileFeature = {
               ${!user ? `<button type="button" class="sprk-btn sprk-btn-primary" data-pmain="signin" style="min-height:34px;padding:4px 12px;">🔑 Sign In to Sync</button>` : ""}
             </div>
             ${favSubs.length > 0 ? `
-              <div class="sprk-badge-row" style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(52,44,37,0.12);">
-                <span class="sprk-meta" style="font-weight:700;">Fav Subjects:</span>
-                ${favSubs.map((sub) => `<span class="sprk-badge-chip">📚 ${escapeHtml(sub)}</span>`).join("")}
+              <div class="sprk-meta" style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(52,44,37,0.12);">
+                <strong>Subjects:</strong> ${escapeHtml(favSubs.join(" · "))}
               </div>
             ` : ""}
           </div>
@@ -133,7 +192,7 @@ export const profileFeature = {
             </label>
 
             <div class="sprk-field">
-              <span class="sprk-label">Profile Picture (PFP) & Avatar Icon</span>
+              <span class="sprk-label">Profile Picture (PFP) &amp; Avatar Icon</span>
               <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px;">
                 <label class="sprk-btn" style="min-height:34px;padding:4px 12px;cursor:pointer;">
                   📷 Upload PFP
@@ -151,10 +210,31 @@ export const profileFeature = {
 
             <label class="sprk-field">
               <span class="sprk-label">Bio</span>
-              <textarea id="prof-bio" class="sprk-textarea" style="min-height:60px;" maxlength="200" placeholder="What are you studying today?">${escapeHtml(prof.bio || "")}</textarea>
+              <textarea id="prof-bio" class="sprk-textarea" style="min-height:58px;" maxlength="200" placeholder="What are you studying today?">${escapeHtml(prof.bio || "")}</textarea>
             </label>
 
-            <button type="submit" id="prof-save-btn" class="sprk-btn sprk-btn-primary">💾 Save Profile</button>
+            <div class="sprk-grid-2" style="padding-top:8px;border-top:1px solid rgba(52,44,37,0.12);">
+              <label class="sprk-field">
+                <span class="sprk-label">Who can view my study room?</span>
+                <select id="prof-room-vis" class="sprk-select">
+                  <option value="public" ${privacy.roomVisibility === "public" ? "selected" : ""}>Public (Anyone signed in)</option>
+                  <option value="friends" ${privacy.roomVisibility === "friends" ? "selected" : ""}>Friends Only</option>
+                  <option value="private" ${privacy.roomVisibility === "private" ? "selected" : ""}>Private (Only me)</option>
+                </select>
+              </label>
+              <div style="display:grid;gap:6px;align-content:end;font-size:12.5px;">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                  <input id="prof-priv-online" type="checkbox" ${privacy.showOnlineStatus ? "checked" : ""} />
+                  <span>Show online status</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                  <input id="prof-priv-activity" type="checkbox" ${privacy.showStudyActivity ? "checked" : ""} />
+                  <span>Show current study subject</span>
+                </label>
+              </div>
+            </div>
+
+            <button type="submit" id="prof-save-btn" class="sprk-btn sprk-btn-primary">💾 Save Profile &amp; Privacy</button>
           </form>
         ` : mainTab === "friends" ? `
           <div style="display:grid;gap:12px;">
@@ -162,18 +242,51 @@ export const profileFeature = {
               <div class="sprk-card" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
                 <div>
                   <strong>Connect Supabase Account for Live Friends</strong>
-                  <div class="sprk-meta">Sign in to add friends, sync friend requests, and visit friends' rooms.</div>
+                  <div class="sprk-meta">Sign in to view profiles, add friends, and visit permitted rooms.</div>
                 </div>
                 <button type="button" class="sprk-btn sprk-btn-primary" data-pmain="signin">🔑 Sign In</button>
               </div>
             ` : `
+              ${inspectedProfile ? (() => {
+                const tp = inspectedProfile.profile;
+                const ra = inspectedProfile.roomAccess;
+                return `
+                  <div class="sprk-card" style="border-color:var(--accent);">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
+                      <div style="display:flex;align-items:center;gap:10px;">
+                        ${renderAvatarVisual(tp.avatarPreset, tp.avatarUrl, 48)}
+                        <div>
+                          <strong style="font-size:15px;">${escapeHtml(tp.displayName)}</strong>
+                          <div class="sprk-meta">
+                            ${tp.username ? `@${escapeHtml(tp.username)} · ` : ""}${escapeHtml(tp.publicId)}
+                            ${tp.courseClass ? ` · ${escapeHtml(tp.courseClass)}` : ""}
+                          </div>
+                        </div>
+                      </div>
+                      <button type="button" class="sprk-btn" id="prof-close-inspect" style="min-height:30px;padding:3px 10px;">Close</button>
+                    </div>
+                    ${tp.bio ? `<p style="margin:0 0 8px;font-size:13px;">${escapeHtml(tp.bio)}</p>` : ""}
+                    <div class="sprk-meta" style="margin-bottom:8px;">
+                      ${tp.examAim ? `<span>Aim: ${escapeHtml(tp.examAim)} · </span>` : ""}
+                      <span class="tabular-nums">${inspectedProfile.friendsCount || 0} friends</span>
+                      <span>·</span>
+                      <span>Room: ${ra.visibility === "public" ? "Public" : ra.visibility === "private" ? "Private" : "Friends Only"}</span>
+                    </div>
+                    ${!ra.allowed ? `<div class="sprk-meta" style="margin-bottom:8px;color:#7a3b28;">🔒 ${escapeHtml(ra.reason)}</div>` : ""}
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                      ${renderRelControls(tp.id, tp.privacy)}
+                    </div>
+                  </div>
+                `;
+              })() : ""}
+
               <div class="sprk-card">
                 <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
-                  <strong>Find & Visit Friends</strong>
+                  <strong>Find Students</strong>
                   <button type="button" class="sprk-btn" id="prof-refresh-friends" style="min-height:32px;padding:4px 10px;">↻ Refresh</button>
                 </div>
                 <form id="prof-friend-search" style="display:flex;gap:8px;flex-wrap:wrap;">
-                  <input id="prof-friend-query" class="sprk-input" type="text" placeholder="Search Public ID (SPK-...) or @username" required style="flex:1;min-width:180px;" />
+                  <input id="prof-friend-query" class="sprk-input" type="text" placeholder="Search name, @username, course, or SPK-ID" required style="flex:1;min-width:180px;" />
                   <button type="submit" class="sprk-btn sprk-btn-primary">Search</button>
                 </form>
                 ${searchResults ? `
@@ -187,9 +300,9 @@ export const profileFeature = {
                             <div class="sprk-meta">${escapeHtml(p.public_id || "")}${p.course_class ? ` · ${escapeHtml(p.course_class)}` : ""}</div>
                           </div>
                         </div>
-                        <div style="display:flex;gap:6px;">
-                          <button type="button" class="sprk-btn" data-visit-room="${escapeHtml(p.id)}" style="min-height:32px;padding:4px 10px;">🚪 Visit</button>
-                          <button type="button" class="sprk-btn sprk-btn-primary" data-add-friend="${escapeHtml(p.id)}" style="min-height:32px;padding:4px 10px;">+ Add</button>
+                        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                          <button type="button" class="sprk-btn" data-inspect-profile="${escapeHtml(p.id)}" style="min-height:32px;padding:4px 10px;">Profile</button>
+                          ${renderRelControls(p.id, p.privacy)}
                         </div>
                       </div>
                     `).join("")}
@@ -199,7 +312,7 @@ export const profileFeature = {
 
               ${incomingReqs.length > 0 ? `
                 <div class="sprk-card">
-                  <strong style="display:block;margin-bottom:8px;">Pending Requests (${incomingReqs.length})</strong>
+                  <strong style="display:block;margin-bottom:8px;">Incoming Requests (${incomingReqs.length})</strong>
                   <div style="display:grid;gap:8px;">
                     ${incomingReqs.map((req) => `
                       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
@@ -208,6 +321,7 @@ export const profileFeature = {
                           <span class="sprk-meta">${escapeHtml(req.profile?.public_id || "")}</span>
                         </div>
                         <div style="display:flex;gap:6px;">
+                          <button type="button" class="sprk-btn" data-inspect-profile="${escapeHtml(req.senderId)}" style="min-height:32px;padding:4px 10px;">Profile</button>
                           <button type="button" class="sprk-btn sprk-btn-primary" data-req-accept="${escapeHtml(req.id)}" style="min-height:32px;padding:4px 10px;">Accept</button>
                           <button type="button" class="sprk-btn" data-req-decline="${escapeHtml(req.id)}" style="min-height:32px;padding:4px 10px;">Decline</button>
                         </div>
@@ -217,30 +331,57 @@ export const profileFeature = {
                 </div>
               ` : ""}
 
+              ${outgoingReqs.length > 0 ? `
+                <div class="sprk-card">
+                  <strong style="display:block;margin-bottom:8px;">Sent Requests (${outgoingReqs.length})</strong>
+                  <div style="display:grid;gap:8px;">
+                    ${outgoingReqs.map((req) => `
+                      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+                        <div>
+                          <strong>${escapeHtml(req.profile?.display_name || "Student")}</strong>
+                          <span class="sprk-meta">${escapeHtml(req.profile?.public_id || "")}</span>
+                        </div>
+                        <button type="button" class="sprk-btn" data-cancel-req="${escapeHtml(req.id)}" style="min-height:32px;padding:4px 10px;">Cancel</button>
+                      </div>
+                    `).join("")}
+                  </div>
+                </div>
+              ` : ""}
+
               <div class="sprk-card">
                 <strong style="display:block;margin-bottom:8px;">My Friends (${friends.length})</strong>
                 ${friends.length === 0 ? `
-                  <div class="sprk-empty">No friends added yet. Search by Public ID or @username above.</div>
+                  <div class="sprk-empty">No friends added yet. Search by name, @username, or Public ID above.</div>
                 ` : `
                   <div style="display:grid;gap:8px;">
-                    ${friends.map((f) => `
-                      <div class="sprk-card" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;">
-                        <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1;">
-                          ${renderAvatarVisual(f.avatarPreset, f.avatarUrl, 44)}
-                          <div style="min-width:0;">
-                            <strong style="font-size:14px;">${escapeHtml(f.displayName)}</strong>
-                            <div class="sprk-meta">
-                              <span>${escapeHtml(f.publicId)}</span>
-                              ${f.courseClass ? `<span>· 🎓 ${escapeHtml(f.courseClass)}</span>` : ""}
-                              ${f.examAim ? `<span>· 🎯 ${escapeHtml(f.examAim)}</span>` : ""}
+                    ${friends.map((f) => {
+                      const access = canUserVisitRoom({
+                        targetUserId: f.id,
+                        viewerUserId: user.id,
+                        privacy: f.privacy,
+                        isFriend: true
+                      });
+                      return `
+                        <div class="sprk-card" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;">
+                          <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1;">
+                            ${renderAvatarVisual(f.avatarPreset, f.avatarUrl, 44)}
+                            <div style="min-width:0;">
+                              <strong style="font-size:14px;">${escapeHtml(f.displayName)}</strong>
+                              <div class="sprk-meta">
+                                <span>${escapeHtml(f.publicId)}</span>
+                                ${f.courseClass ? `<span>· ${escapeHtml(f.courseClass)}</span>` : ""}
+                              </div>
                             </div>
                           </div>
+                          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                            <button type="button" class="sprk-btn" data-inspect-profile="${escapeHtml(f.id)}" style="min-height:32px;padding:4px 10px;">Profile</button>
+                            ${access.allowed
+                              ? `<button type="button" class="sprk-btn sprk-btn-primary" data-visit-room="${escapeHtml(f.id)}" style="min-height:32px;padding:4px 12px;">🚪 Visit</button>`
+                              : `<span class="sprk-meta" style="align-self:center;">Room Private</span>`}
+                          </div>
                         </div>
-                        <button type="button" class="sprk-btn sprk-btn-primary" data-visit-room="${escapeHtml(f.id)}" style="min-height:34px;padding:4px 12px;">
-                          🚪 Visit Room
-                        </button>
-                      </div>
-                    `).join("")}
+                      `;
+                    }).join("")}
                   </div>
                 `}
               </div>
@@ -254,17 +395,15 @@ export const profileFeature = {
                 <div class="sprk-meta">
                   <span class="tabular-nums">${escapeHtml(user.publicId)}</span>
                   <span>·</span>
-                  <span>${user.isPremium ? "★ Premium" : "Standard"}</span>
+                  <span>${user.isPremium ? "Premium" : "Standard"}</span>
                   <span>·</span>
                   <span>Role: ${escapeHtml(user.role || "user")}</span>
                 </div>
               </div>
               <button type="button" class="sprk-btn" id="auth-signout">Sign Out</button>
             </div>
-            <div class="sprk-badge-row">
-              <span class="sprk-badge-chip">☁ Theme & Skins Synced</span>
-              <span class="sprk-badge-chip">📐 Object Positions Synced</span>
-              <span class="sprk-badge-chip">🔒 Private Diary Owner-Only</span>
+            <div class="sprk-meta">
+              Theme, skins, object positions, feed, friends, and groups synced · Private diary owner-only
             </div>
             ${user.role === "admin" ? `
               <div>
@@ -306,6 +445,11 @@ export const profileFeature = {
         `}
       `;
 
+      container.querySelector("#prof-open-social-hub")?.addEventListener("click", () => {
+        close();
+        navigateToPage(PAGE_ROUTES.ACCOUNT);
+      });
+
       container.querySelectorAll("[data-pmain]").forEach((btn) => {
         btn.addEventListener("click", () => {
           mainTab = btn.dataset.pmain;
@@ -342,10 +486,7 @@ export const profileFeature = {
           return;
         }
         const curr = getActiveProfile();
-        const { error: saveErr } = await updateProfile({
-          ...curr,
-          avatarUrl: url
-        });
+        const { error: saveErr } = await updateProfile({ ...curr, avatarUrl: url });
         statusMsg = saveErr ? saveErr.message : "Profile picture updated!";
         renderView();
       });
@@ -378,6 +519,14 @@ export const profileFeature = {
           renderView();
           return;
         }
+        const roomVisibility = container.querySelector("#prof-room-vis")?.value || "friends";
+        const nextPrivacy = normalizePrivacySettings({
+          roomVisibility,
+          allowRoomVisits: roomVisibility !== "private",
+          showOnlineStatus: Boolean(container.querySelector("#prof-priv-online")?.checked),
+          showStudyActivity: Boolean(container.querySelector("#prof-priv-activity")?.checked)
+        });
+
         const saveBtn = container.querySelector("#prof-save-btn");
         if (saveBtn) {
           saveBtn.disabled = true;
@@ -391,13 +540,14 @@ export const profileFeature = {
           courseClass: container.querySelector("#prof-course").value.trim(),
           examAim: container.querySelector("#prof-aim").value.trim(),
           favoriteSubjects: parseFavoriteSubjects(container.querySelector("#prof-fav-subs").value),
-          bio: container.querySelector("#prof-bio").value.trim()
+          bio: container.querySelector("#prof-bio").value.trim(),
+          privacy: nextPrivacy
         });
         statusMsg = error
           ? error.message
           : localOnly
-            ? "Profile saved locally! Sign in anytime to sync to Supabase."
-            : "Profile saved to cloud!";
+            ? "Profile & room privacy saved locally!"
+            : "Profile & room privacy saved to cloud!";
         renderView();
       });
 
@@ -415,11 +565,41 @@ export const profileFeature = {
         renderView();
       });
 
+      container.querySelectorAll("[data-inspect-profile]").forEach((btn) => {
+        btn.addEventListener("click", () => inspectStudent(btn.dataset.inspectProfile));
+      });
+
+      container.querySelector("#prof-close-inspect")?.addEventListener("click", () => {
+        inspectedProfile = null;
+        renderView();
+      });
+
       container.querySelectorAll("[data-add-friend]").forEach((btn) => {
         btn.addEventListener("click", async () => {
-          const { error } = await sendFriendRequest(btn.dataset.addFriend);
+          const targetId = btn.dataset.addFriend;
+          const { error } = await sendFriendRequest(targetId);
           statusMsg = error ? error.message : "Friend request sent!";
-          renderView();
+          if (inspectedProfile?.profile.id === targetId) await inspectStudent(targetId);
+          else renderView();
+        });
+      });
+
+      container.querySelectorAll("[data-cancel-req]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const { error } = await cancelFriendRequest(btn.dataset.cancelReq);
+          statusMsg = error ? error.message : "Request cancelled.";
+          if (inspectedProfile) await inspectStudent(inspectedProfile.profile.id);
+          else renderView();
+        });
+      });
+
+      container.querySelectorAll("[data-unfriend]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const targetId = btn.dataset.unfriend;
+          const { error } = await unfriendUser(targetId);
+          statusMsg = error ? error.message : "Friend removed.";
+          if (inspectedProfile?.profile.id === targetId) await inspectStudent(targetId);
+          else renderView();
         });
       });
 
@@ -427,7 +607,8 @@ export const profileFeature = {
         btn.addEventListener("click", async () => {
           const { error } = await respondFriendRequest(btn.dataset.reqAccept, true);
           statusMsg = error ? error.message : "Friend request accepted!";
-          renderView();
+          if (inspectedProfile) await inspectStudent(inspectedProfile.profile.id);
+          else renderView();
         });
       });
 
@@ -498,6 +679,7 @@ export const profileFeature = {
 
       container.querySelector("#auth-signout")?.addEventListener("click", async () => {
         await signOut();
+        inspectedProfile = null;
         mainTab = "signin";
         rerender();
       });

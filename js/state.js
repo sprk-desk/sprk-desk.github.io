@@ -32,10 +32,17 @@ export const state = {
     username: "",
     avatarPreset: "☺",
     avatarUrl: "",
+    bannerUrl: "",
     bio: "",
     courseClass: "",
     examAim: "",
-    favoriteSubjects: []
+    favoriteSubjects: [],
+    privacy: {
+      showOnlineStatus: true,
+      showStudyActivity: true,
+      allowRoomVisits: true,
+      roomVisibility: "friends"
+    }
   }),
   preferences: (() => {
     const saved = readStorage("preferences", {});
@@ -159,6 +166,11 @@ export const state = {
   friendRequests: { incoming: [], outgoing: [] },
   notifications: [],
   studyGroups: [],
+  groupMemberships: {},
+  activeGroupWorkspace: null,
+  socialFeed: [],
+  likedPostIds: [],
+  suggestedStudents: [],
   studyRooms: [],
   libraryResources: [],
   announcements: []

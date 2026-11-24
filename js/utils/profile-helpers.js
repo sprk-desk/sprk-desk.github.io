@@ -60,12 +60,29 @@ export function validateUsernameInput(raw = "") {
   return { valid: true, value: cleaned, error: "" };
 }
 
+export function normalizePrivacySettings(raw = {}) {
+  const p = raw && typeof raw === "object" ? raw : {};
+  const visRaw = typeof p.roomVisibility === "string" ? p.roomVisibility.toLowerCase() : "";
+  const roomVisibility = ["public", "friends", "private"].includes(visRaw)
+    ? visRaw
+    : p.allowRoomVisits === false
+      ? "private"
+      : "friends";
+  return {
+    showOnlineStatus: p.showOnlineStatus !== false,
+    showStudyActivity: p.showStudyActivity !== false,
+    allowRoomVisits: roomVisibility !== "private",
+    roomVisibility
+  };
+}
+
 export function formatProfilePayload(fields = {}) {
   const displayName = String(fields.displayName || "Student").trim().slice(0, 32) || "Student";
   const usernameRaw = String(fields.username || "").trim().toLowerCase();
   const username = /^[a-z0-9_]{3,24}$/.test(usernameRaw) ? usernameRaw : "";
   const avatarPreset = String(fields.avatarPreset || "☺").trim().slice(0, 8) || "☺";
   const avatarUrl = sanitizeAvatarUrl(fields.avatarUrl || "");
+  const bannerUrl = sanitizeAvatarUrl(fields.bannerUrl || "");
   const bio = String(fields.bio || "").trim().slice(0, 200);
   const courseClass = String(fields.courseClass || "").trim().slice(0, 64);
   const examAim = String(fields.examAim || "").trim().slice(0, 80);
@@ -76,6 +93,7 @@ export function formatProfilePayload(fields = {}) {
     username,
     avatarPreset,
     avatarUrl,
+    bannerUrl,
     bio,
     courseClass,
     examAim,
@@ -116,6 +134,7 @@ export function buildProfileDbPayload(clean = {}, fields = {}, excludedColumns =
     username: clean.username || null,
     avatar_preset: clean.avatarPreset,
     avatar_url: clean.avatarUrl || "",
+    banner_url: clean.bannerUrl || "",
     bio: clean.bio || "",
     course_class: clean.courseClass || "",
     exam_aim: clean.examAim || "",
@@ -140,6 +159,7 @@ export function buildProfileAuthMetadata(clean = {}) {
     username: clean.username || "",
     avatar_preset: clean.avatarPreset || "☺",
     avatar_url: clean.avatarUrl || "",
+    banner_url: clean.bannerUrl || "",
     bio: clean.bio || "",
     course_class: clean.courseClass || "",
     exam_aim: clean.examAim || "",
@@ -184,11 +204,12 @@ export function mergeResolvedProfile({
     displayName: pickString(row.display_name, meta.display_name, local.displayName) || "Student",
     avatarPreset: pickString(row.avatar_preset, meta.avatar_preset, local.avatarPreset) || "☺",
     avatarUrl: sanitizeAvatarUrl(pickString(row.avatar_url, meta.avatar_url, local.avatarUrl)),
+    bannerUrl: sanitizeAvatarUrl(pickString(row.banner_url, meta.banner_url, local.bannerUrl)),
     bio: pickString(row.bio, meta.bio, local.bio),
     courseClass: pickString(row.course_class, meta.course_class, local.courseClass),
     examAim: pickString(row.exam_aim, meta.exam_aim, local.examAim),
     favoriteSubjects: parseFavoriteSubjects(favSubjects),
-    privacy: row.privacy || { showOnlineStatus: true, showStudyActivity: true, allowRoomVisits: true }
+    privacy: normalizePrivacySettings(row.privacy || local.privacy)
   };
 }
 

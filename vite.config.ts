@@ -12,7 +12,7 @@ export default defineConfig(() => {
       tailwindcss(),
       {
         name: 'copy-static-sprk-assets',
-        apply: 'build',
+        apply: 'build' as const,
         closeBundle(error?: Error): void {
           if (error) return;
           const distDir = path.resolve(__dirname, 'dist');
@@ -40,6 +40,9 @@ export default defineConfig(() => {
       },
     },
     server: {
+      host: '0.0.0.0',
+      port: 3000,
+      allowedHosts: true as const,
       hmr: process.env.DISABLE_HMR !== 'true',
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
     },

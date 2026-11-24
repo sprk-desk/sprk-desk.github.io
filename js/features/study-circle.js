@@ -96,7 +96,9 @@ export function initStudyCircle() {
                           ${entry.elapsedLabel ? `<span class="tabular-nums">· ${escapeHtml(entry.elapsedLabel)}</span>` : ""}
                         </div>
                       </div>
-                      <button type="button" class="sprk-btn" data-sc-visit="${escapeHtml(entry.id)}" style="min-height:26px;padding:2px 8px;font-size:11px;">Visit</button>
+                      ${entry.roomVisibility === "private"
+                        ? `<button type="button" class="sprk-btn" disabled title="Room is set to Private" style="min-height:26px;padding:2px 8px;font-size:11px;opacity:0.55;cursor:not-allowed;">Private</button>`
+                        : `<button type="button" class="sprk-btn" data-sc-visit="${escapeHtml(entry.id)}" style="min-height:26px;padding:2px 8px;font-size:11px;">Visit</button>`}
                     </div>
                     ${entry.status === "studying" ? `
                       <div class="sprk-study-peer-subject">${escapeHtml(entry.subject)}</div>

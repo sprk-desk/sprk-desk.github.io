@@ -328,7 +328,9 @@ export function initDeepFocusWorkspace() {
                               : ""}
                           </div>
                         </div>
-                        <button type="button" class="df-btn-subtle" data-df-visit="${escapeHtml(friend.id)}">Visit</button>
+                        ${friend.roomVisibility === "private"
+                          ? `<button type="button" class="df-btn-subtle" disabled title="Room is set to Private" style="opacity:0.55;cursor:not-allowed;">Private</button>`
+                          : `<button type="button" class="df-btn-subtle" data-df-visit="${escapeHtml(friend.id)}">Visit</button>`}
                       </div>
                     `;
                   }).join("")}

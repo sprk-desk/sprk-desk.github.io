@@ -5,6 +5,7 @@ import {
   parseFavoriteSubjects,
   validateUsernameInput,
   formatProfilePayload,
+  normalizePrivacySettings,
   extractMissingProfileColumn,
   buildProfileDbPayload,
   buildProfileAuthMetadata,
@@ -46,12 +47,13 @@ test("validateUsernameInput allows blank or 3-24 lowercase/underscore handles an
   assert.equal(badChars.valid, false);
 });
 
-test("formatProfilePayload normalizes academic profile fields cleanly", () => {
+test("formatProfilePayload normalizes academic profile fields and bannerUrl cleanly", () => {
   const out = formatProfilePayload({
     displayName: "  Aarav  ",
     username: "Aarav_Study",
     avatarPreset: "🦉",
     avatarUrl: "https://example.com/a.jpg",
+    bannerUrl: "javascript:alert(1)",
     bio: "Late night notes",
     courseClass: "B.Tech CSE · Sem 5",
     examAim: "GATE 2026",
@@ -59,9 +61,25 @@ test("formatProfilePayload normalizes academic profile fields cleanly", () => {
   });
   assert.equal(out.displayName, "Aarav");
   assert.equal(out.username, "aarav_study");
+  assert.equal(out.bannerUrl, "");
   assert.equal(out.courseClass, "B.Tech CSE · Sem 5");
   assert.equal(out.examAim, "GATE 2026");
   assert.deepEqual(out.favoriteSubjects, ["OS", "DBMS", "Algorithms"]);
+});
+
+test("normalizePrivacySettings keeps roomVisibility and allowRoomVisits synchronized", () => {
+  assert.deepEqual(normalizePrivacySettings({ roomVisibility: "public" }), {
+    showOnlineStatus: true,
+    showStudyActivity: true,
+    allowRoomVisits: true,
+    roomVisibility: "public"
+  });
+  assert.deepEqual(normalizePrivacySettings({ allowRoomVisits: false, showOnlineStatus: false }), {
+    showOnlineStatus: false,
+    showStudyActivity: true,
+    allowRoomVisits: false,
+    roomVisibility: "private"
+  });
 });
 
 test("extractMissingProfileColumn parses PostgREST and Postgres missing column errors", () => {

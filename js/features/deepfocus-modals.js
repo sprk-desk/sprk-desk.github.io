@@ -16,10 +16,20 @@ import {
   syncSavedResourceDelete,
   loadFriendsAndRequests,
   searchStudentProfiles,
+  fetchUserPublicProfile,
   sendFriendRequest,
+  cancelFriendRequest,
   respondFriendRequest,
-  visitFriendRoom
+  unfriendUser,
+  visitFriendRoom,
+  loadStudyGroups,
+  createStudyGroup,
+  joinStudyGroup,
+  leaveStudyGroup,
+  loadGroupWorkspace,
+  postGroupMessage
 } from "../services/database-service.js";
+import { canUserVisitRoom, getRelationshipStatus } from "../utils/privacy-scope.js";
 import { equipShopItem, isShopItemEquipped } from "./shop.js";
 import { SHOP_CATALOG } from "../utils/shop-catalog.js";
 import { computeVisualizerBars } from "../utils/dialog-objects.js";
@@ -85,6 +95,7 @@ export function createDeepFocusModalController({
   let friendSearchResults = null;
   let inspectedFriend = null;
   let lastHallPhase = null;
+  let openGroupId = null;
 
   // Catalog state
   let catalogCat = "all"; // all | particles | music | theme | ambience
@@ -879,56 +890,97 @@ export function createDeepFocusModalController({
       ` : subTab === "friends" ? `
         <div class="df-stack">
           <div class="df-sec-head">
-            <span class="df-muted">Manage full profiles &amp; room visits anytime on /account</span>
-            <button type="button" class="df-btn-subtle" id="dfm-open-account-page">Open /account →</button>
+            <span class="df-muted">Manage full feed, groups &amp; profile on /account</span>
+            <button type="button" class="df-btn-subtle" id="dfm-open-account-page">Open Social Hub →</button>
           </div>
 
           ${!signedIn ? `
             <div class="df-empty-box">
-              <p style="margin:0 0 8px;">Sign in to connect with classmates, inspect friend cards, and visit their study rooms.</p>
+              <p style="margin:0 0 8px;">Sign in to view student profiles, send friend requests, and visit rooms shared with you.</p>
               <button type="button" class="df-btn-accent" id="dfm-friends-signin">Go to Account Sign In</button>
             </div>
           ` : `
             <form id="dfm-friend-search-form" class="df-inline-form">
-              <input id="dfm-friend-query" class="df-input" type="text" required placeholder="Search Public ID (SPK-...) or @username" style="flex:1;" />
+              <input id="dfm-friend-query" class="df-input" type="text" required placeholder="Search name, @username, course, or SPK-ID" style="flex:1;" />
               <button type="submit" class="df-btn-accent">Search</button>
               <button type="button" class="df-btn-subtle" id="dfm-friends-refresh">↻</button>
             </form>
 
-            ${inspectedFriend ? `
-              <div class="df-item-card is-active" style="flex-direction:column;align-items:stretch;">
-                <div class="df-sec-head">
-                  <div>
-                    <strong>${escapeHtml(inspectedFriend.displayName)}</strong>
-                    <div class="df-muted">
-                      ${inspectedFriend.username ? `@${escapeHtml(inspectedFriend.username)} · ` : ""}${escapeHtml(inspectedFriend.publicId || "")}
-                      ${inspectedFriend.courseClass ? ` · ${escapeHtml(inspectedFriend.courseClass)}` : ""}
+            ${inspectedFriend ? (() => {
+              const tp = inspectedFriend.profile || inspectedFriend;
+              const tid = tp.id;
+              const rel = getRelationshipStatus({
+                viewerId: state.user.id,
+                targetId: tid,
+                friends: state.friends,
+                incoming: state.friendRequests?.incoming,
+                outgoing: state.friendRequests?.outgoing
+              });
+              const access = inspectedFriend.roomAccess || canUserVisitRoom({
+                targetUserId: tid,
+                viewerUserId: state.user.id,
+                privacy: tp.privacy,
+                isFriend: rel.status === "friends"
+              });
+              return `
+                <div class="df-item-card is-active" style="flex-direction:column;align-items:stretch;">
+                  <div class="df-sec-head">
+                    <div>
+                      <strong>${escapeHtml(tp.displayName)}</strong>
+                      <div class="df-muted">
+                        ${tp.username ? `@${escapeHtml(tp.username)} · ` : ""}${escapeHtml(tp.publicId || "")}
+                        ${tp.courseClass ? ` · ${escapeHtml(tp.courseClass)}` : ""}
+                      </div>
+                    </div>
+                    <div class="df-item-card-acts">
+                      ${rel.status === "friends"
+                        ? `<button type="button" class="df-btn-subtle" data-dfm-unfriend="${escapeHtml(tid)}">Unfriend</button>`
+                        : rel.status === "outgoing"
+                          ? `<button type="button" class="df-btn-subtle" data-dfm-cancel-req="${escapeHtml(rel.requestId)}">Cancel Req</button>`
+                          : rel.status === "incoming"
+                            ? `<button type="button" class="df-btn-accent" data-dfm-req-acc="${escapeHtml(rel.requestId)}">Accept</button>`
+                            : rel.status === "none"
+                              ? `<button type="button" class="df-btn-accent" data-dfm-add-friend="${escapeHtml(tid)}">+ Add Friend</button>`
+                              : ""}
+                      ${access.allowed ? `<button type="button" class="df-btn-accent" data-dfm-visit-room="${escapeHtml(tid)}">Visit Room</button>` : ""}
+                      <button type="button" class="df-icon-btn" id="dfm-close-inspect">×</button>
                     </div>
                   </div>
-                  <div class="df-item-card-acts">
-                    <button type="button" class="df-btn-accent" data-dfm-visit-room="${escapeHtml(inspectedFriend.id)}">Visit Study Room</button>
-                    <button type="button" class="df-icon-btn" id="dfm-close-inspect">×</button>
+                  ${tp.bio ? `<p style="margin:0;font-size:12.5px;color:#cbd5e1;">${escapeHtml(tp.bio)}</p>` : ""}
+                  <div class="df-muted">
+                    ${tp.examAim ? `Aim: ${escapeHtml(tp.examAim)} · ` : ""}
+                    Room: ${access.visibility === "public" ? "Public" : access.visibility === "private" ? "Private" : "Friends Only"}
                   </div>
+                  ${!access.allowed ? `<div class="df-muted" style="color:#fbbf24;">🔒 ${escapeHtml(access.reason)}</div>` : ""}
                 </div>
-                ${inspectedFriend.bio ? `<p style="margin:0;font-size:12.5px;color:#cbd5e1;">${escapeHtml(inspectedFriend.bio)}</p>` : ""}
-                ${inspectedFriend.examAim ? `<div class="df-muted">Aim: ${escapeHtml(inspectedFriend.examAim)}</div>` : ""}
-              </div>
-            ` : ""}
+              `;
+            })() : ""}
 
             ${friendSearchResults !== null ? `
               <div class="df-stack">
-                ${friendSearchResults.length === 0 ? `<div class="df-muted">No matching students found.</div>` : friendSearchResults.map((p) => `
-                  <div class="df-item-card">
-                    <div>
-                      <strong>${escapeHtml(p.display_name || "Student")}</strong>
-                      <div class="df-muted">${escapeHtml(p.public_id || "")}${p.course_class ? ` · ${escapeHtml(p.course_class)}` : ""}</div>
+                ${friendSearchResults.length === 0 ? `<div class="df-muted">No matching students found.</div>` : friendSearchResults.map((p) => {
+                  const rel = getRelationshipStatus({
+                    viewerId: state.user.id,
+                    targetId: p.id,
+                    friends: state.friends,
+                    incoming: state.friendRequests?.incoming,
+                    outgoing: state.friendRequests?.outgoing
+                  });
+                  return `
+                    <div class="df-item-card">
+                      <div>
+                        <strong>${escapeHtml(p.display_name || "Student")}</strong>
+                        <div class="df-muted">${escapeHtml(p.public_id || "")}${p.course_class ? ` · ${escapeHtml(p.course_class)}` : ""}</div>
+                      </div>
+                      <div class="df-item-card-acts">
+                        <button type="button" class="df-btn-subtle" data-dfm-inspect-friend="${escapeHtml(p.id)}">Profile</button>
+                        ${rel.status === "none"
+                          ? `<button type="button" class="df-btn-accent" data-dfm-add-friend="${escapeHtml(p.id)}">+ Add</button>`
+                          : `<span class="df-muted">${rel.status === "friends" ? "Friend" : "Pending"}</span>`}
+                      </div>
                     </div>
-                    <div class="df-item-card-acts">
-                      <button type="button" class="df-btn-subtle" data-dfm-add-friend="${escapeHtml(p.id)}">+ Add</button>
-                      <button type="button" class="df-btn-accent" data-dfm-visit-room="${escapeHtml(p.id)}">Visit</button>
-                    </div>
-                  </div>
-                `).join("")}
+                  `;
+                }).join("")}
               </div>
             ` : ""}
 
@@ -941,6 +993,7 @@ export function createDeepFocusModalController({
                       <div class="df-muted">${escapeHtml(req.profile?.public_id || "")}</div>
                     </div>
                     <div class="df-item-card-acts">
+                      <button type="button" class="df-btn-subtle" data-dfm-inspect-friend="${escapeHtml(req.senderId)}">Profile</button>
                       <button type="button" class="df-btn-accent" data-dfm-req-acc="${escapeHtml(req.id)}">Accept</button>
                       <button type="button" class="df-btn-subtle" data-dfm-req-dec="${escapeHtml(req.id)}">Decline</button>
                     </div>
@@ -949,56 +1002,126 @@ export function createDeepFocusModalController({
               </div>
             ` : ""}
 
+            ${(state.friendRequests?.outgoing || []).length > 0 ? `
+              <div class="df-stack">
+                ${(state.friendRequests?.outgoing || []).map((req) => `
+                  <div class="df-item-card">
+                    <div>
+                      <strong>Sent Request · ${escapeHtml(req.profile?.display_name || "Student")}</strong>
+                      <div class="df-muted">${escapeHtml(req.profile?.public_id || "")}</div>
+                    </div>
+                    <button type="button" class="df-btn-subtle" data-dfm-cancel-req="${escapeHtml(req.id)}">Cancel</button>
+                  </div>
+                `).join("")}
+              </div>
+            ` : ""}
+
             <div class="df-stack">
-              ${friendEntries.length === 0 ? `<div class="df-empty-box">No friends connected yet.</div>` : friendEntries.map((f) => `
-                <div class="df-item-card">
-                  <div style="display:flex;align-items:center;gap:10px;min-width:0;">
-                    <span class="df-live-indicator ${f.status === "studying" ? "is-live" : ""}"></span>
-                    <div style="min-width:0;">
-                      <strong>${escapeHtml(f.displayName)}</strong>
-                      <div class="df-muted">${f.status === "studying" ? `Studying ${escapeHtml(f.subject || "Focus")}` : f.status === "online" ? "Online" : "Offline"} · ${escapeHtml(f.publicId)}</div>
+              ${friendEntries.length === 0 ? `<div class="df-empty-box">No friends connected yet.</div>` : friendEntries.map((f) => {
+                const access = canUserVisitRoom({
+                  targetUserId: f.id,
+                  viewerUserId: state.user.id,
+                  privacy: f.privacy,
+                  isFriend: true
+                });
+                return `
+                  <div class="df-item-card">
+                    <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+                      <span class="df-live-indicator ${f.status === "studying" ? "is-live" : ""}"></span>
+                      <div style="min-width:0;">
+                        <strong>${escapeHtml(f.displayName)}</strong>
+                        <div class="df-muted">${f.status === "studying" ? `Studying ${escapeHtml(f.subject || "Focus")}` : f.status === "online" ? "Online" : "Offline"} · ${escapeHtml(f.publicId)}</div>
+                      </div>
+                    </div>
+                    <div class="df-item-card-acts">
+                      <button type="button" class="df-btn-subtle" data-dfm-inspect-friend="${escapeHtml(f.id)}">Profile</button>
+                      ${access.allowed
+                        ? `<button type="button" class="df-btn-accent" data-dfm-visit-room="${escapeHtml(f.id)}">Visit</button>`
+                        : `<span class="df-muted">Private</span>`}
                     </div>
                   </div>
-                  <div class="df-item-card-acts">
-                    <button type="button" class="df-btn-subtle" data-dfm-inspect-friend="${escapeHtml(f.id)}">Account</button>
-                    <button type="button" class="df-btn-accent" data-dfm-visit-room="${escapeHtml(f.id)}">Visit</button>
-                  </div>
-                </div>
-              `).join("")}
+                `;
+              }).join("")}
             </div>
           `}
         </div>
       ` : `
         <div class="df-stack">
-          <div class="df-sec-head">
-            <h3>Public Cloud Rooms (${(state.studyRooms || []).length})</h3>
-            <button type="button" class="df-btn-subtle" id="dfm-refresh-rooms" ${!signedIn ? "disabled" : ""}>↻ Refresh</button>
-          </div>
-          ${(state.studyRooms || []).length === 0
-            ? `<div class="df-empty-box">${signedIn ? "No active cloud rooms right now." : "Sign in via /account to join cloud rooms."}</div>`
-            : `<div class="df-stack">
-                ${state.studyRooms.map((r) => `
-                  <div class="df-item-card">
-                    <div>
-                      <strong>${escapeHtml(r.name)}</strong>
-                      <div class="df-muted">${escapeHtml(r.category || "Study")} · Max ${r.max_capacity || 10}</div>
-                    </div>
+          ${signedIn && openGroupId && state.activeGroupWorkspace?.group?.id === openGroupId ? (() => {
+            const ws = state.activeGroupWorkspace;
+            const grp = ws.group;
+            return `
+              <div class="df-item-card is-active" style="flex-direction:column;align-items:stretch;">
+                <div class="df-sec-head">
+                  <button type="button" class="df-btn-subtle" id="dfm-grp-back">← All Groups</button>
+                  <span class="df-muted tabular-nums">Code: ${escapeHtml(grp.invite_code || "")}</span>
+                </div>
+                <strong>${escapeHtml(grp.name)}</strong>
+                <div class="df-muted">${escapeHtml(grp.subject || "General")} · ${ws.members.length} members</div>
+                ${grp.pinned_announcement ? `<div class="df-notice">${escapeHtml(grp.pinned_announcement)}</div>` : ""}
+                ${ws.myRole ? `
+                  <div class="df-stack" style="max-height:190px;overflow-y:auto;">
+                    ${ws.messages.length === 0 ? `<div class="df-muted">No messages yet.</div>` : ws.messages.map((m) => `
+                      <div style="font-size:12.5px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.08);">
+                        <strong>${escapeHtml(m.author?.displayName || "Student")}:</strong> ${escapeHtml(m.content || "")}
+                      </div>
+                    `).join("")}
                   </div>
-                `).join("")}
-              </div>`}
-
-          <form id="dfm-create-group-form" class="df-stack df-item-card" style="flex-direction:column;align-items:stretch;">
-            <strong>+ Create Study Group</strong>
-            <div class="df-inline-form">
-              <input id="dfm-grp-name" class="df-input" type="text" required maxlength="50" placeholder="Morning Calculus Club" style="flex:1;" />
-              <input id="dfm-grp-subj" class="df-input" type="text" required maxlength="40" value="Mathematics" style="flex:1;" />
-            </div>
-            <textarea id="dfm-grp-desc" class="df-textarea" style="min-height:52px;" maxlength="240" placeholder="Group focus cadence..."></textarea>
+                  <form id="dfm-grp-msg-form" class="df-inline-form">
+                    <input id="dfm-grp-msg-input" class="df-input" type="text" required maxlength="600" placeholder="Write to group..." style="flex:1;" />
+                    <button type="submit" class="df-btn-accent">Send</button>
+                  </form>
+                ` : `
+                  <button type="button" class="df-btn-accent" data-dfm-join-grp="${escapeHtml(grp.id)}">Join Group</button>
+                `}
+              </div>
+            `;
+          })() : `
             <div class="df-sec-head">
-              <label class="df-check-row"><input id="dfm-grp-priv" type="checkbox" /><span>Private group</span></label>
-              <button type="submit" class="df-btn-accent" ${!signedIn ? "disabled" : ""}>Create Group</button>
+              <h3>Study Groups (${(state.studyGroups || []).length})</h3>
+              <button type="button" class="df-btn-subtle" id="dfm-refresh-groups" ${!signedIn ? "disabled" : ""}>↻ Refresh</button>
             </div>
-          </form>
+            ${signedIn ? `
+              <form id="dfm-join-code-form" class="df-inline-form">
+                <input id="dfm-join-code" class="df-input" type="text" required maxlength="16" placeholder="Join group via invite code..." style="flex:1;" />
+                <button type="submit" class="df-btn-accent">Join by Code</button>
+              </form>
+            ` : ""}
+            ${(state.studyGroups || []).length === 0
+              ? `<div class="df-empty-box">${signedIn ? "No study groups yet. Create one below!" : "Sign in via /account to join study groups."}</div>`
+              : `<div class="df-stack">
+                  ${state.studyGroups.map((g) => {
+                    const role = (state.groupMemberships || {})[g.id];
+                    return `
+                      <div class="df-item-card">
+                        <div>
+                          <strong>${escapeHtml(g.name)}</strong>
+                          <div class="df-muted">${escapeHtml(g.subject || "Study")} · ${g.member_count || 1} members · ${g.is_private ? "Private" : "Public"}</div>
+                        </div>
+                        <div class="df-item-card-acts">
+                          <button type="button" class="df-btn-subtle" data-dfm-open-grp="${escapeHtml(g.id)}">Open</button>
+                          ${role
+                            ? `<button type="button" class="df-btn-subtle" data-dfm-leave-grp="${escapeHtml(g.id)}">Leave</button>`
+                            : `<button type="button" class="df-btn-accent" data-dfm-join-grp="${escapeHtml(g.id)}">Join</button>`}
+                        </div>
+                      </div>
+                    `;
+                  }).join("")}
+                </div>`}
+
+            <form id="dfm-create-group-form" class="df-stack df-item-card" style="flex-direction:column;align-items:stretch;">
+              <strong>+ Create Study Group</strong>
+              <div class="df-inline-form">
+                <input id="dfm-grp-name" class="df-input" type="text" required maxlength="50" placeholder="Morning Calculus Club" style="flex:1;" />
+                <input id="dfm-grp-subj" class="df-input" type="text" required maxlength="40" value="Mathematics" style="flex:1;" />
+              </div>
+              <textarea id="dfm-grp-desc" class="df-textarea" style="min-height:52px;" maxlength="240" placeholder="Group focus cadence..."></textarea>
+              <div class="df-sec-head">
+                <label class="df-check-row"><input id="dfm-grp-priv" type="checkbox" /><span>Private group</span></label>
+                <button type="submit" class="df-btn-accent" ${!signedIn ? "disabled" : ""}>Create Group</button>
+              </div>
+            </form>
+          `}
         </div>
       `}
     `;
@@ -1816,9 +1939,10 @@ export function createDeepFocusModalController({
       });
 
       backdrop.querySelectorAll("[data-dfm-inspect-friend]").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const entries = presenceService.getSnapshot(Date.now()).entries || [];
-          inspectedFriend = entries.find((f) => f.id === btn.dataset.dfmInspectFriend) || null;
+        btn.addEventListener("click", async () => {
+          const { data, error } = await fetchUserPublicProfile(btn.dataset.dfmInspectFriend);
+          if (error) statusMsg = error.message;
+          else inspectedFriend = data;
           onWorkspaceMutated?.();
         });
       });
@@ -1844,8 +1968,38 @@ export function createDeepFocusModalController({
 
       backdrop.querySelectorAll("[data-dfm-add-friend]").forEach((btn) => {
         btn.addEventListener("click", async () => {
-          const { error } = await sendFriendRequest(btn.dataset.dfmAddFriend);
+          const targetId = btn.dataset.dfmAddFriend;
+          const { error } = await sendFriendRequest(targetId);
           statusMsg = error ? error.message : "Friend request sent.";
+          if (inspectedFriend?.profile?.id === targetId) {
+            const { data } = await fetchUserPublicProfile(targetId);
+            if (data) inspectedFriend = data;
+          }
+          onWorkspaceMutated?.();
+        });
+      });
+
+      backdrop.querySelectorAll("[data-dfm-cancel-req]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const { error } = await cancelFriendRequest(btn.dataset.dfmCancelReq);
+          statusMsg = error ? error.message : "Request cancelled.";
+          if (inspectedFriend?.profile?.id) {
+            const { data } = await fetchUserPublicProfile(inspectedFriend.profile.id);
+            if (data) inspectedFriend = data;
+          }
+          onWorkspaceMutated?.();
+        });
+      });
+
+      backdrop.querySelectorAll("[data-dfm-unfriend]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const targetId = btn.dataset.dfmUnfriend;
+          const { error } = await unfriendUser(targetId);
+          statusMsg = error ? error.message : "Friend removed.";
+          if (inspectedFriend?.profile?.id === targetId) {
+            const { data } = await fetchUserPublicProfile(targetId);
+            if (data) inspectedFriend = data;
+          }
           onWorkspaceMutated?.();
         });
       });
@@ -1854,6 +2008,10 @@ export function createDeepFocusModalController({
         btn.addEventListener("click", async () => {
           const { error } = await respondFriendRequest(btn.dataset.dfmReqAcc, true);
           statusMsg = error ? error.message : "Friend added.";
+          if (inspectedFriend?.profile?.id) {
+            const { data } = await fetchUserPublicProfile(inspectedFriend.profile.id);
+            if (data) inspectedFriend = data;
+          }
           onWorkspaceMutated?.();
         });
       });
@@ -1866,22 +2024,76 @@ export function createDeepFocusModalController({
         });
       });
 
-      backdrop.querySelector("#dfm-refresh-rooms")?.addEventListener("click", async () => {
-        const { data, error } = await supabase.select("study_rooms", "order=created_at.desc&limit=20");
+      backdrop.querySelector("#dfm-refresh-groups")?.addEventListener("click", async () => {
+        await loadStudyGroups();
+        onWorkspaceMutated?.();
+      });
+
+      backdrop.querySelector("#dfm-join-code-form")?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const code = backdrop.querySelector("#dfm-join-code")?.value.trim();
+        const { data, error } = await joinStudyGroup({ inviteCode: code });
+        statusMsg = error ? error.message : "Joined group.";
+        if (data?.id) {
+          openGroupId = data.id;
+          await loadGroupWorkspace(data.id);
+        }
+        onWorkspaceMutated?.();
+      });
+
+      backdrop.querySelectorAll("[data-dfm-open-grp]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          openGroupId = btn.dataset.dfmOpenGrp;
+          await loadGroupWorkspace(openGroupId);
+          onWorkspaceMutated?.();
+        });
+      });
+
+      backdrop.querySelector("#dfm-grp-back")?.addEventListener("click", () => {
+        openGroupId = null;
+        onWorkspaceMutated?.();
+      });
+
+      backdrop.querySelectorAll("[data-dfm-join-grp]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const gid = btn.dataset.dfmJoinGrp;
+          const { error } = await joinStudyGroup({ groupId: gid });
+          statusMsg = error ? error.message : "Joined group.";
+          if (!error && openGroupId === gid) await loadGroupWorkspace(gid);
+          onWorkspaceMutated?.();
+        });
+      });
+
+      backdrop.querySelectorAll("[data-dfm-leave-grp]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const { error } = await leaveStudyGroup(btn.dataset.dfmLeaveGrp);
+          statusMsg = error ? error.message : "Left group.";
+          onWorkspaceMutated?.();
+        });
+      });
+
+      backdrop.querySelector("#dfm-grp-msg-form")?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const val = backdrop.querySelector("#dfm-grp-msg-input")?.value.trim();
+        if (!val || !openGroupId) return;
+        const { error } = await postGroupMessage(openGroupId, val);
         if (error) statusMsg = error.message;
-        else state.studyRooms = data || [];
         onWorkspaceMutated?.();
       });
 
       backdrop.querySelector("#dfm-create-group-form")?.addEventListener("submit", async (e) => {
         e.preventDefault();
-        const { error } = await supabase.rpc("create_study_group", {
-          p_name: backdrop.querySelector("#dfm-grp-name")?.value.trim(),
-          p_description: backdrop.querySelector("#dfm-grp-desc")?.value.trim(),
-          p_subject: backdrop.querySelector("#dfm-grp-subj")?.value.trim(),
-          p_is_private: Boolean(backdrop.querySelector("#dfm-grp-priv")?.checked)
+        const { data, error } = await createStudyGroup({
+          name: backdrop.querySelector("#dfm-grp-name")?.value.trim(),
+          description: backdrop.querySelector("#dfm-grp-desc")?.value.trim(),
+          subject: backdrop.querySelector("#dfm-grp-subj")?.value.trim(),
+          isPrivate: Boolean(backdrop.querySelector("#dfm-grp-priv")?.checked)
         });
         statusMsg = error ? error.message : "Group created.";
+        if (!error && data?.id) {
+          openGroupId = data.id;
+          await loadGroupWorkspace(data.id);
+        }
         onWorkspaceMutated?.();
       });
     }

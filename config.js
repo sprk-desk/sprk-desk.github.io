@@ -8,8 +8,8 @@ export const APP_CONFIG = {
 
   // The publishable key is intended for browser use; never put a service_role key here.
   supabase: {
-    url: (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_SUPABASE_URL) || "https://isrymcpzfqhtgegdkqxh.supabase.co",
-    anonKey: (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_SUPABASE_ANON_KEY) || "sb_publishable_tEK1u76pQSCfqcPpX9Kldw_v1lyeSnL",
+    url: (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_SUPABASE_URL) || "https://xsvwqpajrmflsocxedaa.supabase.co",
+    anonKey: (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_SUPABASE_ANON_KEY) || "sb_publishable_INJqj9ewgHU3D9w0Y7urxw_m1l-FxmX",
     storageBuckets: {
       avatars: "avatars",
       groups: "group-assets",
