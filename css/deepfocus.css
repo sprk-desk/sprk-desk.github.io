@@ -67,7 +67,8 @@ html[data-page="deepfocus"] .sprk-mode-switch-btn.is-active {
   color: #09111e;
 }
 
-/* Hide Cozy Study Room elements cleanly when on DeepFocus page */
+/* Hide Cozy Study Room elements and top-left switcher when on DeepFocus page */
+html[data-page="deepfocus"] #sprk-mode-switcher,
 html[data-page="deepfocus"] .room-screen,
 html[data-page="deepfocus"] #room-active-whisper,
 html[data-page="deepfocus"] #sprk-study-circle-root {
@@ -162,149 +163,288 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   height: 100%;
 }
 
-/* Decluttered 3-Zone Top Bar */
-.df-topbar {
+/* Expandable Top-Right Studio Hub */
+.df-hub {
+  position: fixed;
+  top: 18px;
+  right: 20px;
+  z-index: 35;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.df-hub-trigger {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 38px;
+  padding: 0 13px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(13, 20, 35, 0.72);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.32);
+  color: #f1f5f9;
+  font: 600 13px/1 "Plus Jakarta Sans", system-ui, sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 180ms ease, background-color 150ms ease, border-color 150ms ease, transform 120ms ease;
+}
+
+.df-hub-trigger:hover,
+.df-hub-trigger.is-open {
+  background: rgba(15, 24, 42, 0.92);
+  border-color: color-mix(in srgb, var(--df-accent) 48%, rgba(255, 255, 255, 0.25));
+  color: #ffffff;
+}
+
+.df-hub.is-pure-zen:not(.is-open) .df-hub-trigger {
+  opacity: 0.28;
+}
+
+.df-hub.is-pure-zen:not(.is-open) .df-hub-trigger:hover,
+.df-hub.is-pure-zen:not(.is-open) .df-hub-trigger:focus-visible {
+  opacity: 1;
+}
+
+.df-hub-glyph {
+  display: grid;
+  grid-template-columns: repeat(2, 4px);
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.df-hub-glyph span {
+  width: 4px;
+  height: 4px;
+  border-radius: 1.5px;
+  background: rgba(226, 232, 240, 0.78);
+  transition: background-color 150ms ease, box-shadow 150ms ease;
+}
+
+.df-hub-glyph.is-active span {
+  background: var(--df-accent);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--df-accent) 65%, transparent);
+}
+
+.df-hub-chev {
+  font-size: 12px;
+  line-height: 1;
+  color: var(--df-muted);
+}
+
+.df-hub-panel {
+  width: 372px;
+  max-width: calc(100vw - 24px);
+  max-height: calc(100vh - 82px);
+  overflow-y: auto;
+  scrollbar-width: none;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(12, 19, 34, 0.94);
+  backdrop-filter: blur(26px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.58);
+  display: grid;
+  gap: 11px;
+  transform-origin: top right;
+  animation: dfHubIn 170ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes dfHubIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.df-hub-top-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
-  height: 58px;
-  padding: 0 22px;
-  background: rgba(10, 16, 28, 0.56);
-  backdrop-filter: blur(18px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  flex-shrink: 0;
+  gap: 8px;
 }
 
-.df-top-left {
+.df-hub-pages {
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-width: 0;
-  flex-shrink: 0;
-}
-
-.df-mode-slot-spacer {
-  width: 180px;
-  flex-shrink: 0;
-}
-
-.df-brand-link {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  padding: 4px 2px;
-  font: 600 13px/1 "Plus Jakarta Sans", system-ui, sans-serif;
-  color: rgba(241, 245, 249, 0.84);
-  cursor: pointer;
-  white-space: nowrap;
-  transition: color 140ms ease;
-}
-
-.df-brand-link:hover {
-  color: #ffffff;
-}
-
-.df-top-sep {
-  color: rgba(148, 163, 184, 0.45);
-  font-size: 12px;
-}
-
-/* Clean Typographic Center Nav */
-.df-nav {
-  display: flex;
-  align-items: center;
-  gap: 22px;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   min-width: 0;
 }
 
-.df-nav-link {
+.df-hub-page-btn {
   appearance: none;
   border: 0;
-  background: transparent;
-  padding: 8px 2px;
-  min-height: 36px;
-  font: 600 13px/1 "Plus Jakarta Sans", system-ui, sans-serif;
-  color: rgba(226, 232, 240, 0.78);
-  cursor: pointer;
+  border-radius: 7px;
+  padding: 6px 10px;
+  min-height: 28px;
+  max-width: 112px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
-  position: relative;
-  transition: color 150ms ease;
+  background: transparent;
+  color: #cbd5e1;
+  font: 600 11.5px/1 "Plus Jakarta Sans", system-ui, sans-serif;
+  cursor: pointer;
+  text-align: center;
+  transition: background-color 140ms ease, color 140ms ease;
 }
 
-.df-nav-link:hover {
+.df-hub-page-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
   color: #ffffff;
 }
 
-.df-nav-link.is-active {
+.df-hub-utils {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.df-hub-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.df-hub-tile {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 12px;
+  padding: 10px 11px;
+  background: rgba(255, 255, 255, 0.035);
+  color: #f8fafc;
+  display: grid;
+  gap: 3px;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 140ms ease, border-color 140ms ease;
+}
+
+.df-hub-tile strong {
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.df-hub-tile span {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--df-muted);
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.df-hub-tile:hover {
+  background: rgba(255, 255, 255, 0.085);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.df-hub-tile.is-active {
+  background: var(--df-accent-soft);
+  border-color: color-mix(in srgb, var(--df-accent) 55%, transparent);
+}
+
+.df-hub-tile.is-active strong {
   color: var(--df-accent);
 }
 
-.df-nav-link.is-active::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 2px;
-  border-radius: 2px;
-  background: var(--df-accent);
+.df-hub-card {
+  padding: 11px 12px;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  display: grid;
+  gap: 9px;
 }
 
-/* Compact Right Utilities */
-.df-top-right {
+.df-hub-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.df-hub-card-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.df-hub-inline-link {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 2px 0;
+  font: 600 11.5px/1 "Plus Jakarta Sans", system-ui, sans-serif;
+  color: var(--df-accent);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.df-hub-inline-link:hover {
+  text-decoration: underline;
+}
+
+.df-hub-audio-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-shrink: 0;
 }
 
-.df-util-btn {
-  appearance: none;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.05);
-  color: #e2e8f0;
-  border-radius: 8px;
-  min-height: 32px;
-  padding: 0 11px;
-  font: 600 12.5px/1 "Plus Jakarta Sans", system-ui, sans-serif;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+.df-hub-audio-row .df-dock-disc-select {
+  flex: 1;
+  min-width: 0;
+  max-width: none;
 }
 
-.df-util-btn:hover,
-.df-util-btn.is-active {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.24);
-  color: #ffffff;
+.df-hub-vol-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11.5px;
 }
 
-.df-util-btn.is-icon {
-  width: 34px;
-  padding: 0;
-  display: grid;
-  place-items: center;
-  font-size: 15px;
+.df-hub-vol-row input[type="range"] {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--df-accent);
 }
 
-/* Zen Exit Button */
-.df-zen-exit {
-  position: fixed;
-  top: 14px;
-  right: 18px;
-  z-index: 60;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(15, 23, 38, 0.72);
-  backdrop-filter: blur(14px);
-  color: #f8fafc;
-  border-radius: 8px;
-  padding: 7px 14px;
-  font: 600 12.5px/1 "Plus Jakarta Sans", system-ui, sans-serif;
-  cursor: pointer;
+.df-hub-friends-empty {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--df-muted);
 }
 
-/* Center Stage & Hero Timer Card */
+.df-hub-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Center Stage & Hero Timer Card (Zen-first full viewport) */
 .df-stage {
   flex: 1;
   display: flex;
@@ -312,16 +452,12 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   align-items: center;
   justify-content: safe center;
   gap: 14px;
-  padding: 20px 20px 88px;
+  padding: 24px 20px;
   overflow-y: auto;
 }
 
 .df-layout.has-drawer .df-stage {
   padding-right: 400px;
-}
-
-.df-layout.has-drawer .df-sound-dock {
-  left: calc((100vw - 390px) / 2);
 }
 
 .df-timer-card {
@@ -544,39 +680,12 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   font-weight: 600;
 }
 
-/* Live Friends Studying Widget */
-.df-friends-panel {
-  position: fixed;
-  left: 20px;
-  bottom: 84px;
-  z-index: 15;
-  width: 326px;
-  border-radius: 16px;
-  background: var(--df-surface);
-  backdrop-filter: blur(20px);
-  border: 1px solid var(--df-border);
-  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.35);
-  overflow: hidden;
-}
-
-.df-friends-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 10px 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.df-friends-panel.is-collapsed .df-friends-head {
-  border-bottom: 0;
-}
-
+/* Studying Together Rows (inside Hub Panel) */
 .df-friends-title {
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
   min-width: 0;
@@ -594,29 +703,6 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 .df-live-indicator.is-live {
   background: #22c55e;
   box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.22);
-}
-
-.df-friends-head-actions {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  flex-shrink: 0;
-}
-
-.df-friends-body {
-  padding: 10px 12px 12px;
-}
-
-.df-friends-empty {
-  display: grid;
-  gap: 8px;
-  font-size: 12px;
-  line-height: 1.45;
-  color: var(--df-muted);
-}
-
-.df-friends-empty p {
-  margin: 0;
 }
 
 .df-friends-list {
@@ -671,76 +757,8 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   text-overflow: ellipsis;
 }
 
-/* Bottom Floating Sound Mixer Dock */
-.df-sound-dock {
-  position: fixed;
-  left: 50%;
-  bottom: 16px;
-  transform: translateX(-50%);
-  z-index: 20;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  max-width: calc(100vw - 32px);
-  padding: 10px 16px;
-  border-radius: 16px;
-  background: var(--df-surface);
-  backdrop-filter: blur(22px);
-  border: 1px solid var(--df-border);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.42);
-}
-
-.df-dock-mixer-btn {
-  appearance: none;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.06);
-  color: #f8fafc;
-  border-radius: 10px;
-  min-height: 34px;
-  padding: 0 12px;
-  font: 600 12px/1 "Plus Jakarta Sans", system-ui, sans-serif;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.df-dock-mixer-btn:hover,
-.df-dock-mixer-btn.is-active {
-  background: var(--df-accent-soft);
-  border-color: color-mix(in srgb, var(--df-accent) 45%, transparent);
-  color: #ffffff;
-}
-
-.df-dock-sliders {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.df-dock-ch {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11.5px;
-  color: #cbd5e1;
-  white-space: nowrap;
-}
-
-.df-dock-ch input[type="range"] {
-  width: 66px;
-  accent-color: var(--df-accent);
-}
-
-.df-dock-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding-left: 12px;
-  border-left: 1px solid rgba(255, 255, 255, 0.1);
-}
-
 .df-dock-disc-select {
   min-height: 32px;
-  max-width: 175px;
   padding: 4px 8px;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -760,6 +778,7 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
   background: rgba(255, 255, 255, 0.1);
   color: #f8fafc;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .df-dock-play.is-playing {
@@ -770,12 +789,12 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 /* Right Slide-Over Settings Drawer */
 .df-drawer {
   position: fixed;
-  top: 58px;
+  top: 0;
   right: 0;
   bottom: 0;
   width: 390px;
   max-width: 100vw;
-  z-index: 30;
+  z-index: 38;
   background: var(--df-surface-solid);
   backdrop-filter: blur(24px);
   border-left: 1px solid var(--df-border);
@@ -954,6 +973,12 @@ html[data-page="deepfocus"] body::-webkit-scrollbar,
 .df-icon-btn:hover {
   background: rgba(255, 255, 255, 0.12);
   color: #ffffff;
+}
+
+.df-icon-btn.is-active {
+  background: var(--df-accent-soft);
+  border-color: color-mix(in srgb, var(--df-accent) 55%, transparent);
+  color: var(--df-accent);
 }
 
 .df-input,
@@ -1735,53 +1760,16 @@ html[data-page="deepfocus"] .sprk-cmd-kbd {
   .df-layout.has-drawer .df-stage {
     padding-right: 20px;
   }
-  .df-layout.has-drawer .df-sound-dock {
-    left: 50%;
-  }
-  .df-dock-sliders {
-    display: none;
-  }
-}
-
-@media (max-width: 1024px), (max-height: 760px) {
-  .df-friends-panel {
-    position: static;
-    width: 100%;
-    max-width: 456px;
-    flex-shrink: 0;
-  }
 }
 
 @media (max-width: 820px) {
-  .df-topbar {
-    flex-wrap: wrap;
-    height: auto;
-    padding: 10px 14px;
-    gap: 8px;
-  }
-  .df-mode-slot-spacer {
-    width: 156px;
-  }
-  .df-nav {
-    order: 3;
-    width: 100%;
-    overflow-x: auto;
-    gap: 16px;
-    padding-top: 2px;
-  }
   .df-stage {
-    padding: 14px 14px 84px;
+    padding: 20px 14px;
   }
   .df-timer-card {
     padding: 22px 16px 18px;
   }
-  .df-sound-dock {
-    bottom: 10px;
-    padding: 8px 12px;
-    gap: 10px;
-  }
   .df-drawer {
-    top: 0;
     width: 100vw;
   }
   .df-kboard,
@@ -1800,27 +1788,14 @@ html[data-page="deepfocus"] .sprk-cmd-kbd {
     padding: 5px 8px;
     font-size: 11.5px;
   }
-  .df-topbar {
-    padding: 10px 10px 8px;
+  .df-hub {
+    top: 12px;
+    right: 12px;
   }
-  .df-brand-link,
-  .df-top-sep,
-  #df-btn-palette {
-    display: none;
-  }
-  .df-mode-slot-spacer {
-    width: 158px;
-  }
-  .df-top-right {
-    gap: 6px;
-  }
-  .df-util-btn {
-    padding: 0 9px;
-    min-height: 30px;
-    font-size: 11.5px;
-  }
-  .df-util-btn.is-icon {
-    width: 30px;
+  .df-hub-panel {
+    width: calc(100vw - 24px);
+    max-height: calc(100vh - 70px);
+    padding: 12px;
   }
   .df-task-bind-row,
   .df-kpi-grid {

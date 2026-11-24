@@ -1,4 +1,4 @@
-// DeepFocus Studio — Distraction-Free Glassmorphic Workspace Sharing Full Database with Cozy Study Room
+// DeepFocus Studio — Serene Zen-First Focus Stage with Expandable Top-Right Studio Hub
 import { APP_CONFIG } from "../../config.js";
 import { state, savePreferences, persistLocalCollection } from "../state.js";
 import { bus } from "../core/event-bus.js";
@@ -55,6 +55,7 @@ export function initDeepFocusWorkspace() {
   const shellEl = document.getElementById("deepfocus-shell");
   if (!modeSwitcherEl || !shellEl) return;
 
+  let hubExpanded = false;
   let activeDrawer = null; // null | "settings"
   let timerTab = state.preferences?.deepFocus?.timerTab || "pomodoro";
   let pomodoroPhase = "focus"; // focus | short_break | long_break
@@ -63,7 +64,6 @@ export function initDeepFocusWorkspace() {
   let selectedTaskId = "";
   let selectedCheckInQuality = 4;
   let zenMode = Boolean(state.preferences?.deepFocus?.zenMode);
-  let friendsCollapsed = false;
   let settingsNotice = "";
 
   const isDeepFocusActive = () => parseCurrentPage().page === PAGE_ROUTES.DEEPFOCUS;
@@ -86,28 +86,27 @@ export function initDeepFocusWorkspace() {
 
   const renderModeSwitcher = () => {
     const page = parseCurrentPage().page;
-    const isWorkspacePage = page === PAGE_ROUTES.COZY || page === PAGE_ROUTES.DEEPFOCUS;
     const isSpectating = Boolean(state.spectatingRoom);
 
-    if (!isWorkspacePage || isSpectating) {
+    // Only float the top-left switcher on Cozy Study; DeepFocus keeps a pure Zen top edge
+    if (page !== PAGE_ROUTES.COZY || isSpectating) {
       modeSwitcherEl.hidden = true;
       return;
     }
 
-    const mode = page === PAGE_ROUTES.DEEPFOCUS ? "deepfocus" : "cozy";
     modeSwitcherEl.hidden = false;
     modeSwitcherEl.innerHTML = `
       <div class="sprk-mode-switch" role="group" aria-label="Workspace mode">
-        <button type="button" class="sprk-mode-switch-btn ${mode === "cozy" ? "is-active" : ""}" data-switch-mode="cozy">Cozy Study</button>
-        <button type="button" class="sprk-mode-switch-btn ${mode === "deepfocus" ? "is-active" : ""}" data-switch-mode="deepfocus">DeepFocus</button>
+        <button type="button" class="sprk-mode-switch-btn is-active" data-switch-mode="cozy">Cozy Study</button>
+        <button type="button" class="sprk-mode-switch-btn" data-switch-mode="deepfocus">DeepFocus</button>
       </div>
     `;
     modeSwitcherEl.querySelectorAll("[data-switch-mode]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const nextMode = btn.dataset.switchMode;
-        if (nextMode !== mode) {
-          setAppMode(nextMode, { syncUrl: false });
-          navigateToPage(nextMode === "deepfocus" ? PAGE_ROUTES.DEEPFOCUS : PAGE_ROUTES.COZY);
+        if (nextMode === "deepfocus") {
+          setAppMode("deepfocus", { syncUrl: false });
+          navigateToPage(PAGE_ROUTES.DEEPFOCUS);
         }
       });
     });
@@ -246,95 +245,189 @@ export function initDeepFocusWorkspace() {
     return appearance;
   };
 
-  const renderFriendsWidgetHtml = () => {
+  const renderHubFriendsSectionHtml = () => {
     const { entries, summary, signedIn } = presenceService.getSnapshot(Date.now());
     const activeFriends = entries.filter((e) => e.status === "studying" || e.status === "online");
     const studyingList = entries.filter((e) => e.status === "studying");
 
     return `
-      <aside class="df-friends-panel ${friendsCollapsed ? "is-collapsed" : ""}" aria-label="Friends studying live">
-        <div class="df-friends-head">
+      <section class="df-hub-card df-hub-friends" aria-label="Studying together">
+        <div class="df-hub-card-head">
           <div class="df-friends-title">
             <span class="df-live-indicator ${summary.studyingCount > 0 ? "is-live" : ""}" aria-hidden="true"></span>
             <span>Studying Together</span>
             <span class="df-muted tabular-nums">${signedIn ? `${summary.studyingCount} live` : "Offline"}</span>
           </div>
-          <div class="df-friends-head-actions">
-            <button type="button" class="df-icon-btn" id="df-friends-manage" title="Manage Friends & Invites">Manage</button>
-            <button type="button" class="df-icon-btn" id="df-friends-collapse" aria-expanded="${!friendsCollapsed}" aria-label="${friendsCollapsed ? "Expand friends list" : "Minimize friends list"}">
-              ${friendsCollapsed ? "+" : "−"}
-            </button>
-          </div>
+          <button type="button" class="df-hub-inline-link" id="df-friends-manage">Rooms &amp; Friends →</button>
         </div>
-        ${friendsCollapsed ? "" : `
-          <div class="df-friends-body">
-            ${!signedIn ? `
-              <div class="df-friends-empty">
-                <p>Sign in to see friends studying in real time alongside your session.</p>
-                <button type="button" class="df-btn-subtle" id="df-friends-signin">Sign In via /account</button>
-              </div>
-            ` : entries.length === 0 ? `
-              <div class="df-friends-empty">
-                <p>No friends connected yet. Add classmates to study live together.</p>
-                <button type="button" class="df-btn-subtle" id="df-friends-find">Find Friends</button>
-              </div>
-            ` : activeFriends.length === 0 ? `
-              <div class="df-friends-empty">
-                <p>${entries.length} friend${entries.length === 1 ? "" : "s"} added · None currently online.</p>
-              </div>
-            ` : `
-              <div class="df-friends-list">
-                ${(studyingList.length > 0 ? studyingList : activeFriends).slice(0, 4).map((friend) => {
-                  const safeAvatar = sanitizeAvatarUrl(friend.avatarUrl || "");
-                  return `
-                    <div class="df-friend-row">
-                      <div class="df-friend-avatar">
-                        ${safeAvatar
-                          ? `<img src="${escapeHtml(safeAvatar)}" alt="" referrerpolicy="no-referrer" />`
-                          : `<span>${escapeHtml(friend.avatarPreset || friend.displayName.slice(0, 1).toUpperCase())}</span>`}
-                      </div>
-                      <div class="df-friend-meta">
-                        <div class="df-friend-name">${escapeHtml(friend.displayName)}</div>
-                        <div class="df-friend-sub">
-                          <span>${friend.status === "studying" ? escapeHtml(friend.subject || "Focusing") : "Online"}</span>
-                          ${friend.elapsedLabel ? ` · <span class="tabular-nums">${escapeHtml(friend.elapsedLabel)}</span>` : ""}
-                        </div>
-                      </div>
-                      <button type="button" class="df-btn-subtle" data-df-visit="${escapeHtml(friend.id)}">Visit</button>
+
+        ${!signedIn ? `
+          <div class="df-hub-friends-empty">
+            <span>Sign in to study live with classmates and visit rooms.</span>
+            <button type="button" class="df-btn-subtle" id="df-friends-signin">Sign In</button>
+          </div>
+        ` : entries.length === 0 ? `
+          <div class="df-hub-friends-empty">
+            <span>No friends connected yet.</span>
+            <button type="button" class="df-btn-subtle" id="df-friends-find">Find Friends</button>
+          </div>
+        ` : activeFriends.length === 0 ? `
+          <div class="df-hub-friends-empty">
+            <span>${entries.length} friend${entries.length === 1 ? "" : "s"} added · None online now</span>
+            <button type="button" class="df-btn-subtle" id="df-friends-find">View All</button>
+          </div>
+        ` : `
+          <div class="df-friends-list">
+            ${(studyingList.length > 0 ? studyingList : activeFriends).slice(0, 3).map((friend) => {
+              const safeAvatar = sanitizeAvatarUrl(friend.avatarUrl || "");
+              return `
+                <div class="df-friend-row">
+                  <div class="df-friend-avatar">
+                    ${safeAvatar
+                      ? `<img src="${escapeHtml(safeAvatar)}" alt="" referrerpolicy="no-referrer" />`
+                      : `<span>${escapeHtml(friend.avatarPreset || friend.displayName.slice(0, 1).toUpperCase())}</span>`}
+                  </div>
+                  <div class="df-friend-meta">
+                    <div class="df-friend-name">${escapeHtml(friend.displayName)}</div>
+                    <div class="df-friend-sub">
+                      <span>${friend.status === "studying" ? escapeHtml(friend.subject || "Focusing") : "Online"}</span>
+                      ${friend.elapsedLabel ? ` · <span class="tabular-nums">${escapeHtml(friend.elapsedLabel)}</span>` : ""}
                     </div>
-                  `;
-                }).join("")}
-              </div>
-            `}
+                  </div>
+                  <button type="button" class="df-btn-subtle" data-df-visit="${escapeHtml(friend.id)}">Visit</button>
+                </div>
+              `;
+            }).join("")}
           </div>
         `}
-      </aside>
+      </section>
     `;
   };
 
-  const bindFriendsWidgetEvents = () => {
-    shellEl.querySelector("#df-friends-collapse")?.addEventListener("click", () => {
-      friendsCollapsed = !friendsCollapsed;
-      renderShell();
-    });
+  const bindHubFriendsEvents = () => {
     shellEl.querySelector("#df-friends-manage")?.addEventListener("click", () => {
+      hubExpanded = false;
       modals.open("community", "friends");
     });
     shellEl.querySelector("#df-friends-find")?.addEventListener("click", () => {
+      hubExpanded = false;
       modals.open("community", "friends");
     });
     shellEl.querySelector("#df-friends-signin")?.addEventListener("click", () => {
+      hubExpanded = false;
       navigateToPage(PAGE_ROUTES.ACCOUNT);
     });
     shellEl.querySelectorAll("[data-df-visit]").forEach((btn) => {
       btn.addEventListener("click", async () => {
         const { error } = await visitFriendRoom(btn.dataset.dfVisit);
         if (!error) {
+          hubExpanded = false;
           setAppMode("cozy", { syncUrl: false });
           navigateToPage(PAGE_ROUTES.COZY);
         }
       });
     });
+  };
+
+  const renderExpandableStudioHubHtml = ({ openTasks, ownedDiscs, activeDiscId, appearance }) => {
+    const activeModal = modals.getActiveModal();
+    const { summary } = presenceService.getSnapshot(Date.now());
+    const hasActivityCue = audioManager.isPlaying || summary.studyingCount > 0;
+    const userLabel = state.user ? (state.user.displayName || "Account") : "Account";
+    const volPct = Math.round((audioManager.masterVolume || 0.7) * 100);
+
+    return `
+      <div class="df-hub ${hubExpanded ? "is-open" : ""} ${zenMode ? "is-pure-zen" : ""}">
+        <button
+          type="button"
+          class="df-hub-trigger ${hubExpanded ? "is-open" : ""}"
+          id="df-hub-toggle"
+          aria-expanded="${hubExpanded}"
+          aria-controls="df-hub-panel"
+          title="Open DeepFocus Studio Hub (M)">
+          <span class="df-hub-glyph ${hasActivityCue ? "is-active" : ""}" aria-hidden="true">
+            <span></span><span></span><span></span><span></span>
+          </span>
+          <span class="df-hub-label">Studio</span>
+          <span class="df-hub-chev" aria-hidden="true">${hubExpanded ? "×" : "▾"}</span>
+        </button>
+
+        ${hubExpanded ? `
+          <div class="df-hub-panel" id="df-hub-panel" role="region" aria-label="DeepFocus Studio Hub">
+            <div class="df-hub-top-row">
+              <div class="df-hub-pages">
+                <button type="button" class="df-hub-page-btn" id="df-go-cozy" title="Switch to Cozy Study Room">Cozy Study</button>
+                <button type="button" class="df-hub-page-btn" id="df-go-account" title="Profile, Friends & Room Visits">${escapeHtml(userLabel)}</button>
+                <button type="button" class="df-hub-page-btn" id="df-go-home" title="Main SPRK Desk Website">Home</button>
+              </div>
+              <div class="df-hub-utils">
+                <button type="button" class="df-icon-btn" id="df-btn-palette" title="Command Palette (Ctrl/Cmd+K)">⌘K</button>
+                <button type="button" class="df-icon-btn ${activeDrawer === "settings" ? "is-active" : ""}" id="df-btn-settings" aria-label="Workspace Settings" title="Themes, Scenes & Particles">⚙</button>
+              </div>
+            </div>
+
+            <nav class="df-hub-grid" aria-label="Study tools">
+              <button type="button" class="df-hub-tile ${activeModal === "plan" ? "is-active" : ""}" data-df-modal="plan">
+                <strong>Plan</strong>
+                <span class="tabular-nums">${openTasks.length} open · Kanban</span>
+              </button>
+              <button type="button" class="df-hub-tile ${activeModal === "knowledge" ? "is-active" : ""}" data-df-modal="knowledge">
+                <strong>Notes &amp; Cards</strong>
+                <span>Diary · SRS</span>
+              </button>
+              <button type="button" class="df-hub-tile ${activeModal === "insights" ? "is-active" : ""}" data-df-modal="insights">
+                <strong>Insights</strong>
+                <span>Stats · Backup</span>
+              </button>
+              <button type="button" class="df-hub-tile ${activeModal === "community" ? "is-active" : ""}" data-df-modal="community">
+                <strong>Silent Halls</strong>
+                <span>Body-doubling</span>
+              </button>
+              <button type="button" class="df-hub-tile ${activeModal === "catalog" ? "is-active" : ""}" data-df-modal="catalog">
+                <strong>Catalog</strong>
+                <span>Scenes · Discs</span>
+              </button>
+              <button type="button" class="df-hub-tile ${activeModal === "break" ? "is-active" : ""}" data-df-modal="break">
+                <strong>Eye Rest</strong>
+                <span>20-20-20 · Break</span>
+              </button>
+            </nav>
+
+            <section class="df-hub-card" aria-label="Ambient music mixer">
+              <div class="df-hub-card-head">
+                <span class="df-hub-card-title">Music &amp; Mixer</span>
+                <button type="button" class="df-hub-inline-link" id="df-open-audio-modal">Full Studio →</button>
+              </div>
+              <div class="df-hub-audio-row">
+                <button type="button" class="df-dock-play ${audioManager.isPlaying ? "is-playing" : ""}" id="df-dock-master-play" aria-label="${audioManager.isPlaying ? "Pause audio" : "Play audio"}">
+                  ${audioManager.isPlaying ? "⏸" : "▶"}
+                </button>
+                <select id="df-disc-select" class="df-dock-disc-select" aria-label="Owned sound discs">
+                  ${ownedDiscs.map((d) => `
+                    <option value="${escapeHtml(d.id)}" ${d.id === activeDiscId ? "selected" : ""}>${escapeHtml(d.name)}</option>
+                  `).join("")}
+                  <option value="__browse__">+ Browse Music Discs…</option>
+                </select>
+                <span class="df-muted tabular-nums" id="df-hub-vol-pct">${volPct}%</span>
+              </div>
+              <label class="df-hub-vol-row">
+                <span class="df-muted">Master</span>
+                <input id="df-hub-master-vol" type="range" min="0" max="100" value="${volPct}" aria-label="Master audio volume" />
+              </label>
+            </section>
+
+            ${renderHubFriendsSectionHtml()}
+
+            <div class="df-hub-foot">
+              <span class="df-muted">${escapeHtml(appearance.sceneName)}</span>
+              <button type="button" class="df-hub-inline-link" id="df-btn-zen" title="Toggle ultra-subtle corner trigger (F)">
+                ${zenMode ? "Show Studio Pill (F)" : "Quiet Corner (F)"}
+              </button>
+            </div>
+          </div>
+        ` : ""}
+      </div>
+    `;
   };
 
   const renderSettingsDrawerHtml = (appearance) => {
@@ -554,9 +647,6 @@ export function initDeepFocusWorkspace() {
       ? (state.localStudyRecords || []).find((r) => r.id === state.pendingCheckInRecordId)
       : null;
 
-    const activeModal = modals.getActiveModal();
-    const userLabel = state.user ? (state.user.displayName || "Account") : "Account";
-
     shellEl.innerHTML = `
       <div class="df-backdrop-wrap" aria-hidden="true">
         <img id="df-backdrop-img" class="df-backdrop-img" src="${escapeHtml(appearance.backdropUrl)}" alt="" draggable="false" referrerpolicy="no-referrer" />
@@ -564,34 +654,8 @@ export function initDeepFocusWorkspace() {
         <canvas id="df-particle-canvas" class="df-particle-canvas"></canvas>
       </div>
 
-      <div class="df-layout ${zenMode ? "is-zen" : ""} ${activeDrawer ? "has-drawer" : ""}">
-        ${zenMode ? `
-          <button type="button" class="df-zen-exit" id="df-exit-zen">Exit Zen Mode (F)</button>
-        ` : `
-          <header class="df-topbar">
-            <div class="df-top-left">
-              <div class="df-mode-slot-spacer" aria-hidden="true"></div>
-              <button type="button" class="df-brand-link" id="df-go-home" title="Main SPRK Desk Website">Home</button>
-              <span class="df-top-sep" aria-hidden="true">/</span>
-              <button type="button" class="df-brand-link" id="df-go-account" title="Profile, Friends & Room Visits">${escapeHtml(userLabel)}</button>
-            </div>
-
-            <nav class="df-nav" aria-label="DeepFocus Studio navigation">
-              <button type="button" class="df-nav-link ${activeModal === "plan" ? "is-active" : ""}" data-df-modal="plan">Plan (${openTasks.length})</button>
-              <button type="button" class="df-nav-link ${activeModal === "knowledge" ? "is-active" : ""}" data-df-modal="knowledge">Notes &amp; Cards</button>
-              <button type="button" class="df-nav-link ${activeModal === "insights" ? "is-active" : ""}" data-df-modal="insights">Insights</button>
-              <button type="button" class="df-nav-link ${activeModal === "community" ? "is-active" : ""}" data-df-modal="community">Rooms</button>
-              <button type="button" class="df-nav-link ${activeModal === "catalog" ? "is-active" : ""}" data-df-modal="catalog">Catalog</button>
-            </nav>
-
-            <div class="df-top-right">
-              <button type="button" class="df-util-btn ${activeModal === "break" ? "is-active" : ""}" data-df-modal="break" title="Eye Rest &amp; Scheduled Break">Break</button>
-              <button type="button" class="df-util-btn" id="df-btn-zen" title="Zen Mode (F)">Zen</button>
-              <button type="button" class="df-util-btn" id="df-btn-palette" title="Command Palette (Ctrl/Cmd+K)">⌘K</button>
-              <button type="button" class="df-util-btn is-icon ${activeDrawer === "settings" ? "is-active" : ""}" id="df-btn-settings" aria-label="Workspace Settings">⚙</button>
-            </div>
-          </header>
-        `}
+      <div class="df-layout is-zen ${activeDrawer ? "has-drawer" : ""}">
+        ${renderExpandableStudioHubHtml({ openTasks, ownedDiscs, activeDiscId, appearance })}
 
         <main class="df-stage" aria-label="DeepFocus Timer Stage">
           <section class="df-timer-card" aria-label="Focus timer">
@@ -687,46 +751,13 @@ export function initDeepFocusWorkspace() {
                 <span aria-hidden="true">·</span>
                 <span>R Reset</span>
                 <span aria-hidden="true">·</span>
-                <span>F Zen</span>
+                <span>M Studio</span>
               </div>
             `}
           </section>
-          ${zenMode ? "" : renderFriendsWidgetHtml()}
         </main>
 
-        ${zenMode ? "" : `
-          <footer class="df-sound-dock" aria-label="Ambient sound mixer dock">
-            <button type="button" class="df-dock-mixer-btn ${activeModal === "music" ? "is-active" : ""}" id="df-open-audio-modal" title="Open Music Player &amp; 8-Channel Mixer">
-              Music &amp; Mixer
-            </button>
-            <div class="df-dock-sliders">
-              ${["rain", "wind", "fireplace"].map((chId) => {
-                const ch = AUDIO_CHANNELS.find((c) => c.id === chId);
-                const pct = Math.round((audioManager.levels[chId] || 0) * 100);
-                return `
-                  <label class="df-dock-ch">
-                    <span>${escapeHtml(ch?.label || chId)}</span>
-                    <input type="range" min="0" max="100" value="${pct}" data-df-audio-ch="${chId}" aria-label="${escapeHtml(ch?.label || chId)} volume" />
-                    <span class="tabular-nums df-muted" id="df-ch-pct-${chId}">${pct}%</span>
-                  </label>
-                `;
-              }).join("")}
-            </div>
-            <div class="df-dock-right">
-              <select id="df-disc-select" class="df-dock-disc-select" aria-label="Owned sound discs">
-                ${ownedDiscs.map((d) => `
-                  <option value="${escapeHtml(d.id)}" ${d.id === activeDiscId ? "selected" : ""}>${escapeHtml(d.name)}</option>
-                `).join("")}
-                <option value="__browse__">+ Browse Music Discs…</option>
-              </select>
-              <button type="button" class="df-dock-play ${audioManager.isPlaying ? "is-playing" : ""}" id="df-dock-master-play" aria-label="${audioManager.isPlaying ? "Mute audio" : "Play audio"}">
-                ${audioManager.isPlaying ? "⏸" : "▶"}
-              </button>
-            </div>
-          </footer>
-        `}
-
-        ${!zenMode && activeDrawer === "settings" ? renderSettingsDrawerHtml(appearance) : ""}
+        ${activeDrawer === "settings" ? renderSettingsDrawerHtml(appearance) : ""}
       </div>
 
       ${modals.renderModalHtml()}
@@ -738,11 +769,36 @@ export function initDeepFocusWorkspace() {
   };
 
   const bindShellEvents = (ownedDiscs) => {
+    // Expandable Top-Right Studio Hub Toggle
+    shellEl.querySelector("#df-hub-toggle")?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      hubExpanded = !hubExpanded;
+      if (hubExpanded) activeDrawer = null;
+      renderShell();
+    });
+
+    shellEl.querySelector(".df-stage")?.addEventListener("click", () => {
+      if (hubExpanded) {
+        hubExpanded = false;
+        renderShell();
+      }
+    });
+
+    shellEl.querySelector("#df-go-cozy")?.addEventListener("click", () => {
+      hubExpanded = false;
+      modals.close();
+      setAppMode("cozy", { syncUrl: false });
+      navigateToPage(PAGE_ROUTES.COZY);
+    });
+
     shellEl.querySelector("#df-go-home")?.addEventListener("click", () => {
+      hubExpanded = false;
       modals.close();
       navigateToPage(PAGE_ROUTES.HOME);
     });
+
     shellEl.querySelector("#df-go-account")?.addEventListener("click", () => {
+      hubExpanded = false;
       modals.close();
       navigateToPage(PAGE_ROUTES.ACCOUNT);
     });
@@ -750,6 +806,7 @@ export function initDeepFocusWorkspace() {
     shellEl.querySelectorAll("[data-df-modal]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const name = btn.dataset.dfModal;
+        hubExpanded = false;
         if (modals.getActiveModal() === name) {
           modals.close();
         } else {
@@ -759,23 +816,63 @@ export function initDeepFocusWorkspace() {
     });
 
     shellEl.querySelector("#df-btn-zen")?.addEventListener("click", () => {
-      zenMode = true;
+      zenMode = !zenMode;
+      hubExpanded = false;
       activeDrawer = null;
-      modals.close();
-      savePreferences({ deepFocus: { zenMode: true } });
+      savePreferences({ deepFocus: { zenMode } });
       renderShell();
     });
-    shellEl.querySelector("#df-exit-zen")?.addEventListener("click", () => {
-      zenMode = false;
-      savePreferences({ deepFocus: { zenMode: false } });
+
+    shellEl.querySelector("#df-btn-palette")?.addEventListener("click", () => {
+      hubExpanded = false;
       renderShell();
+      openCommandPalette();
     });
-    shellEl.querySelector("#df-btn-palette")?.addEventListener("click", () => openCommandPalette());
+
     shellEl.querySelector("#df-btn-settings")?.addEventListener("click", () => {
+      hubExpanded = false;
       activeDrawer = activeDrawer === "settings" ? null : "settings";
       settingsNotice = "";
       renderShell();
     });
+
+    // Hub Audio Controls
+    shellEl.querySelector("#df-open-audio-modal")?.addEventListener("click", () => {
+      hubExpanded = false;
+      modals.open("music", "discs");
+    });
+
+    shellEl.querySelector("#df-hub-master-vol")?.addEventListener("input", (e) => {
+      const pct = Number(e.target.value);
+      audioManager.setMasterVolume(pct / 100);
+      const lbl = shellEl.querySelector("#df-hub-vol-pct");
+      if (lbl) lbl.textContent = `${pct}%`;
+    });
+
+    shellEl.querySelector("#df-disc-select")?.addEventListener("change", async (e) => {
+      const val = e.target.value;
+      if (val === "__browse__") {
+        hubExpanded = false;
+        modals.open("music", "discs");
+        return;
+      }
+      const disc = ownedDiscs.find((d) => d.id === val);
+      if (!disc) return;
+      for (const ch of AUDIO_CHANNELS) {
+        audioManager.setChannelLevel(ch.id, disc.mix?.[ch.id] || 0);
+      }
+      savePreferences({ activeMusicId: disc.id });
+      if (!audioManager.isPlaying) await audioManager.togglePlay(true).catch(() => {});
+      renderShell();
+    });
+
+    shellEl.querySelector("#df-dock-master-play")?.addEventListener("click", async () => {
+      await audioManager.togglePlay();
+      renderShell();
+    });
+
+    // Hub Friends Controls
+    bindHubFriendsEvents();
 
     // Timer Card Events
     shellEl.querySelectorAll("[data-df-tab]").forEach((btn) => {
@@ -863,53 +960,6 @@ export function initDeepFocusWorkspace() {
     });
     shellEl.querySelector("#df-checkin-skip")?.addEventListener("click", () => {
       state.pendingCheckInRecordId = null;
-      renderShell();
-    });
-
-    // Friends Widget
-    bindFriendsWidgetEvents();
-
-    // Sound Mixer Dock
-    shellEl.querySelector("#df-open-audio-modal")?.addEventListener("click", () => {
-      modals.open("music", "discs");
-    });
-
-    shellEl.querySelectorAll("[data-df-audio-ch]").forEach((slider) => {
-      slider.addEventListener("input", async (e) => {
-        const chId = e.target.dataset.dfAudioCh;
-        const pct = Number(e.target.value);
-        audioManager.setChannelLevel(chId, pct / 100);
-        const pctEl = shellEl.querySelector(`#df-ch-pct-${chId}`);
-        if (pctEl) pctEl.textContent = `${pct}%`;
-        if (pct > 0 && !audioManager.isPlaying) {
-          await audioManager.togglePlay(true).catch(() => {});
-          const playBtn = shellEl.querySelector("#df-dock-master-play");
-          if (playBtn) {
-            playBtn.classList.add("is-playing");
-            playBtn.textContent = "⏸";
-          }
-        }
-      });
-    });
-
-    shellEl.querySelector("#df-disc-select")?.addEventListener("change", async (e) => {
-      const val = e.target.value;
-      if (val === "__browse__") {
-        modals.open("music", "discs");
-        return;
-      }
-      const disc = ownedDiscs.find((d) => d.id === val);
-      if (!disc) return;
-      for (const ch of AUDIO_CHANNELS) {
-        audioManager.setChannelLevel(ch.id, disc.mix?.[ch.id] || 0);
-      }
-      savePreferences({ activeMusicId: disc.id });
-      if (!audioManager.isPlaying) await audioManager.togglePlay(true).catch(() => {});
-      renderShell();
-    });
-
-    shellEl.querySelector("#df-dock-master-play")?.addEventListener("click", async () => {
-      await audioManager.togglePlay();
       renderShell();
     });
 
@@ -1103,7 +1153,7 @@ export function initDeepFocusWorkspace() {
     });
   };
 
-  // Global DeepFocus keyboard shortcuts (Space, S, R, F, Escape)
+  // Global DeepFocus keyboard shortcuts (Space, S, R, F, M, Escape)
   window.addEventListener("keydown", (event) => {
     if (!isDeepFocusActive()) return;
     if (document.getElementById("sprk-command-dialog")?.open) return;
@@ -1118,8 +1168,9 @@ export function initDeepFocusWorkspace() {
         modals.close();
         return;
       }
-      if (activeDrawer || zenMode) {
+      if (hubExpanded || activeDrawer || zenMode) {
         event.preventDefault();
+        hubExpanded = false;
         activeDrawer = null;
         zenMode = false;
         savePreferences({ deepFocus: { zenMode: false } });
@@ -1130,7 +1181,12 @@ export function initDeepFocusWorkspace() {
 
     if (isTyping || modals.getActiveModal()) return;
 
-    if (event.code === "Space") {
+    if (key === "m" && !event.metaKey && !event.ctrlKey) {
+      event.preventDefault();
+      hubExpanded = !hubExpanded;
+      if (hubExpanded) activeDrawer = null;
+      renderShell();
+    } else if (event.code === "Space") {
       event.preventDefault();
       if (!state.activeSession) {
         startDeepFocusSession();
@@ -1153,6 +1209,7 @@ export function initDeepFocusWorkspace() {
       event.preventDefault();
       zenMode = !zenMode;
       if (zenMode) {
+        hubExpanded = false;
         activeDrawer = null;
         modals.close();
       }
@@ -1173,6 +1230,7 @@ export function initDeepFocusWorkspace() {
 
   bus.on("deepfocus:open", ({ modal, subTab } = {}) => {
     if (!isDeepFocusActive()) return;
+    hubExpanded = false;
     if (modal === "settings") {
       modals.close();
       activeDrawer = "settings";
@@ -1193,22 +1251,22 @@ export function initDeepFocusWorkspace() {
     "state:localStudyRecords"
   ]) {
     bus.on(ev, () => {
-      if (isDeepFocusActive() && modals.getActiveModal()) {
+      if (isDeepFocusActive() && (modals.getActiveModal() || hubExpanded)) {
         renderShell();
       }
     });
   }
 
   bus.on("studyCircle:changed", () => {
-    if (!isDeepFocusActive()) return;
-    const widget = shellEl.querySelector(".df-friends-panel");
+    if (!isDeepFocusActive() || !hubExpanded) return;
+    const widget = shellEl.querySelector(".df-hub-friends");
     if (widget) {
       const tmp = document.createElement("div");
-      tmp.innerHTML = renderFriendsWidgetHtml();
+      tmp.innerHTML = renderHubFriendsSectionHtml();
       const fresh = tmp.firstElementChild;
       if (fresh) {
         widget.replaceWith(fresh);
-        bindFriendsWidgetEvents();
+        bindHubFriendsEvents();
       }
     }
   });
